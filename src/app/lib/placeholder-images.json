@@ -1,0 +1,23 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "hero-fitness",
+      "description": "Athlete training in a dark gym",
+      "imageUrl": "https://picsum.photos/seed/muscleup-hero/800/1200",
+      "imageHint": "fitness bodybuilding"
+    },
+    {
+      "id": "biceps-workout",
+      "description": "Close up of arm muscles during training",
+      "imageUrl": "https://picsum.photos/seed/biceps/400/300",
+      "imageHint": "biceps training"
+    },
+    {
+      "id": "chest-workout",
+      "description": "Chest training session",
+      "imageUrl": "https://picsum.photos/seed/chest/400/300",
+      "imageHint": "chest workout"
+    }
+  ]
+}
