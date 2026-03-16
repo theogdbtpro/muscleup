@@ -6,9 +6,8 @@ import { UserProfile } from "@/app/page";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Utensils, Apple, Timer, Flame, Calculator, ChevronRight } from "lucide-react";
+import { Sparkles, Utensils, Apple, Timer, Flame, Calculator } from "lucide-react";
 import { PROGRAMS } from "@/data/programs";
-import { cn } from "@/lib/utils";
 
 type NutritionTabProps = {
   profile: UserProfile;
@@ -19,7 +18,10 @@ export default function NutritionTab({ profile }: NutritionTabProps) {
   const { nutrition } = program;
   const [weight, setWeight] = useState("");
 
-  const proteinNeed = weight ? Math.round(parseFloat(weight) * 2) : 0;
+  // Calcul instantané des protéines
+  const proteinNeed = weight && !isNaN(parseFloat(weight)) 
+    ? Math.round(parseFloat(weight) * 2) 
+    : 0;
 
   return (
     <div className="p-6 fade-in pb-32">
@@ -41,17 +43,25 @@ export default function NutritionTab({ profile }: NutritionTabProps) {
             <div className="flex-1">
               <Input 
                 type="number" 
+                inputMode="decimal"
                 placeholder="Poids (kg)" 
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 className="bg-black/40 border-zinc-800 h-12 rounded-xl text-lg font-bold"
               />
             </div>
-            <div className="flex-1 flex flex-col items-center justify-center bg-primary/10 rounded-xl py-2 h-12">
-              <span className="text-xl font-headline text-primary leading-none">{proteinNeed || '--'} g</span>
+            <div className="flex-1 flex flex-col items-center justify-center bg-primary/10 rounded-xl py-2 h-12 min-w-[100px]">
+              <span className="text-xl font-headline text-primary leading-none">
+                {weight ? `${proteinNeed} g` : '--'}
+              </span>
               <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Quotidien</span>
             </div>
           </div>
+          {weight && (
+            <p className="text-[10px] text-muted-foreground mt-3 italic">
+              Basé sur 2g de protéines par kg de poids de corps.
+            </p>
+          )}
         </Card>
 
         {/* Calories Goal */}

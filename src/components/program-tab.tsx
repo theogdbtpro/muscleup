@@ -27,8 +27,11 @@ export default function ProgramTab({ profile }: ProgramTabProps) {
     const savedFinished = localStorage.getItem("muscleup_history");
     if (savedFinished) {
       const history = JSON.parse(savedFinished);
-      const today = new Date().toLocaleDateString();
-      const hasFinishedToday = history.some((h: any) => h.date === today && h.day === selectedDay);
+      const today = new Date().toISOString().split('T')[0];
+      const hasFinishedToday = history.some((h: any) => {
+        const hDate = new Date(h.date).toISOString().split('T')[0];
+        return hDate === today && h.day === selectedDay;
+      });
       setFinishedToday(hasFinishedToday);
     }
   }, [selectedDay]);
@@ -39,7 +42,7 @@ export default function ProgramTab({ profile }: ProgramTabProps) {
     const historyItem = {
       objective: program.name,
       day: currentSession.day,
-      date: new Date().toLocaleDateString(),
+      date: new Date().toISOString(), // Utilisation du format ISO pour la fiabilité
       exercises: currentSession.exercises.length
     };
 

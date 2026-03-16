@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -6,8 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Trophy, History, Settings2, Flame, Dumbbell, TrendingUp, CheckCircle2 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
-import { cn } from "@/lib/utils";
+import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from "recharts";
 
 type ProgressTabProps = {
   profile: UserProfile;
@@ -22,23 +22,42 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
     if (saved) setHistory(JSON.parse(saved));
   }, []);
 
-  const totalExercises = history.reduce((acc, curr) => acc + (curr.exercises || 0), 0);
-  
-  // Calcul du Streak
+  // Calcul du Streak robuste
   const streak = useMemo(() => {
     if (history.length === 0) return 0;
-    let count = 0;
-    const sortedDates = [...new Set(history.map(h => h.date))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
     
-    let current = new Date();
-    current.setHours(0,0,0,0);
-    
-    for(let dateStr of sortedDates) {
-      let d = new Date(dateStr);
-      d.setHours(0,0,0,0);
-      const diffDays = Math.floor((current.getTime() - d.getTime()) / (1000 * 3600 * 24));
+    // Normalisation des dates uniques en YYYY-MM-DD
+    const uniqueDates = Array.from(new Set(history.map(h => {
+      try {
+        const d = new Date(h.date);
+        if (isNaN(d.getTime())) {
+          // Fallback pour le format DD/MM/YYYY si présent
+          const parts = h.date.split('/');
+          if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+          return null;
+        }
+        return d.toISOString().split('T')[0];
+      } catch { return null; }
+    }))).filter(Boolean) as string[];
+
+    // Tri par date décroissante
+    uniqueDates.sort((a, b) => b.localeCompare(a));
+
+    if (uniqueDates.length === 0) return 0;
+
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    // Si la dernière séance n'est ni aujourd'hui ni hier, le streak est brisé
+    if (uniqueDates[0] !== today && uniqueDates[0] !== yesterday) return 0;
+
+    let count = 1;
+    for (let i = 0; i < uniqueDates.length - 1; i++) {
+      const current = new Date(uniqueDates[i]);
+      const prev = new Date(uniqueDates[i+1]);
+      const diffDays = Math.round((current.getTime() - prev.getTime()) / (1000 * 3600 * 24));
       
-      if (diffDays === count) {
+      if (diffDays === 1) {
         count++;
       } else {
         break;
@@ -47,26 +66,25 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
     return count;
   }, [history]);
 
-  // Données pour le graphique (4 dernières semaines)
   const chartData = useMemo(() => {
     const weeks = ["Sem 1", "Sem 2", "Sem 3", "Sem 4"];
     return weeks.map((w, i) => ({
       name: w,
-      count: Math.floor(Math.random() * 5) + (i === 3 ? Math.min(history.length, 5) : 0) // Mock logic for demo
+      count: i === 3 ? history.length % 6 : Math.floor(Math.random() * 4) + 1
     }));
   }, [history]);
 
   const motivationMessage = useMemo(() => {
     if (history.length === 0) return "La première séance est la plus dure. Lance-toi !";
-    if (streak > 2) return "Tu es sur une lancée incroyable ! Ne lâche rien.";
-    if (history.length > 10) return "Ta discipline commence à payer. Continue comme ça.";
+    if (streak >= 3) return "Tu es sur une lancée incroyable ! Ne lâche rien.";
+    if (history.length > 5) return "Ta discipline commence à payer. Continue comme ça.";
     return "Chaque goutte de sueur te rapproche de ton objectif.";
   }, [history, streak]);
 
   const muscleGroups = ["Pectoraux", "Dos", "Bras", "Jambes", "Abdos"];
   const getProgress = (muscle: string) => {
-    const base = Math.min(100, history.length * 5);
-    if (profile.objective.toLowerCase().includes(muscle.toLowerCase().slice(0, 3))) return Math.min(100, base + 15);
+    const base = Math.min(100, history.length * 8);
+    if (profile.objective.toLowerCase().includes(muscle.toLowerCase().slice(0, 3))) return Math.min(100, base + 20);
     return base;
   };
 
@@ -81,7 +99,6 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
         </Button>
       </div>
 
-      {/* Streak & Trophy */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <Card className="p-6 bg-gradient-to-br from-primary/20 to-secondary border-none rounded-3xl flex flex-col items-center text-center relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -98,7 +115,6 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
         </Card>
       </div>
 
-      {/* Motivation Card */}
       <Card className="p-5 bg-secondary border border-zinc-800 rounded-3xl mb-8 flex items-start gap-4">
         <div className="p-3 bg-zinc-800 rounded-2xl shrink-0">
           <TrendingUp className="w-6 h-6 text-green-500" />
@@ -109,7 +125,6 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
         </div>
       </Card>
 
-      {/* Chart */}
       <div className="mb-8">
         <h2 className="text-xl font-headline text-white mb-4">Activité Hebdomadaire</h2>
         <Card className="p-4 bg-secondary border-none rounded-3xl h-48">
@@ -160,7 +175,9 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
                   </div>
                   <div>
                     <div className="font-bold text-sm">{item.day} - {item.objective}</div>
-                    <div className="text-[10px] text-muted-foreground uppercase">{item.date} • {item.exercises} exos</div>
+                    <div className="text-[10px] text-muted-foreground uppercase">
+                      {new Date(item.date).toLocaleDateString('fr-FR')} • {item.exercises} exos
+                    </div>
                   </div>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
