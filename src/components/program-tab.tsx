@@ -4,13 +4,13 @@
 import { useState, useEffect } from "react";
 import { UserProfile } from "@/app/page";
 import { PROGRAMS, Session } from "@/data/programs";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Flame, Clock } from "lucide-react";
+import { CheckCircle2, Flame, Clock, PlayCircle } from "lucide-react";
+import ActiveSession from "./active-session";
 
 type ProgramTabProps = {
   profile: UserProfile;
@@ -20,23 +20,20 @@ export default function ProgramTab({ profile }: ProgramTabProps) {
   const { toast } = useToast();
   const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
   const [selectedDay, setSelectedDay] = useState(new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).charAt(0).toUpperCase() + new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).slice(1));
-  const [completedExercises, setCompletedExercises] = useState<Record<string, boolean>>({});
-  const [finishedSessions, setFinishedSessions] = useState<string[]>([]);
-  const [isAnimatingFinish, setIsAnimatingFinish] = useState(false);
+  const [isActiveSessionOpen, setIsActiveSessionOpen] = useState(false);
+  const [finishedToday, setFinishedToday] = useState(false);
 
   useEffect(() => {
     const savedFinished = localStorage.getItem("muscleup_history");
     if (savedFinished) {
       const history = JSON.parse(savedFinished);
-      setFinishedSessions(history.map((h: any) => `${h.day}-${h.date}`));
+      const today = new Date().toLocaleDateString();
+      const hasFinishedToday = history.some((h: any) => h.date === today && h.day === selectedDay);
+      setFinishedToday(hasFinishedToday);
     }
-  }, []);
+  }, [selectedDay]);
 
   const currentSession = program.sessions.find(s => s.day === selectedDay) || program.sessions[0];
-
-  const toggleExercise = (name: string) => {
-    setCompletedExercises(prev => ({ ...prev, [name]: !prev[name] }));
-  };
 
   const handleFinishSession = () => {
     const historyItem = {
@@ -49,30 +46,23 @@ export default function ProgramTab({ profile }: ProgramTabProps) {
     const existingHistory = JSON.parse(localStorage.getItem("muscleup_history") || "[]");
     localStorage.setItem("muscleup_history", JSON.stringify([historyItem, ...existingHistory]));
 
-    setIsAnimatingFinish(true);
+    setIsActiveSessionOpen(false);
+    setFinishedToday(true);
     toast({
       title: "SÉANCE TERMINÉE ! 💥",
-      description: "Excellent travail, continue comme ça !",
+      description: "Excellent travail, ton historique a été mis à jour.",
     });
-
-    setTimeout(() => {
-      setIsAnimatingFinish(false);
-      setFinishedSessions(prev => [...prev, `${currentSession.day}-${historyItem.date}`]);
-      setCompletedExercises({});
-    }, 2000);
   };
 
-  const isAllChecked = currentSession.exercises.length > 0 && currentSession.exercises.every(ex => completedExercises[ex.name]);
-
   return (
-    <div className={cn("p-6 fade-in min-h-full transition-colors duration-500", isAnimatingFinish && "bg-green-950/30")}>
+    <div className="p-6 fade-in pb-32">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-4xl font-headline text-white leading-none">Mon Programme</h1>
           <Badge variant="outline" className="mt-1 border-primary text-primary font-bold">{program.name}</Badge>
         </div>
         <div className="bg-secondary p-3 rounded-2xl flex flex-col items-center">
-          <Flame className="w-6 h-6 text-primary mb-1" />
+          <Flame className="w-6 h-6 text-primary mb-1 animate-pulse" />
           <span className="text-[10px] font-bold text-muted-foreground uppercase">Semaine 1</span>
         </div>
       </div>
@@ -105,50 +95,56 @@ export default function ProgramTab({ profile }: ProgramTabProps) {
         ) : (
           <>
             <div className="flex justify-between items-end mb-2">
-              <h2 className="text-xl font-headline text-white">Séance du Jour</h2>
+              <h2 className="text-xl font-headline text-white">Aujourd'hui</h2>
               <span className="text-xs text-muted-foreground font-bold uppercase">{currentSession.exercises.length} Exercices</span>
             </div>
+            
             {currentSession.exercises.map((ex) => (
-              <Card key={ex.name} className={cn(
-                "p-4 bg-secondary border-none rounded-2xl transition-all duration-300",
-                completedExercises[ex.name] && "opacity-50"
-              )}>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-lg leading-tight">{ex.name}</h3>
-                    <div className="flex gap-3 mt-1">
-                      <span className="text-xs font-medium text-primary uppercase">{ex.sets} séries</span>
-                      <span className="text-xs font-medium text-muted-foreground uppercase">{ex.reps} reps</span>
-                    </div>
-                  </div>
-                  <Checkbox
-                    id={ex.name}
-                    checked={completedExercises[ex.name]}
-                    onCheckedChange={() => toggleExercise(ex.name)}
-                    className="w-8 h-8 rounded-full border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:text-white"
-                  />
+              <Card key={ex.name} className="p-4 bg-secondary border-none rounded-2xl flex items-center gap-4">
+                <div className="w-12 h-12 bg-black/20 rounded-xl flex items-center justify-center text-xl">
+                  {ex.muscle === 'Biceps' && '💪'}
+                  {ex.muscle === 'Triceps' && '🧨'}
+                  {ex.muscle === 'Pectoraux' && '🦍'}
+                  {ex.muscle === 'Dos' && '🦅'}
+                  {ex.muscle === 'Jambes' && '🍗'}
+                  {ex.muscle === 'Abdos' && '🛡️'}
+                  {ex.muscle === 'Épaules' && '🏔️'}
                 </div>
-                {completedExercises[ex.name] ? null : (
-                  <div className="mt-3 pt-3 border-t border-zinc-800 text-[11px] text-muted-foreground italic">
-                    💡 {ex.technique}
+                <div className="flex-1">
+                  <h3 className="font-bold text-sm leading-tight">{ex.name}</h3>
+                  <div className="flex gap-2 mt-0.5">
+                    <span className="text-[10px] font-bold text-primary uppercase">{ex.sets} séries</span>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase">{ex.reps} reps</span>
                   </div>
-                )}
+                </div>
               </Card>
             ))}
 
             <Button
-              disabled={!isAllChecked || isAnimatingFinish}
-              onClick={handleFinishSession}
+              disabled={finishedToday}
+              onClick={() => setIsActiveSessionOpen(true)}
               className={cn(
                 "w-full h-16 rounded-2xl mt-8 text-xl font-headline transition-all",
-                isAllChecked ? "bg-primary animate-pulse" : "bg-zinc-800"
+                finishedToday ? "bg-green-500/20 text-green-500" : "bg-primary animate-bounce shadow-[0_10px_20px_rgba(226,75,74,0.3)]"
               )}
             >
-              {isAnimatingFinish ? <CheckCircle2 className="w-8 h-8" /> : "TERMINER LA SÉANCE"}
+              {finishedToday ? (
+                <span className="flex items-center gap-2"><CheckCircle2 className="w-6 h-6" /> SÉANCE TERMINÉE</span>
+              ) : (
+                <span className="flex items-center gap-2"><PlayCircle className="w-6 h-6" /> LANCER LA SÉANCE</span>
+              )}
             </Button>
           </>
         )}
       </div>
+
+      {isActiveSessionOpen && (
+        <ActiveSession 
+          session={currentSession} 
+          onClose={() => setIsActiveSessionOpen(false)}
+          onFinish={handleFinishSession}
+        />
+      )}
     </div>
   );
 }
