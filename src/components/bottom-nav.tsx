@@ -2,11 +2,11 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Dumbbell, Activity, Utensils } from "lucide-react";
+import { Dumbbell, Activity, Utensils, MessageSquare } from "lucide-react";
 
 type BottomNavProps = {
-  activeTab: "program" | "progress" | "nutrition";
-  setActiveTab: (tab: "program" | "progress" | "nutrition") => void;
+  activeTab: "program" | "progress" | "nutrition" | "coach";
+  setActiveTab: (tab: "program" | "progress" | "nutrition" | "coach") => void;
 };
 
 export default function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
@@ -14,6 +14,7 @@ export default function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
     { id: "program", label: "Programme", icon: Dumbbell },
     { id: "progress", label: "Progrès", icon: Activity },
     { id: "nutrition", label: "Nutrition", icon: Utensils },
+    { id: "coach", label: "Coach", icon: MessageSquare },
   ] as const;
 
   return (

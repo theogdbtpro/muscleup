@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Flame, Clock, PlayCircle } from "lucide-react";
+import { CheckCircle2, Flame, Clock, PlayCircle, Sparkles, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import ActiveSession from "./active-session";
+import { getExerciseAdvice } from "@/ai/flows/exercise-advice";
 
 type ProgramTabProps = {
   profile: UserProfile;
@@ -21,6 +23,9 @@ export default function ProgramTab({ profile }: ProgramTabProps) {
   const [selectedDay, setSelectedDay] = useState(new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).charAt(0).toUpperCase() + new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).slice(1));
   const [isActiveSessionOpen, setIsActiveSessionOpen] = useState(false);
   const [finishedToday, setFinishedToday] = useState(false);
+  const [expandedAdvice, setExpandedAdvice] = useState<string | null>(null);
+  const [loadingAdvice, setLoadingAdvice] = useState<string | null>(null);
+  const [adviceData, setAdviceData] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const savedFinished = localStorage.getItem("muscleup_history");
@@ -31,13 +36,12 @@ export default function ProgramTab({ profile }: ProgramTabProps) {
         const hasFinishedToday = history.some((h: any) => {
           if (!h.date) return false;
           const d = new Date(h.date);
-          if (isNaN(d.getTime())) return false; // Ignorer les dates invalides
+          if (isNaN(d.getTime())) return false;
           const hDate = d.toISOString().split('T')[0];
           return hDate === today && h.day === selectedDay;
         });
         setFinishedToday(hasFinishedToday);
       } catch (e) {
-        console.error("Erreur de parsing historique:", e);
         setFinishedToday(false);
       }
     }
@@ -62,6 +66,28 @@ export default function ProgramTab({ profile }: ProgramTabProps) {
       title: "SÉANCE TERMINÉE ! 💥",
       description: "Excellent travail, ton historique a été mis à jour.",
     });
+  };
+
+  const fetchAdvice = async (exName: string) => {
+    if (adviceData[exName]) {
+      setExpandedAdvice(expandedAdvice === exName ? null : exName);
+      return;
+    }
+
+    setLoadingAdvice(exName);
+    try {
+      const response = await getExerciseAdvice({
+        exerciseName: exName,
+        level: profile.level,
+        objective: profile.objective
+      });
+      setAdviceData(prev => ({ ...prev, [exName]: response.advice }));
+      setExpandedAdvice(exName);
+    } catch (err) {
+      toast({ variant: "destructive", title: "Erreur IA", description: "Impossible de récupérer le conseil." });
+    } finally {
+      setLoadingAdvice(null);
+    }
   };
 
   return (
@@ -110,24 +136,45 @@ export default function ProgramTab({ profile }: ProgramTabProps) {
             </div>
             
             {currentSession.exercises.map((ex) => (
-              <Card key={ex.name} className="p-4 bg-secondary border-none rounded-2xl flex items-center gap-4">
-                <div className="w-12 h-12 bg-black/20 rounded-xl flex items-center justify-center text-xl">
-                  {ex.muscle.includes('Biceps') && '💪'}
-                  {ex.muscle.includes('Triceps') && '🧨'}
-                  {ex.muscle.includes('Pectoraux') && '🦍'}
-                  {ex.muscle.includes('Dos') && '🦅'}
-                  {ex.muscle.includes('Jambes') && '🍗'}
-                  {ex.muscle.includes('Abdos') && '🛡️'}
-                  {ex.muscle.includes('Épaules') && '🏔️'}
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-sm leading-tight">{ex.name}</h3>
-                  <div className="flex gap-2 mt-0.5">
-                    <span className="text-[10px] font-bold text-primary uppercase">{ex.sets} séries</span>
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase">{ex.reps} reps</span>
+              <div key={ex.name} className="space-y-2">
+                <Card className="p-4 bg-secondary border-none rounded-2xl flex items-center gap-4">
+                  <div className="w-12 h-12 bg-black/20 rounded-xl flex items-center justify-center text-xl">
+                    {ex.muscle.includes('Biceps') && '💪'}
+                    {ex.muscle.includes('Triceps') && '🧨'}
+                    {ex.muscle.includes('Pectoraux') && '🦍'}
+                    {ex.muscle.includes('Dos') && '🦅'}
+                    {ex.muscle.includes('Jambes') && '🍗'}
+                    {ex.muscle.includes('Abdos') && '🛡️'}
+                    {ex.muscle.includes('Épaules') && '🏔️'}
                   </div>
-                </div>
-              </Card>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-sm leading-tight">{ex.name}</h3>
+                    <div className="flex gap-2 mt-0.5">
+                      <span className="text-[10px] font-bold text-primary uppercase">{ex.sets} séries</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">{ex.reps} reps</span>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => fetchAdvice(ex.name)}
+                    className="p-2 h-auto text-primary hover:text-primary/80 hover:bg-primary/10 rounded-xl"
+                  >
+                    {loadingAdvice === ex.name ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                  </Button>
+                </Card>
+                {expandedAdvice === ex.name && (
+                  <div className="bg-primary/5 border border-primary/20 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Bot className="w-4 h-4 text-primary" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Conseil IA Coach</span>
+                    </div>
+                    <p className="text-xs text-zinc-300 italic leading-relaxed">
+                      "{adviceData[ex.name]}"
+                    </p>
+                  </div>
+                )}
+              </div>
             ))}
 
             <Button
@@ -158,3 +205,5 @@ export default function ProgramTab({ profile }: ProgramTabProps) {
     </div>
   );
 }
+
+import { Bot } from "lucide-react";

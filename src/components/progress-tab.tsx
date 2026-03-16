@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -5,8 +6,10 @@ import { UserProfile } from "@/app/page";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Trophy, History, Settings2, Flame, Dumbbell, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Trophy, History, Settings2, Flame, Dumbbell, TrendingUp, CheckCircle2, Sparkles, Loader2, Bot } from "lucide-react";
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from "recharts";
+import { analyzeUserProgress } from "@/ai/flows/analyze-progress";
+import { useToast } from "@/hooks/use-toast";
 
 type ProgressTabProps = {
   profile: UserProfile;
@@ -15,6 +18,9 @@ type ProgressTabProps = {
 
 export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
   const [history, setHistory] = useState<any[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const saved = localStorage.getItem("muscleup_history");
@@ -27,11 +33,9 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
     }
   }, []);
 
-  // Calcul du Streak robuste
   const streak = useMemo(() => {
     if (history.length === 0) return 0;
     
-    // Normalisation des dates uniques en YYYY-MM-DD
     const uniqueDates = Array.from(new Set(history.map(h => {
       try {
         const d = new Date(h.date);
@@ -40,15 +44,12 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
       } catch { return null; }
     }))).filter(Boolean) as string[];
 
-    // Tri par date décroissante
     uniqueDates.sort((a, b) => b.localeCompare(a));
-
     if (uniqueDates.length === 0) return 0;
 
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-    // Si la dernière séance n'est ni aujourd'hui ni hier, le streak est brisé
     if (uniqueDates[0] !== today && uniqueDates[0] !== yesterday) return 0;
 
     let count = 1;
@@ -70,16 +71,33 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
     const weeks = ["Sem 1", "Sem 2", "Sem 3", "Sem 4"];
     return weeks.map((w, i) => ({
       name: w,
-      count: i === 3 ? history.length % 6 : Math.floor(Math.random() * 4) + 1
+      count: i === 3 ? (history.filter(h => {
+        const d = new Date(h.date);
+        const now = new Date();
+        const diff = (now.getTime() - d.getTime()) / (1000 * 3600 * 24);
+        return diff <= 7;
+      }).length) : Math.floor(Math.random() * 4) + 1
     }));
   }, [history]);
 
-  const motivationMessage = useMemo(() => {
-    if (history.length === 0) return "La première séance est la plus dure. Lance-toi !";
-    if (streak >= 3) return "Tu es sur une lancée incroyable ! Ne lâche rien.";
-    if (history.length > 5) return "Ta discipline commence à payer. Continue comme ça.";
-    return "Chaque goutte de sueur te rapproche de ton objectif.";
-  }, [history, streak]);
+  const handleAnalyze = async () => {
+    if (history.length === 0) {
+      toast({ title: "Pas assez de données", description: "Fais au moins une séance pour l'analyser !" });
+      return;
+    }
+    setIsAnalyzing(true);
+    try {
+      const res = await analyzeUserProgress({
+        history: history.slice(0, 10),
+        profile: { objective: profile.objective, level: profile.level }
+      });
+      setAiAnalysis(res.analysis);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur IA", description: "Impossible d'analyser tes progrès." });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const muscleGroups = ["Pectoraux", "Dos", "Bras", "Jambes", "Abdos"];
   const getProgress = (muscle: string) => {
@@ -104,7 +122,7 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
           <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
             <Flame className="w-16 h-16 text-primary" />
           </div>
-          <Flame className="w-10 h-10 text-primary mb-2 animate-bounce" />
+          <Flame className="w-10 h-10 text-primary mb-2 flame-animation" />
           <span className="text-4xl font-headline text-white">{streak}</span>
           <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Jours de Streak</span>
         </Card>
@@ -115,15 +133,32 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
         </Card>
       </div>
 
-      <Card className="p-5 bg-secondary border border-zinc-800 rounded-3xl mb-8 flex items-start gap-4">
-        <div className="p-3 bg-zinc-800 rounded-2xl shrink-0">
-          <TrendingUp className="w-6 h-6 text-green-500" />
-        </div>
-        <div>
-          <h3 className="text-xs font-bold text-muted-foreground uppercase mb-1">Motivation</h3>
-          <p className="text-sm font-medium leading-relaxed italic text-zinc-300">"{motivationMessage}"</p>
-        </div>
-      </Card>
+      {/* IA Analysis Button & Card */}
+      <div className="mb-8">
+        {!aiAnalysis ? (
+          <Button 
+            onClick={handleAnalyze} 
+            disabled={isAnalyzing}
+            className="w-full h-14 rounded-2xl bg-secondary border border-zinc-800 text-white font-headline text-lg hover:bg-zinc-800 transition-all flex items-center justify-center gap-2"
+          >
+            {isAnalyzing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5 text-accent" />}
+            ANALYSER MES PROGRÈS
+          </Button>
+        ) : (
+          <Card className="p-5 bg-gradient-to-br from-zinc-900 to-black border border-accent/30 rounded-3xl shadow-[0_0_20px_rgba(238,59,170,0.1)]">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Bot className="w-5 h-5 text-accent" />
+                <h3 className="text-xs font-bold text-accent uppercase tracking-widest">Rapport IA Coach</h3>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setAiAnalysis(null)} className="h-6 text-[8px] uppercase font-bold text-muted-foreground">Fermer</Button>
+            </div>
+            <p className="text-sm font-medium leading-relaxed italic text-zinc-300">
+              "{aiAnalysis}"
+            </p>
+          </Card>
+        )}
+      </div>
 
       <div className="mb-8">
         <h2 className="text-xl font-headline text-white mb-4">Activité Hebdomadaire</h2>

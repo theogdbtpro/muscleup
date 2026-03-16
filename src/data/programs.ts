@@ -70,7 +70,8 @@ export const PROGRAMS: Program[] = [
           { name: 'Barre au front', sets: '4', reps: '10', technique: 'Coudes serrés.', muscle: 'Triceps' },
           { name: 'Spider Curl', sets: '3', reps: '12', technique: 'Bras ballants sur le banc incliné.', muscle: 'Biceps' },
           { name: 'Pompes mains serrées', sets: '3', reps: 'Max', technique: 'Coudes le long du corps.', muscle: 'Triceps' },
-          { name: 'Curl Inversé Barre', sets: '3', reps: '12', technique: 'Cibler le long supinateur.', muscle: 'Avant-bras' }
+          { name: 'Curl Inversé Barre', sets: '3', reps: '12', technique: 'Cibler le long supinateur.', muscle: 'Avant-bras' },
+          { name: 'Extension unilatérale haltère', sets: '3', reps: '12', technique: 'Stabiliser l\'épaule avec l\'autre main.', muscle: 'Triceps' }
         ]
       },
       { day: 'Samedi', isRestDay: true, exercises: [] },
@@ -100,7 +101,7 @@ export const PROGRAMS: Program[] = [
           { name: 'Développé Incliné Haltères', sets: '3', reps: '10-12', technique: 'Contrôler la descente.', muscle: 'Haut Pectoraux' },
           { name: 'Écartés Poulie Haute', sets: '3', reps: '15', technique: 'Serrer fort en fin de mouvement.', muscle: 'Pectoraux' },
           { name: 'Chest Press Machine', sets: '3', reps: '12', technique: 'Mouvement fluide et contrôlé.', muscle: 'Pectoraux' },
-          { name: 'Pompes Déclines', sets: '3', reps: 'Max', technique: 'Pieds surélevés.', muscle: 'Haut Pectoraux' }
+          { name: 'Pompes Déclinées', sets: '3', reps: 'Max', technique: 'Pieds surélevés.', muscle: 'Haut Pectoraux' }
         ]
       },
       { day: 'Mardi', isRestDay: true, exercises: [] },
@@ -111,7 +112,8 @@ export const PROGRAMS: Program[] = [
           { name: 'Développé Couché Haltères', sets: '4', reps: '10', technique: 'Amplitude maximale.', muscle: 'Pectoraux' },
           { name: 'Dips buste penché', sets: '3', reps: '12', technique: 'Coudes vers l\'extérieur.', muscle: 'Bas Pectoraux' },
           { name: 'Écartés Haltères Incliné', sets: '3', reps: '12', technique: 'Ne pas trop descendre pour préserver l\'épaule.', muscle: 'Haut Pectoraux' },
-          { name: 'Pull over haltère', sets: '3', reps: '12', technique: 'Bras légèrement fléchis.', muscle: 'Pectoraux/Serratus' }
+          { name: 'Pull over haltère', sets: '3', reps: '12', technique: 'Bras légèrement fléchis.', muscle: 'Pectoraux/Serratus' },
+          { name: 'Pompes larges', sets: '3', reps: 'Max', technique: 'Garder le corps bien gainé.', muscle: 'Pectoraux' }
         ]
       },
       { day: 'Jeudi', isRestDay: true, exercises: [] },
@@ -119,7 +121,8 @@ export const PROGRAMS: Program[] = [
           { name: 'Développé Incliné Barre', sets: '4', reps: '8', technique: 'Viser le haut des pectoraux.', muscle: 'Haut Pectoraux' },
           { name: 'Machine à Écartés (Pec Deck)', sets: '3', reps: '15', technique: 'Focus sur la contraction.', muscle: 'Pectoraux' },
           { name: 'Pompes Diamant', sets: '3', reps: 'Max', technique: 'Mains serrées en triangle.', muscle: 'Pectoraux/Triceps' },
-          { name: 'Crossover Poulie Basse', sets: '3', reps: '15', technique: 'Tirer vers le haut.', muscle: 'Haut Pectoraux' }
+          { name: 'Crossover Poulie Basse', sets: '3', reps: '15', technique: 'Tirer vers le haut.', muscle: 'Haut Pectoraux' },
+          { name: 'Développé Décliné', sets: '3', reps: '10', technique: 'Cibler la partie inférieure.', muscle: 'Bas Pectoraux' }
       ] },
       { day: 'Samedi', isRestDay: true, exercises: [] },
       { day: 'Dimanche', isRestDay: true, exercises: [] }
@@ -147,7 +150,8 @@ export const PROGRAMS: Program[] = [
           { name: 'Tractions Large', sets: '4', reps: 'Max', technique: 'Amener le menton au-dessus de la barre.', muscle: 'Grand dorsal' },
           { name: 'Tirage Vertical Poulie', sets: '3', reps: '12', technique: 'Tirer avec les coudes.', muscle: 'Dos' },
           { name: 'Rowing Haltère unilatéral', sets: '3', reps: '10', technique: 'Dos plat, ramener l\'haltère vers la hanche.', muscle: 'Grand dorsal' },
-          { name: 'Pull-down bras tendus', sets: '3', reps: '15', technique: 'Isolation du grand dorsal.', muscle: 'Dos' }
+          { name: 'Pull-down bras tendus', sets: '3', reps: '15', technique: 'Isolation du grand dorsal.', muscle: 'Dos' },
+          { name: 'Rowing inversé', sets: '3', reps: '12', technique: 'Garder le corps droit comme une planche.', muscle: 'Dos' }
         ]
       },
       { day: 'Mardi', isRestDay: true, exercises: [] },
@@ -158,15 +162,17 @@ export const PROGRAMS: Program[] = [
           { name: 'Rowing Barre T', sets: '4', reps: '10', technique: 'Dos plat, genoux fléchis.', muscle: 'Épaisseur du dos' },
           { name: 'Tirage Horizontal Poulie', sets: '3', reps: '12', technique: 'Resserrer les omoplates.', muscle: 'Milieu du dos' },
           { name: 'Facepull Poulie Haute', sets: '3', reps: '15', technique: 'Tirer vers le front, coudes hauts.', muscle: 'Arrière épaule' },
-          { name: 'Lombaires au banc', sets: '3', reps: '15', technique: 'Mouvement contrôlé.', muscle: 'Bas du dos' }
+          { name: 'Lombaires au banc', sets: '3', reps: '15', technique: 'Mouvement contrôlé.', muscle: 'Bas du dos' },
+          { name: 'Shrugs Haltères', sets: '3', reps: '12', technique: 'Haussement pur des épaules.', muscle: 'Trapèzes' }
         ]
       },
       { day: 'Jeudi', isRestDay: true, exercises: [] },
       { day: 'Vendredi', isRestDay: false, exercises: [
           { name: 'Soulevé de terre', sets: '3', reps: '8', technique: 'Dos parfaitement droit.', muscle: 'Chaîne postérieure' },
           { name: 'Tirage poitrine prise serrée', sets: '4', reps: '10', technique: 'Se pencher légèrement en arrière.', muscle: 'Dos' },
-          { name: 'Shrugs Haltères', sets: '3', reps: '15', technique: 'Haussement d\'épaules pur.', muscle: 'Trapèzes' },
-          { name: 'Rowing Machine assis', sets: '3', reps: '12', technique: 'Étirement complet du dos.', muscle: 'Dos' }
+          { name: 'Rowing Machine assis', sets: '3', reps: '12', technique: 'Étirement complet du dos.', muscle: 'Dos' },
+          { name: 'Good Mornings', sets: '3', reps: '12', technique: 'Léger fléchissement des genoux.', muscle: 'Bas du dos' },
+          { name: 'Tirage vertical prise neutre', sets: '3', reps: '12', technique: 'Focus sur le grand dorsal inférieur.', muscle: 'Dos' }
       ] },
       { day: 'Samedi', isRestDay: true, exercises: [] },
       { day: 'Dimanche', isRestDay: true, exercises: [] }
@@ -215,7 +221,8 @@ export const PROGRAMS: Program[] = [
           { name: 'Presse à Cuisses', sets: '3', reps: '15', technique: 'Pousser avec les talons.', muscle: 'Jambes' },
           { name: 'Développé Incliné Haltères', sets: '3', reps: '12', technique: 'Contrôle total.', muscle: 'Pectoraux' },
           { name: 'Tirage Vertical', sets: '3', reps: '12', technique: 'Coudes vers le bas.', muscle: 'Dos' },
-          { name: 'Élévations Latérales', sets: '3', reps: '15', technique: 'Léger fléchissement des coudes.', muscle: 'Épaules' }
+          { name: 'Élévations Latérales', sets: '3', reps: '15', technique: 'Léger fléchissement des coudes.', muscle: 'Épaules' },
+          { name: 'Mountain Climbers', sets: '3', reps: '45s', technique: 'Rythme soutenu, dos plat.', muscle: 'Cardio/Abdos' }
       ] },
       { day: 'Samedi', isRestDay: true, exercises: [] },
       { day: 'Dimanche', isRestDay: true, exercises: [] }
@@ -243,7 +250,8 @@ export const PROGRAMS: Program[] = [
           { name: 'Leg Press', sets: '4', reps: '12-15', technique: 'Ne pas verrouiller les genoux.', muscle: 'Quadriceps' },
           { name: 'Leg Extension', sets: '3', reps: '15', technique: 'Contraction lente.', muscle: 'Quadriceps' },
           { name: 'Fentes Marchées', sets: '3', reps: '20 pas', technique: 'Garder le buste droit.', muscle: 'Fessiers/Jambes' },
-          { name: 'Mollets assis', sets: '4', reps: '15', technique: 'Amplitude maximale.', muscle: 'Mollets' }
+          { name: 'Mollets assis', sets: '4', reps: '15', technique: 'Amplitude maximale.', muscle: 'Mollets' },
+          { name: 'Presse à mollets', sets: '3', reps: '15', technique: 'Pause en haut du mouvement.', muscle: 'Mollets' }
         ]
       },
       { day: 'Mardi', isRestDay: true, exercises: [] },
@@ -254,7 +262,8 @@ export const PROGRAMS: Program[] = [
           { name: 'Leg Curl Assis', sets: '4', reps: '12', technique: 'Dos collé au siège.', muscle: 'Ischios' },
           { name: 'Stiff Leg Deadlift', sets: '3', reps: '10', technique: 'Sentir l\'étirement.', muscle: 'Ischios/Fessiers' },
           { name: 'Gobelet Squat', sets: '3', reps: '15', technique: 'Dos droit.', muscle: 'Jambes' },
-          { name: 'Adducteurs machine', sets: '3', reps: '15', technique: 'Mouvement fluide.', muscle: 'Adducteurs' }
+          { name: 'Adducteurs machine', sets: '3', reps: '15', technique: 'Mouvement fluide.', muscle: 'Adducteurs' },
+          { name: 'Abducteurs machine', sets: '3', reps: '15', technique: 'Focus sur le moyen fessier.', muscle: 'Fessiers' }
         ]
       },
       { day: 'Jeudi', isRestDay: true, exercises: [] },
@@ -262,7 +271,8 @@ export const PROGRAMS: Program[] = [
           { name: 'Squat Barre', sets: '4', reps: '10', technique: 'Regard loin devant.', muscle: 'Jambes' },
           { name: 'Hips Thrust', sets: '3', reps: '12', technique: 'Serrer les fessiers en haut.', muscle: 'Fessiers' },
           { name: 'Mollets debout', sets: '4', reps: '20', technique: 'Amplitude totale.', muscle: 'Mollets' },
-          { name: 'Hack Squat', sets: '3', reps: '12', technique: 'Pieds bien à plat.', muscle: 'Quadriceps' }
+          { name: 'Hack Squat', sets: '3', reps: '12', technique: 'Pieds bien à plat.', muscle: 'Quadriceps' },
+          { name: 'Sissy Squat', sets: '3', reps: 'Max', technique: 'Contrôler la descente.', muscle: 'Quadriceps' }
       ] },
       { day: 'Samedi', isRestDay: true, exercises: [] },
       { day: 'Dimanche', isRestDay: true, exercises: [] }
@@ -290,7 +300,8 @@ export const PROGRAMS: Program[] = [
           { name: 'Crunch Poulie Haute', sets: '4', reps: '15', technique: 'Enrouler la colonne.', muscle: 'Grand droit' },
           { name: 'Relevé de jambes', sets: '4', reps: '12', technique: 'Bassin vers le haut.', muscle: 'Bas abdos' },
           { name: 'Planche Dynamique', sets: '3', reps: '1min', technique: 'Monter et descendre sur les coudes.', muscle: 'Gainage' },
-          { name: 'Crunch Bicyclette', sets: '3', reps: '20', technique: 'Toucher le genou opposé.', muscle: 'Obliques' }
+          { name: 'Crunch Bicyclette', sets: '3', reps: '20', technique: 'Toucher le genou opposé.', muscle: 'Obliques' },
+          { name: 'Russian Twist avec poids', sets: '3', reps: '20', technique: 'Rotation du buste complète.', muscle: 'Obliques' }
         ]
       },
       { day: 'Mardi', isRestDay: true, exercises: [] },
@@ -301,7 +312,8 @@ export const PROGRAMS: Program[] = [
           { name: 'Planche', sets: '4', reps: '1min', technique: 'Corps aligné, ne pas cambrer.', muscle: 'Gainage' },
           { name: 'Russian Twist', sets: '3', reps: '20', technique: 'Rotation contrôlée.', muscle: 'Obliques' },
           { name: 'Sit-ups', sets: '3', reps: '15', technique: 'Mouvement fluide sans élan.', muscle: 'Abdos' },
-          { name: 'Planche latérale', sets: '3', reps: '45s/côté', technique: 'Hanches bien hautes.', muscle: 'Obliques' }
+          { name: 'Planche latérale', sets: '3', reps: '45s/côté', technique: 'Hanches bien hautes.', muscle: 'Obliques' },
+          { name: 'Dead Bug', sets: '3', reps: '12 par côté', technique: 'Bas du dos collé au sol.', muscle: 'Abdos profonds' }
         ]
       },
       { day: 'Jeudi', isRestDay: true, exercises: [] },
@@ -309,7 +321,8 @@ export const PROGRAMS: Program[] = [
           { name: 'Hollow Hold', sets: '3', reps: '45s', technique: 'Bas du dos au sol.', muscle: 'Abdos profonds' },
           { name: 'Mountain Climbers', sets: '3', reps: '30s', technique: 'Rapide et gainé.', muscle: 'Cardio/Abdos' },
           { name: 'L-Sit (sol ou barres)', sets: '3', reps: '15s', technique: 'Bras tendus, jambes tendues.', muscle: 'Abdos/Stabilité' },
-          { name: 'Toes to bar', sets: '3', reps: '10', technique: 'Contrôler la descente.', muscle: 'Bas abdos' }
+          { name: 'Toes to bar', sets: '3', reps: '10', technique: 'Contrôler la descente.', muscle: 'Bas abdos' },
+          { name: 'Enroulement de bassin', sets: '3', reps: '15', technique: 'Mouvement lent et contrôlé.', muscle: 'Bas abdos' }
       ] },
       { day: 'Samedi', isRestDay: true, exercises: [] },
       { day: 'Dimanche', isRestDay: true, exercises: [] }
