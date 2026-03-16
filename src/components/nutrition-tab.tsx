@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -18,7 +17,7 @@ export default function NutritionTab({ profile }: NutritionTabProps) {
   const { nutrition } = program;
   const [weight, setWeight] = useState("");
 
-  // Calcul instantané des protéines
+  // Calcul instantané des protéines (2g par kg)
   const proteinNeed = weight && !isNaN(parseFloat(weight)) 
     ? Math.round(parseFloat(weight) * 2) 
     : 0;
@@ -44,10 +43,10 @@ export default function NutritionTab({ profile }: NutritionTabProps) {
               <Input 
                 type="number" 
                 inputMode="decimal"
-                placeholder="Poids (kg)" 
+                placeholder="Ton poids (kg)" 
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
-                className="bg-black/40 border-zinc-800 h-12 rounded-xl text-lg font-bold"
+                className="bg-black/40 border-zinc-800 h-12 rounded-xl text-lg font-bold text-white focus:ring-primary"
               />
             </div>
             <div className="flex-1 flex flex-col items-center justify-center bg-primary/10 rounded-xl py-2 h-12 min-w-[100px]">
@@ -59,7 +58,7 @@ export default function NutritionTab({ profile }: NutritionTabProps) {
           </div>
           {weight && (
             <p className="text-[10px] text-muted-foreground mt-3 italic">
-              Basé sur 2g de protéines par kg de poids de corps.
+              Basé sur 2g de protéines par kg de poids de corps pour ton objectif {program.name}.
             </p>
           )}
         </Card>
@@ -85,7 +84,7 @@ export default function NutritionTab({ profile }: NutritionTabProps) {
               <div key={i} className="bg-secondary/50 border border-zinc-800 rounded-2xl p-4 flex gap-4">
                 <div className="text-primary font-headline text-lg w-12 shrink-0">{meal.time}</div>
                 <div>
-                  <h4 className="font-bold text-sm mb-0.5">{meal.name}</h4>
+                  <h4 className="font-bold text-sm mb-0.5 text-white">{meal.name}</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">{meal.description}</p>
                 </div>
               </div>
@@ -122,13 +121,13 @@ export default function NutritionTab({ profile }: NutritionTabProps) {
             <div className="flex items-start gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
               <p className="text-sm text-muted-foreground leading-relaxed">
-                <span className="text-white font-bold">Pré-entraînement :</span> 1h30 avant pour l'énergie.
+                <span className="text-white font-bold">Pré-entraînement :</span> Repas 1h30 avant pour l'énergie.
               </p>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
               <p className="text-sm text-muted-foreground leading-relaxed">
-                <span className="text-white font-bold">Post-entraînement :</span> Dans les 30 min pour la récup.
+                <span className="text-white font-bold">Post-entraînement :</span> Repas dans les 30 min pour la récup.
               </p>
             </div>
           </div>

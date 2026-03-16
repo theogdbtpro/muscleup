@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -19,7 +18,13 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
 
   useEffect(() => {
     const saved = localStorage.getItem("muscleup_history");
-    if (saved) setHistory(JSON.parse(saved));
+    if (saved) {
+      try {
+        setHistory(JSON.parse(saved));
+      } catch (e) {
+        setHistory([]);
+      }
+    }
   }, []);
 
   // Calcul du Streak robuste
@@ -30,12 +35,7 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
     const uniqueDates = Array.from(new Set(history.map(h => {
       try {
         const d = new Date(h.date);
-        if (isNaN(d.getTime())) {
-          // Fallback pour le format DD/MM/YYYY si présent
-          const parts = h.date.split('/');
-          if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-          return null;
-        }
+        if (isNaN(d.getTime())) return null;
         return d.toISOString().split('T')[0];
       } catch { return null; }
     }))).filter(Boolean) as string[];
@@ -105,12 +105,12 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
             <Flame className="w-16 h-16 text-primary" />
           </div>
           <Flame className="w-10 h-10 text-primary mb-2 animate-bounce" />
-          <span className="text-4xl font-headline">{streak}</span>
+          <span className="text-4xl font-headline text-white">{streak}</span>
           <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Jours de Streak</span>
         </Card>
         <Card className="p-6 bg-gradient-to-br from-accent/20 to-secondary border-none rounded-3xl flex flex-col items-center text-center">
           <Trophy className="w-10 h-10 text-accent mb-2" />
-          <span className="text-4xl font-headline">{history.length}</span>
+          <span className="text-4xl font-headline text-white">{history.length}</span>
           <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Séances total</span>
         </Card>
       </div>
@@ -121,7 +121,7 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
         </div>
         <div>
           <h3 className="text-xs font-bold text-muted-foreground uppercase mb-1">Motivation</h3>
-          <p className="text-sm font-medium leading-relaxed italic">"{motivationMessage}"</p>
+          <p className="text-sm font-medium leading-relaxed italic text-zinc-300">"{motivationMessage}"</p>
         </div>
       </Card>
 
@@ -147,7 +147,7 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
           {muscleGroups.map(muscle => (
             <div key={muscle} className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-bold uppercase tracking-wider">{muscle}</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">{muscle}</span>
                 <span className="text-xs text-primary font-bold">{getProgress(muscle)}%</span>
               </div>
               <Progress value={getProgress(muscle)} className="h-2 bg-zinc-800" />
@@ -174,7 +174,7 @@ export default function ProgressTab({ profile, onReset }: ProgressTabProps) {
                     <Dumbbell className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <div className="font-bold text-sm">{item.day} - {item.objective}</div>
+                    <div className="font-bold text-sm text-white">{item.day} - {item.objective}</div>
                     <div className="text-[10px] text-muted-foreground uppercase">
                       {new Date(item.date).toLocaleDateString('fr-FR')} • {item.exercises} exos
                     </div>

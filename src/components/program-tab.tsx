@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -26,13 +25,21 @@ export default function ProgramTab({ profile }: ProgramTabProps) {
   useEffect(() => {
     const savedFinished = localStorage.getItem("muscleup_history");
     if (savedFinished) {
-      const history = JSON.parse(savedFinished);
-      const today = new Date().toISOString().split('T')[0];
-      const hasFinishedToday = history.some((h: any) => {
-        const hDate = new Date(h.date).toISOString().split('T')[0];
-        return hDate === today && h.day === selectedDay;
-      });
-      setFinishedToday(hasFinishedToday);
+      try {
+        const history = JSON.parse(savedFinished);
+        const today = new Date().toISOString().split('T')[0];
+        const hasFinishedToday = history.some((h: any) => {
+          if (!h.date) return false;
+          const d = new Date(h.date);
+          if (isNaN(d.getTime())) return false; // Ignorer les dates invalides
+          const hDate = d.toISOString().split('T')[0];
+          return hDate === today && h.day === selectedDay;
+        });
+        setFinishedToday(hasFinishedToday);
+      } catch (e) {
+        console.error("Erreur de parsing historique:", e);
+        setFinishedToday(false);
+      }
     }
   }, [selectedDay]);
 
@@ -42,7 +49,7 @@ export default function ProgramTab({ profile }: ProgramTabProps) {
     const historyItem = {
       objective: program.name,
       day: currentSession.day,
-      date: new Date().toISOString(), // Utilisation du format ISO pour la fiabilité
+      date: new Date().toISOString(),
       exercises: currentSession.exercises.length
     };
 
@@ -105,13 +112,13 @@ export default function ProgramTab({ profile }: ProgramTabProps) {
             {currentSession.exercises.map((ex) => (
               <Card key={ex.name} className="p-4 bg-secondary border-none rounded-2xl flex items-center gap-4">
                 <div className="w-12 h-12 bg-black/20 rounded-xl flex items-center justify-center text-xl">
-                  {ex.muscle === 'Biceps' && '💪'}
-                  {ex.muscle === 'Triceps' && '🧨'}
-                  {ex.muscle === 'Pectoraux' && '🦍'}
-                  {ex.muscle === 'Dos' && '🦅'}
-                  {ex.muscle === 'Jambes' && '🍗'}
-                  {ex.muscle === 'Abdos' && '🛡️'}
-                  {ex.muscle === 'Épaules' && '🏔️'}
+                  {ex.muscle.includes('Biceps') && '💪'}
+                  {ex.muscle.includes('Triceps') && '🧨'}
+                  {ex.muscle.includes('Pectoraux') && '🦍'}
+                  {ex.muscle.includes('Dos') && '🦅'}
+                  {ex.muscle.includes('Jambes') && '🍗'}
+                  {ex.muscle.includes('Abdos') && '🛡️'}
+                  {ex.muscle.includes('Épaules') && '🏔️'}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold text-sm leading-tight">{ex.name}</h3>
