@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -6,7 +5,7 @@ import { UserProfile } from "@/app/page";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Trophy, History, Settings2, Flame, Dumbbell, TrendingUp } from "lucide-react";
+import { Trophy, History, Settings2, Flame, Dumbbell, TrendingUp, CheckCircle2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
 import { cn } from "@/lib/utils";
 
