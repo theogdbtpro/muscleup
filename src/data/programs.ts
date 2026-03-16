@@ -1,4 +1,3 @@
-
 export type Exercise = {
   name: string;
   sets: string;
@@ -13,11 +12,17 @@ export type Session = {
   isRestDay: boolean;
 };
 
+export type NutritionInfo = {
+  keyFoods: string[];
+  caloriesGoal: string;
+};
+
 export type Program = {
   id: string;
   name: string;
   emoji: string;
   sessions: Session[];
+  nutrition: NutritionInfo;
 };
 
 export const PROGRAMS: Program[] = [
@@ -56,7 +61,11 @@ export const PROGRAMS: Program[] = [
       },
       { day: 'Samedi', isRestDay: true, exercises: [] },
       { day: 'Dimanche', isRestDay: true, exercises: [] }
-    ]
+    ],
+    nutrition: {
+      keyFoods: ['Poulet', 'Beurre de cacahuète', 'Riz complet'],
+      caloriesGoal: 'Prise de masse (+300 à 500 kcal)'
+    }
   },
   {
     id: 'pectoraux',
@@ -88,7 +97,11 @@ export const PROGRAMS: Program[] = [
       ] },
       { day: 'Samedi', isRestDay: true, exercises: [] },
       { day: 'Dimanche', isRestDay: true, exercises: [] }
-    ]
+    ],
+    nutrition: {
+      keyFoods: ['Dinde', 'Avocat', 'Pâtes complètes'],
+      caloriesGoal: 'Prise de masse (Surplus calorique)'
+    }
   },
   {
     id: 'dos-large',
@@ -119,7 +132,11 @@ export const PROGRAMS: Program[] = [
       ] },
       { day: 'Samedi', isRestDay: true, exercises: [] },
       { day: 'Dimanche', isRestDay: true, exercises: [] }
-    ]
+    ],
+    nutrition: {
+      keyFoods: ['Saumon', 'Cottage cheese', 'Quinoa'],
+      caloriesGoal: 'Prise de masse (Optimisation anabolique)'
+    }
   },
   {
     id: 'full-body',
@@ -152,7 +169,11 @@ export const PROGRAMS: Program[] = [
       ] },
       { day: 'Samedi', isRestDay: true, exercises: [] },
       { day: 'Dimanche', isRestDay: true, exercises: [] }
-    ]
+    ],
+    nutrition: {
+      keyFoods: ['Oeufs entiers', 'Flocons d\'avoine', 'Légumes verts'],
+      caloriesGoal: 'Maintenance ou Recomposition'
+    }
   },
   {
     id: 'jambes',
@@ -183,7 +204,11 @@ export const PROGRAMS: Program[] = [
       ] },
       { day: 'Samedi', isRestDay: true, exercises: [] },
       { day: 'Dimanche', isRestDay: true, exercises: [] }
-    ]
+    ],
+    nutrition: {
+      keyFoods: ['Boeuf haché 5%', 'Patate douce', 'Noix'],
+      caloriesGoal: 'Prise de masse (Focus énergie)'
+    }
   },
   {
     id: 'abdos',
@@ -214,6 +239,10 @@ export const PROGRAMS: Program[] = [
       ] },
       { day: 'Samedi', isRestDay: true, exercises: [] },
       { day: 'Dimanche', isRestDay: true, exercises: [] }
-    ]
+    ],
+    nutrition: {
+      keyFoods: ['Thon', 'Épinards', 'Fromage blanc 0%'],
+      caloriesGoal: 'Sèche (Déficit calorique)'
+    }
   }
 ];
