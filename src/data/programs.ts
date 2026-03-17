@@ -40,12 +40,12 @@ export type Program = {
 export const PROGRAMS: Program[] = [
   {
     id: 'gros-bras',
-    name: 'Gros bras',
+    name: 'Programme Gros Bras',
     emoji: '💪',
     sessions: [
       {
         id: 'gb-1',
-        name: 'Explosion Biceps',
+        name: 'Séance Bras A',
         day: 'Lundi',
         duration: '45 min',
         isRestDay: false,
@@ -53,21 +53,22 @@ export const PROGRAMS: Program[] = [
           { name: 'Curl Barre EZ', sets: '4', reps: '10-12', technique: 'Coudes collés.', muscle: 'Biceps', rest: '60s' },
           { name: 'Extension Triceps', sets: '4', reps: '12-15', technique: 'Extension complète.', muscle: 'Triceps', rest: '60s' },
           { name: 'Curl Marteau', sets: '3', reps: '12', technique: 'Prise neutre.', muscle: 'Biceps', rest: '60s' },
-          { name: 'Dips Banc', sets: '3', reps: '15', technique: 'Descente contrôlée.', muscle: 'Triceps', rest: '60s' }
+          { name: 'Dips Banc', sets: '3', reps: '15', technique: 'Descente contrôlée.', muscle: 'Triceps', rest: '60s' },
+          { name: 'Curl Incliné', sets: '3', reps: '12', technique: 'Étirement maximal.', muscle: 'Biceps', rest: '60s' }
         ]
       },
       { id: 'gb-2', name: 'Repos', day: 'Mardi', duration: '-', isRestDay: true, exercises: [] },
       {
         id: 'gb-3',
-        name: 'Triceps Power',
+        name: 'Séance Bras B',
         day: 'Mercredi',
         duration: '50 min',
         isRestDay: false,
         exercises: [
           { name: 'Barre au front', sets: '4', reps: '10', technique: 'Coudes serrés.', muscle: 'Triceps', rest: '90s' },
-          { name: 'Curl Incliné', sets: '3', reps: '12', technique: 'Étirement maximal.', muscle: 'Biceps', rest: '60s' },
           { name: 'Kickback Haltère', sets: '3', reps: '15', technique: 'Bras fixe.', muscle: 'Triceps', rest: '60s' },
-          { name: 'Spider Curl', sets: '3', reps: '12', technique: 'Isoler le biceps.', muscle: 'Biceps', rest: '60s' }
+          { name: 'Spider Curl', sets: '3', reps: '12', technique: 'Isoler le biceps.', muscle: 'Biceps', rest: '60s' },
+          { name: 'Extension Poulie', sets: '4', reps: '15', technique: 'Contracter fort.', muscle: 'Triceps', rest: '60s' }
         ]
       }
     ],
@@ -84,12 +85,12 @@ export const PROGRAMS: Program[] = [
   },
   {
     id: 'pectoraux',
-    name: 'Pectoraux',
+    name: 'Programme Pectoraux',
     emoji: '🦍',
     sessions: [
       {
         id: 'pec-1',
-        name: 'Force Pectorale',
+        name: 'Séance Pecs A',
         day: 'Lundi',
         duration: '55 min',
         isRestDay: false,
@@ -97,21 +98,22 @@ export const PROGRAMS: Program[] = [
           { name: 'Développé Couché', sets: '4', reps: '8-10', technique: 'Cage sortie.', muscle: 'Pectoraux', rest: '120s' },
           { name: 'Développé Incliné', sets: '3', reps: '10-12', technique: 'Focus haut pec.', muscle: 'Haut Pectoraux', rest: '90s' },
           { name: 'Écartés Poulie', sets: '3', reps: '15', technique: 'Serrer fort.', muscle: 'Pectoraux', rest: '60s' },
-          { name: 'Pompes Diamant', sets: '3', reps: 'Max', technique: 'Mains serrées.', muscle: 'Pectoraux', rest: '60s' }
+          { name: 'Pompes Diamant', sets: '3', reps: 'Max', technique: 'Mains serrées.', muscle: 'Pectoraux', rest: '60s' },
+          { name: 'Dips Buste Penché', sets: '3', reps: '10', technique: 'Coudes ouverts.', muscle: 'Bas Pectoraux', rest: '90s' }
         ]
       },
       { id: 'pec-2', name: 'Repos', day: 'Mardi', duration: '-', isRestDay: true, exercises: [] },
       {
         id: 'pec-3',
-        name: 'Volume Pectoral',
+        name: 'Séance Pecs B',
         day: 'Mercredi',
         duration: '50 min',
         isRestDay: false,
         exercises: [
-          { name: 'Dips Buste Penché', sets: '4', reps: '10', technique: 'Coudes ouverts.', muscle: 'Pectoraux', rest: '90s' },
           { name: 'Chest Press', sets: '3', reps: '12', technique: 'Tension continue.', muscle: 'Pectoraux', rest: '60s' },
           { name: 'Écartés Haltères', sets: '3', reps: '12', technique: 'Ampleur contrôlée.', muscle: 'Pectoraux', rest: '60s' },
-          { name: 'Crossover Bas', sets: '3', reps: '15', technique: 'Finir en haut.', muscle: 'Haut Pec', rest: '60s' }
+          { name: 'Crossover Bas', sets: '3', reps: '15', technique: 'Finir en haut.', muscle: 'Haut Pec', rest: '60s' },
+          { name: 'Pompes lestées', sets: '3', reps: '15', technique: 'Gainage strict.', muscle: 'Pectoraux', rest: '60s' }
         ]
       }
     ],
@@ -128,12 +130,12 @@ export const PROGRAMS: Program[] = [
   },
   {
     id: 'dos-large',
-    name: 'Dos large',
+    name: 'Programme Dos Large',
     emoji: '🦅',
     sessions: [
       {
         id: 'dos-1',
-        name: 'Largeur Dos',
+        name: 'Séance Dos A',
         day: 'Lundi',
         duration: '60 min',
         isRestDay: false,
@@ -141,21 +143,22 @@ export const PROGRAMS: Program[] = [
           { name: 'Tractions Large', sets: '4', reps: 'Max', technique: 'Menton barre.', muscle: 'Grand dorsal', rest: '120s' },
           { name: 'Tirage Vertical', sets: '3', reps: '12', technique: 'Coudes hanches.', muscle: 'Dos', rest: '90s' },
           { name: 'Rowing Haltère', sets: '3', reps: '10', technique: 'Dos plat.', muscle: 'Dos', rest: '60s' },
-          { name: 'Pull bras tendus', sets: '3', reps: '15', technique: 'Isolation.', muscle: 'Grand dorsal', rest: '60s' }
+          { name: 'Pull bras tendus', sets: '3', reps: '15', technique: 'Isolation.', muscle: 'Grand dorsal', rest: '60s' },
+          { name: 'Facepull', sets: '3', reps: '15', technique: 'Arrière épaule.', muscle: 'Trapèzes', rest: '60s' }
         ]
       },
       { id: 'dos-2', name: 'Repos', day: 'Mardi', duration: '-', isRestDay: true, exercises: [] },
       {
         id: 'dos-3',
-        name: 'Épaisseur Dos',
+        name: 'Séance Dos B',
         day: 'Mercredi',
         duration: '55 min',
         isRestDay: false,
         exercises: [
           { name: 'Soulevé de terre', sets: '3', reps: '8', technique: 'Gainage max.', muscle: 'Dos complet', rest: '180s' },
           { name: 'Rowing Barre T', sets: '4', reps: '10', technique: 'Tirer avec coudes.', muscle: 'Milieu dos', rest: '90s' },
-          { name: 'Facepull', sets: '3', reps: '15', technique: 'Arrière épaule.', muscle: 'Trapèzes', rest: '60s' },
-          { name: 'Rowing Assis', sets: '3', reps: '12', technique: 'Omoplates serrées.', muscle: 'Milieu dos', rest: '60s' }
+          { name: 'Rowing Assis', sets: '3', reps: '12', technique: 'Omoplates serrées.', muscle: 'Milieu dos', rest: '60s' },
+          { name: 'Extensions Lombaires', sets: '3', reps: '15', technique: 'Contrôlé.', muscle: 'Lombaires', rest: '60s' }
         ]
       }
     ],
@@ -172,12 +175,12 @@ export const PROGRAMS: Program[] = [
   },
   {
     id: 'full-body',
-    name: 'Full body',
+    name: 'Programme Full Body',
     emoji: '⚡',
     sessions: [
       {
         id: 'fb-1',
-        name: 'Complet A',
+        name: 'Séance Full Body A',
         day: 'Lundi',
         duration: '65 min',
         isRestDay: false,
@@ -185,13 +188,14 @@ export const PROGRAMS: Program[] = [
           { name: 'Squat Barre', sets: '4', reps: '10', technique: 'Dos droit.', muscle: 'Jambes', rest: '120s' },
           { name: 'DC Barre', sets: '4', reps: '10', technique: 'Contrôler.', muscle: 'Pectoraux', rest: '90s' },
           { name: 'Tractions', sets: '3', reps: 'Max', technique: 'Amplitude.', muscle: 'Dos', rest: '90s' },
-          { name: 'Dips', sets: '3', reps: '12', technique: 'Buste droit.', muscle: 'Haut corps', rest: '60s' }
+          { name: 'Dips', sets: '3', reps: '12', technique: 'Buste droit.', muscle: 'Haut corps', rest: '60s' },
+          { name: 'Planche', sets: '3', reps: '1min', technique: 'Gainage.', muscle: 'Abdos', rest: '60s' }
         ]
       },
       { id: 'fb-2', name: 'Repos', day: 'Mardi', duration: '-', isRestDay: true, exercises: [] },
       {
         id: 'fb-3',
-        name: 'Complet B',
+        name: 'Séance Full Body B',
         day: 'Mercredi',
         duration: '65 min',
         isRestDay: false,
@@ -216,12 +220,12 @@ export const PROGRAMS: Program[] = [
   },
   {
     id: 'jambes',
-    name: 'Jambes',
+    name: 'Programme Jambes',
     emoji: '🍗',
     sessions: [
       {
         id: 'jam-1',
-        name: 'Quad Power',
+        name: 'Séance Jambes A',
         day: 'Lundi',
         duration: '60 min',
         isRestDay: false,
@@ -229,13 +233,14 @@ export const PROGRAMS: Program[] = [
           { name: 'Squat Arrière', sets: '4', reps: '10', technique: 'Descente lente.', muscle: 'Quadriceps', rest: '120s' },
           { name: 'Presse 45°', sets: '3', reps: '12', technique: 'Pieds larges.', muscle: 'Quadriceps', rest: '90s' },
           { name: 'Fentes Haltères', sets: '3', reps: '20 pas', technique: 'Genou 90°.', muscle: 'Jambes', rest: '60s' },
-          { name: 'Leg Extension', sets: '3', reps: '15', technique: 'Pause en haut.', muscle: 'Quadriceps', rest: '60s' }
+          { name: 'Leg Extension', sets: '3', reps: '15', technique: 'Pause en haut.', muscle: 'Quadriceps', rest: '60s' },
+          { name: 'Mollets Debout', sets: '4', reps: '20', technique: 'Amplitude max.', muscle: 'Mollets', rest: '60s' }
         ]
       },
       { id: 'jam-2', name: 'Repos', day: 'Mardi', duration: '-', isRestDay: true, exercises: [] },
       {
         id: 'jam-3',
-        name: 'Ischios & Fessiers',
+        name: 'Séance Jambes B',
         day: 'Mercredi',
         duration: '55 min',
         isRestDay: false,
@@ -243,7 +248,7 @@ export const PROGRAMS: Program[] = [
           { name: 'Leg Curl Assis', sets: '4', reps: '12', technique: 'Isoler derrière.', muscle: 'Ischios', rest: '60s' },
           { name: 'Hips Thrust', sets: '4', reps: '10', technique: 'Contraction fessier.', muscle: 'Fessiers', rest: '90s' },
           { name: 'SDT Jambes Tendues', sets: '3', reps: '12', technique: 'Étirement.', muscle: 'Ischios', rest: '90s' },
-          { name: 'Mollets Debout', sets: '4', reps: '20', technique: 'Amplitude max.', muscle: 'Mollets', rest: '60s' }
+          { name: 'Abducteurs Machine', sets: '3', reps: '20', technique: 'Tension.', muscle: 'Fessiers', rest: '60s' }
         ]
       }
     ],
@@ -260,12 +265,12 @@ export const PROGRAMS: Program[] = [
   },
   {
     id: 'abdos',
-    name: 'Abdos',
+    name: 'Programme Abdos',
     emoji: '🛡️',
     sessions: [
       {
         id: 'abd-1',
-        name: 'Coeur de Bronze',
+        name: 'Séance Abdos A',
         day: 'Lundi',
         duration: '30 min',
         isRestDay: false,
@@ -273,21 +278,22 @@ export const PROGRAMS: Program[] = [
           { name: 'Crunch Poulie', sets: '4', reps: '15', technique: 'Enrouler.', muscle: 'Grand droit', rest: '60s' },
           { name: 'Relevé de jambes', sets: '4', reps: '12', technique: 'Lent.', muscle: 'Bas abdos', rest: '60s' },
           { name: 'Planche', sets: '3', reps: '1min', technique: 'Gainage.', muscle: 'Abdos profonds', rest: '60s' },
-          { name: 'Russian Twist', sets: '3', reps: '20', technique: 'Rotation.', muscle: 'Obliques', rest: '45s' }
+          { name: 'Russian Twist', sets: '3', reps: '20', technique: 'Rotation.', muscle: 'Obliques', rest: '45s' },
+          { name: 'Mountain Climbers', sets: '3', reps: '45s', technique: 'Rapide.', muscle: 'Abdos/Cardio', rest: '45s' }
         ]
       },
       { id: 'abd-2', name: 'Repos', day: 'Mardi', duration: '-', isRestDay: true, exercises: [] },
       {
         id: 'abd-3',
-        name: 'Ceinture Gainée',
+        name: 'Séance Abdos B',
         day: 'Mercredi',
         duration: '35 min',
         isRestDay: false,
         exercises: [
           { name: 'Dead Bug', sets: '4', reps: '12/côté', technique: 'Dos collé.', muscle: 'Abdos profonds', rest: '60s' },
-          { name: 'Mountain Climbers', sets: '3', reps: '45s', technique: 'Rapide.', muscle: 'Abdos/Cardio', rest: '45s' },
           { name: 'Planche Latérale', sets: '3', reps: '45s/côté', technique: 'Hanches hautes.', muscle: 'Obliques', rest: '60s' },
-          { name: 'Hollow Hold', sets: '3', reps: '45s', technique: 'Gainage total.', muscle: 'Abdos', rest: '60s' }
+          { name: 'Hollow Hold', sets: '3', reps: '45s', technique: 'Gainage total.', muscle: 'Abdos', rest: '60s' },
+          { name: 'Ab Wheel', sets: '3', reps: '10', technique: 'Dos plat.', muscle: 'Abdos', rest: '60s' }
         ]
       }
     ],

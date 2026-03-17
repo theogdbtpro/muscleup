@@ -5,6 +5,7 @@ import Onboarding from "@/components/onboarding";
 import Dashboard from "@/components/dashboard";
 
 export type UserProfile = {
+  name: string;
   objective: string;
   level: string;
   frequency: string;

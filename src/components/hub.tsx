@@ -4,7 +4,8 @@ import { UserProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Flame, Activity, Utensils, MessageSquare, ChevronRight, Lightbulb, CheckCircle2, Circle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +26,6 @@ const OBJECTIVE_TIPS: Record<string, string> = {
 export default function Hub({ profile, setView }: HubProps) {
   const [history, setHistory] = useState<any[]>([]);
   
-  // Correction 1 : Trouver le vrai programme
   const program = useMemo(() => {
     return PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
   }, [profile.objective]);
@@ -43,18 +43,40 @@ export default function Hub({ profile, setView }: HubProps) {
     return history.some(h => h.date && h.date.split('T')[0] === todayStr);
   }, [history]);
 
+  // Correction Streak : jours consécutifs réels
   const streak = useMemo(() => {
     if (history.length === 0) return 0;
-    // Logique simplifiée : nombre de séances totales pour cet exercice de style
-    return history.length;
+    
+    const dates = history.map(h => new Date(h.date).toISOString().split('T')[0]);
+    const uniqueDates = Array.from(new Set(dates)).sort((a, b) => b.localeCompare(a));
+    
+    if (uniqueDates.length === 0) return 0;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    
+    // Si la dernière séance n'est ni aujourd'hui ni hier, le streak est brisé
+    if (uniqueDates[0] !== today && uniqueDates[0] !== yesterdayStr) return 0;
+    
+    let currentStreak = 1;
+    for (let i = 0; i < uniqueDates.length - 1; i++) {
+      const current = new Date(uniqueDates[i]);
+      const prev = new Date(uniqueDates[i + 1]);
+      const diff = (current.getTime() - prev.getTime()) / (1000 * 3600 * 24);
+      
+      if (Math.round(diff) === 1) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+    return currentStreak;
   }, [history]);
 
-  // Déterminer le statut des jours de la semaine
   const dayStatuses = useMemo(() => {
     const statuses = new Array(7).fill("upcoming");
-    const todayStr = new Date().toISOString().split('T')[0];
-    
-    // On vérifie dans l'historique quels jours ont été complétés cette semaine
     const now = new Date();
     const monday = new Date(now);
     monday.setDate(now.getDate() - currentDayIdx);
@@ -71,12 +93,27 @@ export default function Hub({ profile, setView }: HubProps) {
     return statuses;
   }, [history, currentDayIdx]);
 
+  // Calcul de la progression de la semaine
+  const weeklySessionsDone = useMemo(() => {
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - currentDayIdx);
+    monday.setHours(0,0,0,0);
+    
+    return history.filter(h => new Date(h.date) >= monday).length;
+  }, [history, currentDayIdx]);
+
+  const totalWeeklyGoal = parseInt(profile.frequency) || 3;
+  const weeklyProgressPercent = Math.min((weeklySessionsDone / totalWeeklyGoal) * 100, 100);
+
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-headline text-white leading-none">Bonjour Athlète</h1>
-          <p className="text-zinc-500 text-xs font-bold uppercase mt-1 tracking-widest">C'est le moment de briller</p>
+          <h1 className="text-3xl font-headline text-white leading-none">
+            {profile.name ? `Bonjour ${profile.name}` : "Bonjour !"}
+          </h1>
+          <p className="text-zinc-500 text-[10px] font-bold uppercase mt-1 tracking-widest">Forger ton corps, maintenant.</p>
         </div>
         <div className="bg-[#E24B4A]/10 px-4 py-2 rounded-full flex items-center gap-2 border border-[#E24B4A]/20">
           <Flame className="w-4 h-4 text-[#E24B4A] fill-[#E24B4A]" />
@@ -84,14 +121,14 @@ export default function Hub({ profile, setView }: HubProps) {
         </div>
       </header>
 
-      {/* Hero Card Workout - Correction 1 */}
+      {/* Hero Card Workout */}
       <Card className={cn(
         "p-8 rounded-2xl border-none relative overflow-hidden shadow-2xl transition-all",
         finishedToday ? "bg-[#1A4A2A]" : "bg-[#E24B4A]"
       )}>
         <div className="relative z-10 space-y-6">
           <div>
-            <h3 className={cn("text-xs font-bold uppercase tracking-widest mb-2", finishedToday ? "text-green-400" : "text-white/70")}>
+            <h3 className={cn("text-[10px] font-bold uppercase tracking-widest mb-2", finishedToday ? "text-green-400" : "text-white/70")}>
               {finishedToday ? "Bravo !" : "Séance du jour"}
             </h3>
             <h4 className="text-4xl font-headline text-white leading-tight uppercase">
@@ -112,7 +149,7 @@ export default function Hub({ profile, setView }: HubProps) {
         </div>
       </Card>
 
-      {/* Days Week Row - Correction 2 */}
+      {/* Days Week Row */}
       <div className="flex justify-between items-end px-1">
         {days.map((day, i) => {
           const isToday = i === currentDayIdx;
@@ -126,18 +163,14 @@ export default function Hub({ profile, setView }: HubProps) {
           return (
             <div key={i} className="flex flex-col items-center gap-2">
               <div className={cn(
-                "rounded-full flex items-center justify-center transition-all duration-300 border",
+                "rounded-full flex items-center justify-center transition-all duration-300 border font-headline text-xl",
                 isToday 
-                  ? "w-[44px] h-[44px] bg-[#E24B4A] border-[#E24B4A] text-white shadow-lg shadow-[#E24B4A]/20" 
+                  ? "w-[44px] h-[44px] bg-[#E24B4A] border-[#E24B4A] text-white shadow-lg shadow-[#E24B4A]/20 scale-110" 
                   : isDone 
                     ? "w-[40px] h-[40px] bg-[#1A4A2A] border-[#4CAF50] text-[#4CAF50]"
-                    : isRest
-                      ? "w-[40px] h-[40px] bg-[#1A1A1A] border-[#2A2A2A] text-zinc-600"
-                      : "w-[40px] h-[40px] bg-[#1A1A1A] border-[#2A2A2A] text-zinc-400"
+                    : "w-[40px] h-[40px] bg-[#1A1A1A] border-[#2A2A2A] text-zinc-600"
               )}>
-                <span className={cn("font-headline text-xl", isToday ? "scale-110" : "")}>
-                  {day}
-                </span>
+                {day}
               </div>
               <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-tighter">{day}</span>
             </div>
@@ -170,7 +203,7 @@ export default function Hub({ profile, setView }: HubProps) {
         </button>
       </div>
 
-      {/* Correction 3 : Section Conseil du jour */}
+      {/* Section Conseil du jour */}
       <section className="space-y-4">
         <h2 className="text-xl font-headline text-white tracking-wide">CONSEIL DU JOUR</h2>
         <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-5 flex items-start gap-4">
@@ -185,7 +218,7 @@ export default function Hub({ profile, setView }: HubProps) {
         </Card>
       </section>
 
-      {/* Correction 3 : Section Programme de la semaine */}
+      {/* Section Programme de la semaine */}
       <section className="space-y-4">
         <h2 className="text-xl font-headline text-white tracking-wide">PROGRAMME DE LA SEMAINE</h2>
         <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
@@ -193,6 +226,7 @@ export default function Hub({ profile, setView }: HubProps) {
             const session = program.sessions.find(s => s.day === dayName);
             const isDone = dayStatuses[idx] === "done";
             const isToday = idx === currentDayIdx;
+            const isRest = !session || session.isRestDay;
 
             return (
               <div 
@@ -208,7 +242,7 @@ export default function Hub({ profile, setView }: HubProps) {
                   </span>
                   <div>
                     <div className={cn("text-sm font-bold uppercase tracking-tight", isToday ? "text-white" : "text-zinc-400")}>
-                      {!session || session.isRestDay ? "Repos" : session.name}
+                      {isRest ? "Repos" : session.name}
                     </div>
                   </div>
                 </div>
@@ -221,6 +255,21 @@ export default function Hub({ profile, setView }: HubProps) {
             );
           })}
         </div>
+      </section>
+
+      {/* Ma progression hebdomadaire */}
+      <section className="space-y-4 pb-6">
+        <h2 className="text-xl font-headline text-white tracking-wide">MA PROGRESSION</h2>
+        <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-6 space-y-4 shadow-xl">
+          <div className="flex justify-between items-end">
+            <div>
+              <span className="text-4xl font-headline text-white leading-none">{weeklySessionsDone} / {totalWeeklyGoal}</span>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Séances cette semaine</p>
+            </div>
+            <span className="text-xl font-headline text-[#E24B4A]">{Math.round(weeklyProgressPercent)}%</span>
+          </div>
+          <Progress value={weeklyProgressPercent} className="h-3 bg-[#0F0F0F]" />
+        </Card>
       </section>
     </div>
   );
