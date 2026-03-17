@@ -1,24 +1,24 @@
-
 "use client";
 
 import { UserProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Flame, Activity, Utensils, MessageSquare, ArrowRight } from "lucide-react";
+import { Flame, Activity, Utensils, MessageSquare, ChevronRight } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 type HubProps = {
   profile: UserProfile;
-  setView: (view: "hub" | "program" | "progress" | "nutrition" | "coach") => void;
+  setView: (view: any) => void;
 };
 
 export default function Hub({ profile, setView }: HubProps) {
   const [history, setHistory] = useState<any[]>([]);
   const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
-  const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long' });
-  const dayName = today.charAt(0).toUpperCase() + today.slice(1);
-  const currentSession = program.sessions.find(s => s.day === dayName) || program.sessions[0];
+  
+  const days = ["L", "M", "M", "J", "V", "S", "D"];
+  const currentDayIdx = (new Date().getDay() + 6) % 7; // Lundi = 0
 
   useEffect(() => {
     const saved = localStorage.getItem("muscleup_history");
@@ -32,86 +32,103 @@ export default function Hub({ profile, setView }: HubProps) {
 
   const streak = useMemo(() => {
     if (history.length === 0) return 0;
-    // Simple logic for the streak display on hub
-    return Math.min(history.length, 7); // Placeholder logic for UI
+    // Logique simplifiée pour l'affichage
+    return history.length;
   }, [history]);
 
   return (
-    <div className="p-6 space-y-8 animate-in fade-in duration-500">
-      <header className="space-y-1">
-        <h1 className="text-zinc-500 text-sm font-bold uppercase tracking-widest">BIENVENUE</h1>
-        <div className="flex justify-between items-end">
-          <h2 className="text-4xl font-headline text-white leading-none">Vise le sommet</h2>
-          <span className="text-zinc-500 text-xs font-bold uppercase">{dayName}</span>
+    <div className="p-6 space-y-10 animate-in fade-in duration-500">
+      <header className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-headline text-white leading-none">Bonjour Athlète</h1>
+          <p className="text-zinc-500 text-xs font-bold uppercase mt-1 tracking-widest">C'est le moment de briller</p>
+        </div>
+        <div className="bg-[#E24B4A]/10 px-4 py-2 rounded-full flex items-center gap-2 border border-[#E24B4A]/20">
+          <Flame className="w-4 h-4 text-[#E24B4A] fill-[#E24B4A]" />
+          <span className="text-sm font-bold text-white tracking-tighter">🔥 {streak} JOURS</span>
         </div>
       </header>
 
       {/* Hero Card Workout */}
-      <Card className={`p-8 rounded-[2.5rem] border-none relative overflow-hidden shadow-2xl transition-all ${finishedToday ? 'bg-zinc-900' : 'bg-primary'}`}>
-        {!finishedToday ? (
-          <div className="relative z-10 space-y-6">
-            <div>
-              <h3 className="text-white/70 text-xs font-bold uppercase tracking-wider mb-2">Séance du jour</h3>
-              <h4 className="text-5xl font-headline text-white leading-tight">{currentSession.day === dayName ? currentSession.day : "PRÊT ?"}</h4>
-              <p className="text-white/80 font-medium">{currentSession.isRestDay ? "Jour de repos" : `${currentSession.exercises.length} exercices prévus`}</p>
-            </div>
-            {!currentSession.isRestDay && (
-              <Button 
-                onClick={() => setView("program")}
-                className="w-full h-16 bg-white text-primary rounded-2xl text-xl font-headline hover:bg-white/90 shadow-xl"
-              >
-                C'EST PARTI !
-              </Button>
-            )}
+      <Card className={cn(
+        "p-8 rounded-2xl border-none relative overflow-hidden shadow-2xl transition-all",
+        finishedToday ? "bg-[#1A1A1A]" : "bg-[#E24B4A]"
+      )}>
+        <div className="relative z-10 space-y-6">
+          <div>
+            <h3 className={cn("text-xs font-bold uppercase tracking-widest mb-2", finishedToday ? "text-zinc-500" : "text-white/70")}>Séance du jour</h3>
+            <h4 className="text-4xl font-headline text-white leading-tight">
+              {finishedToday ? "BRAVO CHAMPION !" : program.sessions[0].name}
+            </h4>
+            <p className={cn("font-medium text-sm", finishedToday ? "text-zinc-400" : "text-white/80")}>
+              {finishedToday ? "Séance terminée ✓ Ton corps te remercie." : "Durée estimée : 45-50 min"}
+            </p>
           </div>
-        ) : (
-          <div className="relative z-10 text-center py-4 space-y-4">
-            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
-              <Activity className="text-green-500 w-8 h-8" />
-            </div>
-            <h3 className="text-3xl font-headline text-white">Séance terminée !</h3>
-            <p className="text-zinc-400">Bravo, ton corps te remercie. ✓</p>
-          </div>
-        )}
+          {!finishedToday && (
+            <Button 
+              onClick={() => setView("programme")}
+              className="w-full h-14 bg-white text-[#E24B4A] rounded-xl text-lg font-headline hover:bg-white/90 shadow-xl"
+            >
+              C'EST PARTI !
+            </Button>
+          )}
+        </div>
       </Card>
 
-      {/* Grid Menu */}
+      {/* Days Week Row */}
+      <div className="flex justify-between">
+        {days.map((day, i) => (
+          <div key={i} className="flex flex-col items-center gap-2">
+            <span className="text-[10px] font-bold text-zinc-600">{day}</span>
+            <div className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center border-2",
+              i === currentDayIdx 
+                ? "border-[#E24B4A] bg-[#E24B4A]/10 text-white" 
+                : "border-[#2A2A2A] bg-[#1A1A1A] text-zinc-600"
+            )}>
+              <div className={cn("w-2 h-2 rounded-full", i === currentDayIdx ? "bg-[#E24B4A]" : "bg-transparent")} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Quick Access Menu */}
       <div className="grid grid-cols-3 gap-3">
         <button 
-          onClick={() => setView("progress")}
-          className="bg-secondary p-4 rounded-3xl flex flex-col items-center gap-2 hover:bg-zinc-800 transition-colors"
+          onClick={() => setView("progres")}
+          className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors"
         >
-          <Activity className="w-6 h-6 text-accent" />
+          <Activity className="w-6 h-6 text-[#EE3BAA]" />
           <span className="text-[10px] font-bold uppercase text-zinc-400">Progrès</span>
         </button>
         <button 
           onClick={() => setView("nutrition")}
-          className="bg-secondary p-4 rounded-3xl flex flex-col items-center gap-2 hover:bg-zinc-800 transition-colors"
+          className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors"
         >
-          <Utensils className="w-6 h-6 text-primary" />
+          <Utensils className="w-6 h-6 text-[#E24B4A]" />
           <span className="text-[10px] font-bold uppercase text-zinc-400">Nutrition</span>
         </button>
         <button 
           onClick={() => setView("coach")}
-          className="bg-secondary p-4 rounded-3xl flex flex-col items-center gap-2 hover:bg-zinc-800 transition-colors"
+          className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors"
         >
           <MessageSquare className="w-6 h-6 text-green-500" />
           <span className="text-[10px] font-bold uppercase text-zinc-400">Coach IA</span>
         </button>
       </div>
 
-      {/* Stats Quick View */}
-      <div className="bg-secondary/40 border border-zinc-800 rounded-[2rem] p-6 flex justify-between items-center">
+      {/* Footer Banner */}
+      <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5 flex justify-between items-center group cursor-pointer" onClick={() => setView("progres")}>
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <Flame className="w-6 h-6 text-primary animate-pulse" />
+          <div className="w-10 h-10 rounded-lg bg-[#E24B4A]/10 flex items-center justify-center">
+            <Activity className="w-5 h-5 text-[#E24B4A]" />
           </div>
           <div>
-            <div className="text-2xl font-headline text-white">{streak} jours</div>
-            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Streak actuel</div>
+            <div className="text-sm font-bold text-white uppercase tracking-tight">Vérifier tes progrès</div>
+            <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Dernière séance il y a 2h</div>
           </div>
         </div>
-        <ArrowRight className="w-5 h-5 text-zinc-700" />
+        <ChevronRight className="w-5 h-5 text-zinc-700 group-hover:text-[#E24B4A] transition-colors" />
       </div>
     </div>
   );

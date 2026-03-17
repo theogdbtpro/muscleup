@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -6,7 +5,7 @@ import { UserProfile } from "@/app/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, Send, Bot, Loader2 } from "lucide-react";
+import { ChevronLeft, Send, Bot, Loader2, Sparkles } from "lucide-react";
 import { getCoachResponse } from "@/ai/flows/coach-chat";
 import { cn } from "@/lib/utils";
 
@@ -23,12 +22,12 @@ type CoachTabProps = {
 const SUGGESTIONS = [
   "Comment progresser plus vite ?",
   "Que manger avant l'entraînement ?",
-  "Conseil récupération"
+  "Conseils récupération"
 ];
 
 export default function CoachTab({ profile, onBack }: CoachTabProps) {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', content: `Salut ! Prêt à atteindre ton objectif : ${profile.objective} ? Pose-moi tes questions.` }
+    { role: 'model', content: `Salut Athlète ! Je suis ton MuscleUp Coach. Comment puis-je t'aider à atteindre ton objectif : ${profile.objective} ?` }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -54,50 +53,64 @@ export default function CoachTab({ profile, onBack }: CoachTabProps) {
       });
       setMessages(prev => [...prev, { role: 'model', content: response.response }]);
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'model', content: "Désolé, réessaie plus tard." }]);
+      setMessages(prev => [...prev, { role: 'model', content: "Désolé, j'ai rencontré une erreur technique. Réessaie." }]);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="h-full bg-background flex flex-col animate-in slide-in-from-right duration-300">
-      <header className="p-6 flex items-center gap-4 bg-background z-10">
-        <button onClick={onBack} className="p-2 -ml-2 text-zinc-400">
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-            <Bot className="w-6 h-6 text-primary" />
+    <div className="h-full bg-[#0F0F0F] flex flex-col animate-in slide-in-from-right duration-300">
+      <header className="p-6 flex items-center justify-between bg-[#0F0F0F] z-10 border-b border-[#2A2A2A]">
+        <div className="flex items-center gap-4">
+          <button onClick={onBack} className="p-2 -ml-2 text-zinc-500">
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#E24B4A]/10 flex items-center justify-center relative">
+              <Bot className="w-6 h-6 text-[#E24B4A]" />
+              <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0F0F0F]" />
+            </div>
+            <div>
+              <h1 className="text-xl font-headline text-white leading-none">MUSCLEUP COACH</h1>
+              <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">En ligne</span>
+            </div>
           </div>
-          <h1 className="text-xl font-headline text-white leading-none">MuscleUp Coach</h1>
         </div>
+        <Sparkles className="w-5 h-5 text-[#E24B4A]" />
       </header>
 
-      <ScrollArea className="flex-1 px-6 pb-10">
-        <div className="space-y-4">
+      <ScrollArea className="flex-1 px-6 pt-6 pb-24">
+        <div className="space-y-6">
           {messages.map((msg, i) => (
-            <div key={i} className={cn("flex max-w-[85%]", msg.role === 'user' ? "ml-auto" : "")}>
+            <div key={i} className={cn("flex max-w-[85%] animate-in fade-in slide-in-from-bottom-2", msg.role === 'user' ? "ml-auto" : "")}>
               <div className={cn(
-                "p-4 rounded-2xl text-sm leading-relaxed",
-                msg.role === 'user' ? "bg-primary text-white" : "bg-secondary text-zinc-300 border border-zinc-800"
+                "p-5 rounded-2xl text-sm leading-relaxed font-medium shadow-sm",
+                msg.role === 'user' 
+                  ? "bg-[#E24B4A] text-white rounded-br-none" 
+                  : "bg-[#1A1A1A] text-zinc-300 border border-[#2A2A2A] rounded-bl-none"
               )}>
                 {msg.content}
               </div>
             </div>
           ))}
-          {isLoading && <Loader2 className="w-5 h-5 text-primary animate-spin mx-auto mt-4" />}
+          {isLoading && (
+            <div className="flex items-center gap-2 text-[#E24B4A] animate-pulse ml-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Le coach réfléchit...</span>
+            </div>
+          )}
           <div ref={scrollRef} />
         </div>
       </ScrollArea>
 
-      <div className="p-4 bg-background border-t border-zinc-800 space-y-4">
+      <div className="p-6 bg-[#0F0F0F] border-t border-[#2A2A2A] space-y-6 sticky bottom-0">
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {SUGGESTIONS.map((s, i) => (
             <button
               key={i}
               onClick={() => handleSend(s)}
-              className="whitespace-nowrap px-4 py-2 rounded-full bg-secondary text-[10px] font-bold uppercase text-zinc-400 border border-zinc-800"
+              className="whitespace-nowrap px-4 py-2.5 rounded-full bg-[#1A1A1A] text-[10px] font-bold uppercase text-zinc-400 border border-[#2A2A2A] hover:bg-[#2A2A2A] transition-colors"
             >
               {s}
             </button>
@@ -109,12 +122,12 @@ export default function CoachTab({ profile, onBack }: CoachTabProps) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend(input)}
             placeholder="Pose ta question..."
-            className="bg-secondary border-none h-16 pl-4 pr-16 rounded-2xl focus:ring-primary text-lg"
+            className="bg-[#1A1A1A] border-[#2A2A2A] h-16 pl-6 pr-16 rounded-xl focus:ring-[#E24B4A] text-base"
           />
           <Button
             onClick={() => handleSend(input)}
             disabled={!input.trim() || isLoading}
-            className="absolute right-2 top-2 w-12 h-12 rounded-xl bg-primary"
+            className="absolute right-2 top-2 w-12 h-12 rounded-lg bg-[#E24B4A] hover:bg-[#E24B4A]/90"
           >
             <Send className="w-5 h-5" />
           </Button>

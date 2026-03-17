@@ -1,24 +1,23 @@
-
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Dumbbell, Activity, Utensils, MessageSquare } from "lucide-react";
+import { Home, Dumbbell, BarChart2, MessageSquare } from "lucide-react";
 
 type BottomNavProps = {
-  activeTab: "program" | "progress" | "nutrition" | "coach";
-  setActiveTab: (tab: "program" | "progress" | "nutrition" | "coach") => void;
+  activeTab: "accueil" | "programme" | "progres" | "coach";
+  setActiveTab: (tab: string) => void;
 };
 
 export default function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
   const tabs = [
-    { id: "program", label: "Programme", icon: Dumbbell },
-    { id: "progress", label: "Progrès", icon: Activity },
-    { id: "nutrition", label: "Nutrition", icon: Utensils },
+    { id: "accueil", label: "Accueil", icon: Home },
+    { id: "programme", label: "Programme", icon: Dumbbell },
+    { id: "progres", label: "Progrès", icon: BarChart2 },
     { id: "coach", label: "Coach", icon: MessageSquare },
   ] as const;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 w-full max-w-[430px] mx-auto bg-black/90 backdrop-blur-md border-t border-zinc-800 px-6 py-3 z-50">
+    <div className="fixed bottom-0 left-0 right-0 w-full max-w-[430px] mx-auto bg-[#1A1A1A]/95 backdrop-blur-md border-t border-[#2A2A2A] px-6 py-4 z-50">
       <div className="flex justify-between items-center">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -28,13 +27,12 @@ export default function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex flex-col items-center gap-1 transition-all duration-300",
-                isActive ? "text-primary scale-110" : "text-muted-foreground"
+                "flex flex-col items-center gap-1.5 transition-all duration-300",
+                isActive ? "text-[#E24B4A]" : "text-zinc-500"
               )}
             >
-              <Icon className={cn("w-6 h-6", isActive && "fill-primary/20")} />
-              <span className="text-[10px] font-bold uppercase tracking-tighter">{tab.label}</span>
-              {isActive && <div className="w-1 h-1 rounded-full bg-primary mt-0.5" />}
+              <Icon className={cn("w-5 h-5", isActive && "fill-[#E24B4A]/10")} />
+              <span className="text-[10px] font-bold uppercase tracking-tight">{tab.label}</span>
             </button>
           );
         })}
