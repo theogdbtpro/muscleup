@@ -1,209 +1,73 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { UserProfile } from "@/app/page";
-import { PROGRAMS, Session } from "@/data/programs";
-import { Badge } from "@/components/ui/badge";
+import { PROGRAMS } from "@/data/programs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-import { CheckCircle2, Flame, Clock, PlayCircle, Sparkles, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronLeft, Play, Dumbbell } from "lucide-react";
 import ActiveSession from "./active-session";
-import { getExerciseAdvice } from "@/ai/flows/exercise-advice";
 
 type ProgramTabProps = {
   profile: UserProfile;
+  onBack: () => void;
 };
 
-export default function ProgramTab({ profile }: ProgramTabProps) {
-  const { toast } = useToast();
+export default function ProgramTab({ profile, onBack }: ProgramTabProps) {
   const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
-  const [selectedDay, setSelectedDay] = useState(new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).charAt(0).toUpperCase() + new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).slice(1));
+  const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long' });
+  const dayName = today.charAt(0).toUpperCase() + today.slice(1);
+  const currentSession = program.sessions.find(s => s.day === dayName) || program.sessions[0];
   const [isActiveSessionOpen, setIsActiveSessionOpen] = useState(false);
-  const [finishedToday, setFinishedToday] = useState(false);
-  const [expandedAdvice, setExpandedAdvice] = useState<string | null>(null);
-  const [loadingAdvice, setLoadingAdvice] = useState<string | null>(null);
-  const [adviceData, setAdviceData] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    const savedFinished = localStorage.getItem("muscleup_history");
-    if (savedFinished) {
-      try {
-        const history = JSON.parse(savedFinished);
-        const today = new Date().toISOString().split('T')[0];
-        const hasFinishedToday = history.some((h: any) => {
-          if (!h.date) return false;
-          const d = new Date(h.date);
-          if (isNaN(d.getTime())) return false;
-          const hDate = d.toISOString().split('T')[0];
-          return hDate === today && h.day === selectedDay;
-        });
-        setFinishedToday(hasFinishedToday);
-      } catch (e) {
-        setFinishedToday(false);
-      }
-    }
-  }, [selectedDay]);
-
-  const currentSession = program.sessions.find(s => s.day === selectedDay) || program.sessions[0];
-
-  const handleFinishSession = () => {
-    const historyItem = {
-      objective: program.name,
-      day: currentSession.day,
-      date: new Date().toISOString(),
-      exercises: currentSession.exercises.length
-    };
-
-    const existingHistory = JSON.parse(localStorage.getItem("muscleup_history") || "[]");
-    localStorage.setItem("muscleup_history", JSON.stringify([historyItem, ...existingHistory]));
-
-    setIsActiveSessionOpen(false);
-    setFinishedToday(true);
-    toast({
-      title: "SÉANCE TERMINÉE ! 💥",
-      description: "Excellent travail, ton historique a été mis à jour.",
-    });
-  };
-
-  const fetchAdvice = async (exName: string) => {
-    if (adviceData[exName]) {
-      setExpandedAdvice(expandedAdvice === exName ? null : exName);
-      return;
-    }
-
-    setLoadingAdvice(exName);
-    try {
-      const response = await getExerciseAdvice({
-        exerciseName: exName,
-        level: profile.level,
-        objective: profile.objective
-      });
-      setAdviceData(prev => ({ ...prev, [exName]: response.advice }));
-      setExpandedAdvice(exName);
-    } catch (err) {
-      toast({ variant: "destructive", title: "Erreur IA", description: "Impossible de récupérer le conseil." });
-    } finally {
-      setLoadingAdvice(null);
-    }
-  };
 
   return (
-    <div className="p-6 fade-in pb-32">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-4xl font-headline text-white leading-none">Mon Programme</h1>
-          <Badge variant="outline" className="mt-1 border-primary text-primary font-bold">{program.name}</Badge>
-        </div>
-        <div className="bg-secondary p-3 rounded-2xl flex flex-col items-center">
-          <Flame className="w-6 h-6 text-primary mb-1 animate-pulse" />
-          <span className="text-[10px] font-bold text-muted-foreground uppercase">Semaine 1</span>
-        </div>
-      </div>
+    <div className="min-h-full bg-background flex flex-col p-6 animate-in slide-in-from-right duration-300">
+      <header className="flex items-center gap-4 mb-8">
+        <button onClick={onBack} className="p-2 -ml-2 text-zinc-400">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <h1 className="text-3xl font-headline text-white">Ma Séance</h1>
+      </header>
 
-      <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar mb-6">
-        {program.sessions.map((s) => (
-          <button
-            key={s.day}
-            onClick={() => setSelectedDay(s.day)}
-            className={cn(
-              "flex flex-col items-center justify-center min-w-[50px] h-16 rounded-2xl border transition-all",
-              selectedDay === s.day ? "bg-primary border-primary" : "bg-secondary border-transparent text-muted-foreground"
-            )}
-          >
-            <span className="text-[10px] font-bold uppercase mb-1">{s.day.slice(0, 3)}</span>
-            <span className="text-sm font-bold">{s.day === selectedDay ? "🔥" : (!s.isRestDay ? "🏋️" : "💤")}</span>
-          </button>
+      <div className="space-y-4 flex-1 overflow-y-auto no-scrollbar pb-24">
+        <div className="bg-secondary/50 rounded-3xl p-6 border border-zinc-800 mb-6">
+          <h2 className="text-sm font-bold text-primary uppercase tracking-widest mb-1">{dayName}</h2>
+          <p className="text-2xl font-headline text-white">{currentSession.exercises.length} EXERCICES À COMPLÉTER</p>
+        </div>
+
+        {currentSession.exercises.map((ex, idx) => (
+          <Card key={idx} className="p-4 bg-secondary border-none rounded-2xl flex items-center gap-4">
+            <div className="w-10 h-10 bg-black/40 rounded-xl flex items-center justify-center text-primary">
+              <Dumbbell className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-white text-sm">{ex.name}</h3>
+              <p className="text-xs text-zinc-500 uppercase font-bold">{ex.sets} séries × {ex.reps}</p>
+            </div>
+          </Card>
         ))}
       </div>
 
-      <div className="space-y-4">
-        {currentSession.isRestDay ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mb-4">
-              <Clock className="w-10 h-10 text-primary" />
-            </div>
-            <h2 className="text-2xl font-headline text-white">Repos Bien Mérité</h2>
-            <p className="text-muted-foreground max-w-[250px]">Le muscle se construit au repos. Récupère bien !</p>
-          </div>
-        ) : (
-          <>
-            <div className="flex justify-between items-end mb-2">
-              <h2 className="text-xl font-headline text-white">Aujourd'hui</h2>
-              <span className="text-xs text-muted-foreground font-bold uppercase">{currentSession.exercises.length} Exercices</span>
-            </div>
-            
-            {currentSession.exercises.map((ex) => (
-              <div key={ex.name} className="space-y-2">
-                <Card className="p-4 bg-secondary border-none rounded-2xl flex items-center gap-4">
-                  <div className="w-12 h-12 bg-black/20 rounded-xl flex items-center justify-center text-xl">
-                    {ex.muscle.includes('Biceps') && '💪'}
-                    {ex.muscle.includes('Triceps') && '🧨'}
-                    {ex.muscle.includes('Pectoraux') && '🦍'}
-                    {ex.muscle.includes('Dos') && '🦅'}
-                    {ex.muscle.includes('Jambes') && '🍗'}
-                    {ex.muscle.includes('Abdos') && '🛡️'}
-                    {ex.muscle.includes('Épaules') && '🏔️'}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-sm leading-tight">{ex.name}</h3>
-                    <div className="flex gap-2 mt-0.5">
-                      <span className="text-[10px] font-bold text-primary uppercase">{ex.sets} séries</span>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase">{ex.reps} reps</span>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => fetchAdvice(ex.name)}
-                    className="p-2 h-auto text-primary hover:text-primary/80 hover:bg-primary/10 rounded-xl"
-                  >
-                    {loadingAdvice === ex.name ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                  </Button>
-                </Card>
-                {expandedAdvice === ex.name && (
-                  <div className="bg-primary/5 border border-primary/20 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Bot className="w-4 h-4 text-primary" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Conseil IA Coach</span>
-                    </div>
-                    <p className="text-xs text-zinc-300 italic leading-relaxed">
-                      "{adviceData[ex.name]}"
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
-
-            <Button
-              disabled={finishedToday}
-              onClick={() => setIsActiveSessionOpen(true)}
-              className={cn(
-                "w-full h-16 rounded-2xl mt-8 text-xl font-headline transition-all",
-                finishedToday ? "bg-green-500/20 text-green-500" : "bg-primary animate-bounce shadow-[0_10px_20px_rgba(226,75,74,0.3)]"
-              )}
-            >
-              {finishedToday ? (
-                <span className="flex items-center gap-2"><CheckCircle2 className="w-6 h-6" /> SÉANCE TERMINÉE</span>
-              ) : (
-                <span className="flex items-center gap-2"><PlayCircle className="w-6 h-6" /> LANCER LA SÉANCE</span>
-              )}
-            </Button>
-          </>
-        )}
+      <div className="sticky bottom-0 pt-4 bg-gradient-to-t from-background via-background to-transparent">
+        <Button
+          onClick={() => setIsActiveSessionOpen(true)}
+          className="w-full h-16 rounded-2xl text-xl font-headline bg-primary text-white shadow-xl shadow-primary/20"
+        >
+          LANCER LA SÉANCE <Play className="ml-2 w-5 h-5 fill-current" />
+        </Button>
       </div>
 
       {isActiveSessionOpen && (
         <ActiveSession 
           session={currentSession} 
           onClose={() => setIsActiveSessionOpen(false)}
-          onFinish={handleFinishSession}
+          onFinish={() => {
+            setIsActiveSessionOpen(false);
+            onBack();
+          }}
         />
       )}
     </div>
   );
 }
-
-import { Bot } from "lucide-react";

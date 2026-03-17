@@ -1,140 +1,71 @@
+
 "use client";
 
 import { useState } from "react";
 import { UserProfile } from "@/app/page";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Sparkles, Utensils, Apple, Timer, Flame, Calculator } from "lucide-react";
 import { PROGRAMS } from "@/data/programs";
+import { Input } from "@/components/ui/input";
+import { ChevronLeft, Utensils, Flame, Apple } from "lucide-react";
 
 type NutritionTabProps = {
   profile: UserProfile;
+  onBack: () => void;
 };
 
-export default function NutritionTab({ profile }: NutritionTabProps) {
+export default function NutritionTab({ profile, onBack }: NutritionTabProps) {
   const program = PROGRAMS.find(p => p.id === profile.objective) || PROGRAMS[0];
-  const { nutrition } = program;
   const [weight, setWeight] = useState("");
-
-  // Calcul instantané des protéines (2g par kg)
-  const proteinNeed = weight && !isNaN(parseFloat(weight)) 
-    ? Math.round(parseFloat(weight) * 2) 
-    : 0;
+  const proteinNeed = weight ? Math.round(parseFloat(weight) * 2) : 0;
 
   return (
-    <div className="p-6 fade-in pb-32">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-headline text-white">Nutrition</h1>
-        <Sparkles className="w-6 h-6 text-accent animate-pulse" />
-      </div>
+    <div className="min-h-full bg-background flex flex-col p-6 animate-in slide-in-from-right duration-300">
+      <header className="flex items-center gap-4 mb-10">
+        <button onClick={onBack} className="p-2 -ml-2 text-zinc-400">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <h1 className="text-3xl font-headline text-white">Nutrition</h1>
+      </header>
 
-      <div className="space-y-6">
-        {/* Protein Calculator */}
-        <Card className="p-6 bg-secondary border-none rounded-3xl">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-primary/20 rounded-xl">
-              <Calculator className="w-5 h-5 text-primary" />
-            </div>
-            <h2 className="text-xl font-headline">Calculateur Protéines</h2>
-          </div>
-          <div className="flex gap-4 items-center">
-            <div className="flex-1">
-              <Input 
-                type="number" 
-                inputMode="decimal"
-                placeholder="Ton poids (kg)" 
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                className="bg-black/40 border-zinc-800 h-12 rounded-xl text-lg font-bold text-white focus:ring-primary"
-              />
-            </div>
-            <div className="flex-1 flex flex-col items-center justify-center bg-primary/10 rounded-xl py-2 h-12 min-w-[100px]">
-              <span className="text-xl font-headline text-primary leading-none">
-                {weight ? `${proteinNeed} g` : '--'}
-              </span>
-              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Quotidien</span>
+      <div className="space-y-12 flex-1 overflow-y-auto no-scrollbar pb-10">
+        {/* Calculator */}
+        <section className="bg-secondary/50 rounded-[2.5rem] p-8 text-center border border-zinc-800">
+          <h2 className="text-sm font-bold text-primary uppercase tracking-widest mb-6">Ton Apport Idéal</h2>
+          <div className="flex flex-col items-center gap-4">
+            <Input 
+              type="number" 
+              placeholder="Ton poids (kg)" 
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              className="bg-black/40 border-zinc-800 h-16 rounded-2xl text-center text-2xl font-bold text-white focus:ring-primary w-48 mx-auto"
+            />
+            <div className="space-y-1">
+              <span className="text-7xl font-headline text-white">{proteinNeed || "--"}g</span>
+              <p className="text-zinc-500 text-xs font-bold uppercase">Protéines / Jour</p>
             </div>
           </div>
-          {weight && (
-            <p className="text-[10px] text-muted-foreground mt-3 italic">
-              Basé sur 2g de protéines par kg de poids de corps pour ton objectif {program.name}.
-            </p>
-          )}
-        </Card>
+        </section>
 
-        {/* Calories Goal */}
-        <Card className="p-6 bg-gradient-to-br from-accent/20 to-secondary border-none rounded-3xl">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-accent/20 rounded-xl">
-              <Flame className="w-5 h-5 text-accent" />
-            </div>
-            <h2 className="text-xl font-headline">Objectif Calories</h2>
-          </div>
-          <p className="text-lg font-bold leading-snug">{nutrition.caloriesGoal}</p>
-        </Card>
-
-        {/* Plan Repas Type */}
-        <div>
-          <h2 className="text-xl font-headline text-white mb-4 flex items-center gap-2">
-            <Utensils className="w-5 h-5 text-primary" /> Plan Repas Idéal
+        {/* Meal Plan */}
+        <section>
+          <h2 className="text-xl font-headline text-white mb-6 flex items-center gap-2">
+            <Utensils className="w-5 h-5 text-primary" /> Plan Repas Type
           </h2>
-          <div className="space-y-3">
-            {nutrition.meals.map((meal, i) => (
-              <div key={i} className="bg-secondary/50 border border-zinc-800 rounded-2xl p-4 flex gap-4">
-                <div className="text-primary font-headline text-lg w-12 shrink-0">{meal.time}</div>
-                <div>
-                  <h4 className="font-bold text-sm mb-0.5 text-white">{meal.name}</h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{meal.description}</p>
+          <div className="space-y-6">
+            {program.nutrition.meals.map((meal, i) => (
+              <div key={i} className="flex gap-6 items-start">
+                <div className="text-primary font-headline text-xl w-14 pt-1">{meal.time}</div>
+                <div className="flex-1 pb-6 border-b border-zinc-800/50">
+                  <h4 className="font-bold text-white text-lg mb-1">{meal.name}</h4>
+                  <p className="text-sm text-zinc-500 leading-relaxed">{meal.description}</p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Key Foods */}
-        <Card className="p-6 bg-secondary border-none rounded-3xl">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-zinc-800 rounded-xl">
-              <Apple className="w-5 h-5 text-green-500" />
-            </div>
-            <h2 className="text-xl font-headline">Aliments Clés</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {nutrition.keyFoods.map((food, i) => (
-              <Badge key={i} className="bg-zinc-800 hover:bg-zinc-700 text-white border-none py-1.5 px-3 rounded-lg text-sm">
-                {food}
-              </Badge>
-            ))}
-          </div>
-        </Card>
-
-        {/* Timing */}
-        <Card className="p-6 bg-secondary border-none rounded-3xl">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-blue-500/20 rounded-xl">
-              <Timer className="w-5 h-5 text-blue-500" />
-            </div>
-            <h2 className="text-xl font-headline">Timing Stratégique</h2>
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                <span className="text-white font-bold">Pré-entraînement :</span> Repas 1h30 avant pour l'énergie.
-              </p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                <span className="text-white font-bold">Post-entraînement :</span> Repas dans les 30 min pour la récup.
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <div className="p-4 rounded-2xl border border-zinc-800 bg-black/40 text-[10px] text-muted-foreground uppercase tracking-wider text-center flex items-center justify-center gap-2">
-          Nutrition optimisée pour {program.name}
+        {/* Summary */}
+        <div className="bg-primary/10 rounded-2xl p-4 text-center">
+          <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Objectif : {program.nutrition.caloriesGoal}</p>
         </div>
       </div>
     </div>
