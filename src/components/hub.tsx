@@ -4,7 +4,7 @@ import { UserProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Flame, Activity, Utensils, MessageSquare, ChevronRight } from "lucide-react";
+import { Flame, Activity, Utensils, MessageSquare, ChevronRight, Lightbulb, CheckCircle2, Circle } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -13,10 +13,23 @@ type HubProps = {
   setView: (view: any) => void;
 };
 
+const OBJECTIVE_TIPS: Record<string, string> = {
+  "gros-bras": "Focus sur la contraction volontaire, ne balance pas les charges !",
+  "pectoraux": "Garde les omoplates serrées sur le banc pour protéger tes épaules.",
+  "dos-large": "Imagine que tu tires avec tes coudes, pas avec tes mains.",
+  "full-body": "Priorise les mouvements polyarticulaires pour brûler plus de calories.",
+  "jambes": "Descends au moins jusqu'à la parallèle pour engager les fessiers.",
+  "abdos": "La sangle abdominale se forge aussi dans l'assiette, reste hydraté."
+};
+
 export default function Hub({ profile, setView }: HubProps) {
   const [history, setHistory] = useState<any[]>([]);
-  const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
   
+  // Correction 1 : Trouver le vrai programme
+  const program = useMemo(() => {
+    return PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
+  }, [profile.objective]);
+
   const days = ["L", "M", "M", "J", "V", "S", "D"];
   const currentDayIdx = (new Date().getDay() + 6) % 7; // Lundi = 0
 
@@ -32,12 +45,34 @@ export default function Hub({ profile, setView }: HubProps) {
 
   const streak = useMemo(() => {
     if (history.length === 0) return 0;
-    // Logique simplifiée pour l'affichage
+    // Logique simplifiée : nombre de séances totales pour cet exercice de style
     return history.length;
   }, [history]);
 
+  // Déterminer le statut des jours de la semaine
+  const dayStatuses = useMemo(() => {
+    const statuses = new Array(7).fill("upcoming");
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    // On vérifie dans l'historique quels jours ont été complétés cette semaine
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - currentDayIdx);
+    monday.setHours(0,0,0,0);
+
+    history.forEach(h => {
+      const hDate = new Date(h.date);
+      if (hDate >= monday) {
+        const dayIdx = (hDate.getDay() + 6) % 7;
+        statuses[dayIdx] = "done";
+      }
+    });
+
+    return statuses;
+  }, [history, currentDayIdx]);
+
   return (
-    <div className="p-6 space-y-10 animate-in fade-in duration-500">
+    <div className="p-6 space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-headline text-white leading-none">Bonjour Athlète</h1>
@@ -49,19 +84,21 @@ export default function Hub({ profile, setView }: HubProps) {
         </div>
       </header>
 
-      {/* Hero Card Workout */}
+      {/* Hero Card Workout - Correction 1 */}
       <Card className={cn(
         "p-8 rounded-2xl border-none relative overflow-hidden shadow-2xl transition-all",
-        finishedToday ? "bg-[#1A1A1A]" : "bg-[#E24B4A]"
+        finishedToday ? "bg-[#1A4A2A]" : "bg-[#E24B4A]"
       )}>
         <div className="relative z-10 space-y-6">
           <div>
-            <h3 className={cn("text-xs font-bold uppercase tracking-widest mb-2", finishedToday ? "text-zinc-500" : "text-white/70")}>Séance du jour</h3>
-            <h4 className="text-4xl font-headline text-white leading-tight">
-              {finishedToday ? "BRAVO CHAMPION !" : program.sessions[0].name}
+            <h3 className={cn("text-xs font-bold uppercase tracking-widest mb-2", finishedToday ? "text-green-400" : "text-white/70")}>
+              {finishedToday ? "Bravo !" : "Séance du jour"}
+            </h3>
+            <h4 className="text-4xl font-headline text-white leading-tight uppercase">
+              {finishedToday ? "SÉANCE TERMINÉE ✓" : `${program.name} — ${profile.level}`}
             </h4>
-            <p className={cn("font-medium text-sm", finishedToday ? "text-zinc-400" : "text-white/80")}>
-              {finishedToday ? "Séance terminée ✓ Ton corps te remercie." : "Durée estimée : 45-50 min"}
+            <p className={cn("font-medium text-sm", finishedToday ? "text-green-200" : "text-white/80")}>
+              {finishedToday ? "Ton corps te remercie. Repose-toi bien !" : `Durée estimée : ${program.sessions[0].duration}`}
             </p>
           </div>
           {!finishedToday && (
@@ -75,21 +112,37 @@ export default function Hub({ profile, setView }: HubProps) {
         </div>
       </Card>
 
-      {/* Days Week Row */}
-      <div className="flex justify-between">
-        {days.map((day, i) => (
-          <div key={i} className="flex flex-col items-center gap-2">
-            <span className="text-[10px] font-bold text-zinc-600">{day}</span>
-            <div className={cn(
-              "w-10 h-10 rounded-full flex items-center justify-center border-2",
-              i === currentDayIdx 
-                ? "border-[#E24B4A] bg-[#E24B4A]/10 text-white" 
-                : "border-[#2A2A2A] bg-[#1A1A1A] text-zinc-600"
-            )}>
-              <div className={cn("w-2 h-2 rounded-full", i === currentDayIdx ? "bg-[#E24B4A]" : "bg-transparent")} />
+      {/* Days Week Row - Correction 2 */}
+      <div className="flex justify-between items-end px-1">
+        {days.map((day, i) => {
+          const isToday = i === currentDayIdx;
+          const isDone = dayStatuses[i] === "done";
+          const session = program.sessions.find(s => {
+            const dayNames = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+            return s.day === dayNames[i];
+          });
+          const isRest = !session || session.isRestDay;
+
+          return (
+            <div key={i} className="flex flex-col items-center gap-2">
+              <div className={cn(
+                "rounded-full flex items-center justify-center transition-all duration-300 border",
+                isToday 
+                  ? "w-[44px] h-[44px] bg-[#E24B4A] border-[#E24B4A] text-white shadow-lg shadow-[#E24B4A]/20" 
+                  : isDone 
+                    ? "w-[40px] h-[40px] bg-[#1A4A2A] border-[#4CAF50] text-[#4CAF50]"
+                    : isRest
+                      ? "w-[40px] h-[40px] bg-[#1A1A1A] border-[#2A2A2A] text-zinc-600"
+                      : "w-[40px] h-[40px] bg-[#1A1A1A] border-[#2A2A2A] text-zinc-400"
+              )}>
+                <span className={cn("font-headline text-xl", isToday ? "scale-110" : "")}>
+                  {day}
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-tighter">{day}</span>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Quick Access Menu */}
@@ -117,19 +170,58 @@ export default function Hub({ profile, setView }: HubProps) {
         </button>
       </div>
 
-      {/* Footer Banner */}
-      <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5 flex justify-between items-center group cursor-pointer" onClick={() => setView("progres")}>
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-[#E24B4A]/10 flex items-center justify-center">
-            <Activity className="w-5 h-5 text-[#E24B4A]" />
+      {/* Correction 3 : Section Conseil du jour */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-headline text-white tracking-wide">CONSEIL DU JOUR</h2>
+        <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-5 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+            <Lightbulb className="w-5 h-5 text-amber-500" />
           </div>
           <div>
-            <div className="text-sm font-bold text-white uppercase tracking-tight">Vérifier tes progrès</div>
-            <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Dernière séance il y a 2h</div>
+            <p className="text-sm text-zinc-300 leading-relaxed italic">
+              "{OBJECTIVE_TIPS[profile.objective] || "Reste constant, les résultats viendront avec le temps."}"
+            </p>
           </div>
+        </Card>
+      </section>
+
+      {/* Correction 3 : Section Programme de la semaine */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-headline text-white tracking-wide">PROGRAMME DE LA SEMAINE</h2>
+        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
+          {["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"].map((dayName, idx) => {
+            const session = program.sessions.find(s => s.day === dayName);
+            const isDone = dayStatuses[idx] === "done";
+            const isToday = idx === currentDayIdx;
+
+            return (
+              <div 
+                key={dayName} 
+                className={cn(
+                  "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0",
+                  isToday ? "bg-[#E24B4A]/5" : ""
+                )}
+              >
+                <div className="flex items-center gap-4">
+                  <span className={cn("text-xs font-bold w-8", isToday ? "text-[#E24B4A]" : "text-zinc-600")}>
+                    {dayName.slice(0, 3)}
+                  </span>
+                  <div>
+                    <div className={cn("text-sm font-bold uppercase tracking-tight", isToday ? "text-white" : "text-zinc-400")}>
+                      {!session || session.isRestDay ? "Repos" : session.name}
+                    </div>
+                  </div>
+                </div>
+                {isDone ? (
+                  <CheckCircle2 className="w-4 h-4 text-[#4CAF50]" />
+                ) : (
+                  <Circle className="w-4 h-4 text-zinc-800" />
+                )}
+              </div>
+            );
+          })}
         </div>
-        <ChevronRight className="w-5 h-5 text-zinc-700 group-hover:text-[#E24B4A] transition-colors" />
-      </div>
+      </section>
     </div>
   );
 }
