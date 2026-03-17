@@ -8,6 +8,7 @@ import ProgramTab from "./program-tab";
 import ProgressTab from "./progress-tab";
 import NutritionTab from "./nutrition-tab";
 import CoachTab from "./coach-tab";
+import BottomNav from "./bottom-nav";
 
 type View = "hub" | "program" | "progress" | "nutrition" | "coach";
 
@@ -19,15 +20,40 @@ type DashboardProps = {
 export default function Dashboard({ profile, onReset }: DashboardProps) {
   const [view, setView] = useState<View>("hub");
 
+  // On mappe les onglets de la navigation basse aux vues correspondantes
+  // L'onglet "program" affiche le Hub (qui est le point d'entrée de la séance)
+  const activeTabMapping: Record<string, "program" | "progress" | "nutrition" | "coach"> = {
+    "hub": "program",
+    "program": "program",
+    "progress": "progress",
+    "nutrition": "nutrition",
+    "coach": "coach"
+  };
+
+  const handleTabChange = (tab: "program" | "progress" | "nutrition" | "coach") => {
+    // Si on clique sur Programme, on revient au Hub (Accueil)
+    if (tab === "program") {
+      setView("hub");
+    } else {
+      setView(tab as View);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-background relative overflow-hidden">
-      <div className="flex-1 overflow-y-auto no-scrollbar">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-24">
         {view === "hub" && <Hub profile={profile} setView={setView} />}
         {view === "program" && <ProgramTab profile={profile} onBack={() => setView("hub")} />}
         {view === "progress" && <ProgressTab profile={profile} onReset={onReset} onBack={() => setView("hub")} />}
         {view === "nutrition" && <NutritionTab profile={profile} onBack={() => setView("hub")} />}
         {view === "coach" && <CoachTab profile={profile} onBack={() => setView("hub")} />}
       </div>
+
+      {/* La navigation basse est de retour, tout en restant discrète */}
+      <BottomNav 
+        activeTab={activeTabMapping[view]} 
+        setActiveTab={handleTabChange} 
+      />
     </div>
   );
 }
