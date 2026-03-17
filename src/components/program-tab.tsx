@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { UserProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Button } from "@/components/ui/button";
@@ -29,13 +29,22 @@ export default function ProgramTab({ profile, onBack }: ProgramTabProps) {
   };
 
   const handleFinish = () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    // 1. Enregistrement dans l'historique général
     const historyItem = {
       day: currentSession.day,
       date: new Date().toISOString(),
       sessionName: currentSession.name
     };
-    const existing = JSON.parse(localStorage.getItem("muscleup_history") || "[]");
-    localStorage.setItem("muscleup_history", JSON.stringify([historyItem, ...existing]));
+    const existingHistory = JSON.parse(localStorage.getItem("muscleup_history") || "[]");
+    localStorage.setItem("muscleup_history", JSON.stringify([historyItem, ...existingHistory]));
+    
+    // 2. Enregistrement spécifique pour le streak (completedDates)
+    const existingDates = JSON.parse(localStorage.getItem("completedDates") || "[]");
+    if (!existingDates.includes(todayStr)) {
+      localStorage.setItem("completedDates", JSON.stringify([...existingDates, todayStr]));
+    }
     
     confetti({
       particleCount: 150,

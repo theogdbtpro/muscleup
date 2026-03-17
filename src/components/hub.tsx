@@ -43,14 +43,16 @@ export default function Hub({ profile, setView }: HubProps) {
     return history.some(h => h.date && h.date.split('T')[0] === todayStr);
   }, [history]);
 
-  // Correction Streak : jours consécutifs réels
+  // Calcul du Streak selon la consigne : jours consécutifs réels
   const streak = useMemo(() => {
-    if (history.length === 0) return 0;
+    const storedDates = localStorage.getItem("completedDates");
+    if (!storedDates) return 0;
     
-    const dates = history.map(h => new Date(h.date).toISOString().split('T')[0]);
-    const uniqueDates = Array.from(new Set(dates)).sort((a, b) => b.localeCompare(a));
+    const dates = JSON.parse(storedDates) as string[];
+    if (dates.length === 0) return 0;
     
-    if (uniqueDates.length === 0) return 0;
+    // Trier les dates par ordre décroissant
+    const sortedUniqueDates = Array.from(new Set(dates)).sort((a, b) => b.localeCompare(a));
     
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date();
@@ -58,14 +60,15 @@ export default function Hub({ profile, setView }: HubProps) {
     const yesterdayStr = yesterday.toISOString().split('T')[0];
     
     // Si la dernière séance n'est ni aujourd'hui ni hier, le streak est brisé
-    if (uniqueDates[0] !== today && uniqueDates[0] !== yesterdayStr) return 0;
+    if (sortedUniqueDates[0] !== today && sortedUniqueDates[0] !== yesterdayStr) return 0;
     
     let currentStreak = 1;
-    for (let i = 0; i < uniqueDates.length - 1; i++) {
-      const current = new Date(uniqueDates[i]);
-      const prev = new Date(uniqueDates[i + 1]);
+    for (let i = 0; i < sortedUniqueDates.length - 1; i++) {
+      const current = new Date(sortedUniqueDates[i]);
+      const prev = new Date(sortedUniqueDates[i + 1]);
       const diff = (current.getTime() - prev.getTime()) / (1000 * 3600 * 24);
       
+      // On utilise Math.round pour éviter les problèmes de précision de Date
       if (Math.round(diff) === 1) {
         currentStreak++;
       } else {
@@ -93,7 +96,6 @@ export default function Hub({ profile, setView }: HubProps) {
     return statuses;
   }, [history, currentDayIdx]);
 
-  // Calcul de la progression de la semaine
   const weeklySessionsDone = useMemo(() => {
     const now = new Date();
     const monday = new Date(now);
@@ -154,11 +156,6 @@ export default function Hub({ profile, setView }: HubProps) {
         {days.map((day, i) => {
           const isToday = i === currentDayIdx;
           const isDone = dayStatuses[i] === "done";
-          const session = program.sessions.find(s => {
-            const dayNames = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-            return s.day === dayNames[i];
-          });
-          const isRest = !session || session.isRestDay;
 
           return (
             <div key={i} className="flex flex-col items-center gap-2">
