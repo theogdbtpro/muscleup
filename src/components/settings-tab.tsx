@@ -5,8 +5,9 @@ import { UserProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronLeft, Target, Award, Calendar, Repeat, ArrowRightLeft, CheckCircle } from "lucide-react";
+import { ChevronLeft, Target, Award, Calendar, Repeat, ArrowRightLeft, CheckCircle, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 type SettingsTabProps = {
   profile: UserProfile;
@@ -15,18 +16,18 @@ type SettingsTabProps = {
 };
 
 export default function SettingsTab({ profile, onUpdateProfile, onBack }: SettingsTabProps) {
+  const { toast } = useToast();
   const [tempProfile, setTempProfile] = useState<UserProfile>({ ...profile });
   const [isObjectiveModalOpen, setIsObjectiveModalOpen] = useState(false);
-  const [selectedDayToSwap, setSelectedDayToSwap] = useState<string | null>(null);
+  const [selectedDayToMove, setSelectedDayToMove] = useState<string | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [moveMessage, setMoveMessage] = useState<string | null>(null);
 
-  const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+  const dayNamesFull = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
   const [schedule, setSchedule] = useState<Record<string, string | null>>(() => {
     const saved = localStorage.getItem("muscleup_schedule");
     if (saved) return JSON.parse(saved);
-    
-    // Default initial generation
     return generateOptimizedSchedule(profile.frequency, profile.objective);
   });
 
@@ -36,7 +37,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
     const selectedDays: string[] = [];
     
-    // Define target days based on frequency
     if (freq === "2j") selectedDays.push("Lundi", "Jeudi");
     else if (freq === "3j") selectedDays.push("Lundi", "Mercredi", "Vendredi");
     else if (freq === "4j") selectedDays.push("Lundi", "Mardi", "Jeudi", "Vendredi");
@@ -49,14 +49,12 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     days.forEach(d => newSchedule[d] = null);
 
     selectedDays.forEach((day, idx) => {
-      // Alternate through available sessions
       newSchedule[day] = sessionIds[idx % sessionIds.length];
     });
 
     return newSchedule;
   }
 
-  // Effect to regenerate schedule when frequency or objective changes
   const handleUpdateBaseInfo = (updates: Partial<UserProfile>) => {
     const newProfile = { ...tempProfile, ...updates };
     setTempProfile(newProfile);
@@ -75,17 +73,43 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   const handleSave = () => {
     onUpdateProfile(tempProfile);
     localStorage.setItem("muscleup_schedule", JSON.stringify(schedule));
-    onBack();
+    toast({
+      title: "Programme mis à jour !",
+      description: "Tes modifications ont été enregistrées avec succès.",
+      variant: "default",
+    });
+    setTimeout(() => {
+      onBack();
+    }, 1500);
   };
 
-  const swapDays = (day1: string, day2: string) => {
+  const moveSession = (targetDay: string) => {
+    if (!selectedDayToMove) return;
+    
     const newSchedule = { ...schedule };
-    const temp = newSchedule[day1];
-    newSchedule[day1] = newSchedule[day2];
-    newSchedule[day2] = temp;
+    const sourceSession = newSchedule[selectedDayToMove];
+    const targetSession = newSchedule[targetDay];
+    
+    newSchedule[targetDay] = sourceSession;
+    newSchedule[selectedDayToMove] = targetSession;
+    
     setSchedule(newSchedule);
-    setSelectedDayToSwap(null);
+    setSelectedDayToMove(null);
+    setMoveMessage("Séance déplacée ✓ Planning ré-optimisé");
+    setTimeout(() => setMoveMessage(null), 3000);
   };
+
+  const optimizationWarnings = useMemo(() => {
+    const warnings: string[] = [];
+    for (let i = 0; i < dayNamesFull.length - 1; i++) {
+      const today = dayNamesFull[i];
+      const tomorrow = dayNamesFull[i+1];
+      if (schedule[today] && schedule[tomorrow]) {
+        warnings.push(`Repos limité entre ${today} et ${tomorrow}.`);
+      }
+    }
+    return warnings;
+  }, [schedule]);
 
   return (
     <div className="min-h-full bg-[#0F0F0F] flex flex-col p-6 animate-in slide-in-from-right duration-300">
@@ -97,7 +121,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
       </header>
 
       <div className="space-y-10 flex-1 overflow-y-auto no-scrollbar pb-24">
-        {/* Objective Section */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Target className="w-4 h-4 text-primary" />
@@ -115,7 +138,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
           </button>
         </section>
 
-        {/* Level Section */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Award className="w-4 h-4 text-primary" />
@@ -139,7 +161,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
           </div>
         </section>
 
-        {/* Frequency Section */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Repeat className="w-4 h-4 text-primary" />
@@ -163,7 +184,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
           </div>
         </section>
 
-        {/* Schedule Section */}
         <section className="space-y-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -176,7 +196,14 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
                 <span className="text-[9px] font-bold uppercase tracking-tighter">Planning optimisé ✓</span>
               </div>
             )}
+            {moveMessage && (
+              <div className="flex items-center gap-1.5 text-green-500 animate-in fade-in slide-in-from-right-2">
+                <CheckCircle className="w-3.5 h-3.5" />
+                <span className="text-[9px] font-bold uppercase tracking-tighter">{moveMessage}</span>
+              </div>
+            )}
           </div>
+          
           <div className="space-y-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
             {dayNamesFull.map((day) => {
               const sessionId = schedule[day];
@@ -190,7 +217,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
                     </span>
                   </div>
                   <button 
-                    onClick={() => setSelectedDayToSwap(day)}
+                    onClick={() => setSelectedDayToMove(day)}
                     className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
                   >
                     <ArrowRightLeft className="w-4 h-4" />
@@ -199,7 +226,18 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               );
             })}
           </div>
-          <p className="text-[10px] text-zinc-600 font-medium italic text-center">Clique sur les flèches pour déplacer une séance</p>
+
+          {optimizationWarnings.length > 0 && (
+            <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl space-y-2">
+              <div className="flex items-center gap-2 text-amber-500">
+                <AlertTriangle className="w-4 h-4" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Avertissement Récupération</span>
+              </div>
+              <p className="text-[10px] text-amber-200/70 italic leading-tight">
+                ⚠️ Attention : pas assez de repos entre certaines séances. Idéalement 48h minimum entre deux séances intenses.
+              </p>
+            </div>
+          )}
         </section>
       </div>
 
@@ -208,11 +246,10 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
           onClick={handleSave}
           className="w-full h-16 rounded-xl text-xl font-headline bg-primary text-white shadow-xl shadow-primary/20"
         >
-          SAUVEGARDER LES MODIFICATIONS
+          SAUVEGARDER MON PROGRAMME ✓
         </Button>
       </div>
 
-      {/* Objective Picker Modal */}
       <Dialog open={isObjectiveModalOpen} onOpenChange={setIsObjectiveModalOpen}>
         <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
           <DialogHeader>
@@ -241,25 +278,35 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
         </DialogContent>
       </Dialog>
 
-      {/* Day Swap Modal */}
-      <Dialog open={!!selectedDayToSwap} onOpenChange={() => setSelectedDayToSwap(null)}>
+      <Dialog open={!!selectedDayToMove} onOpenChange={() => setSelectedDayToMove(null)}>
         <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
           <DialogHeader>
-            <DialogTitle className="font-headline text-2xl uppercase">ÉCHANGER AVEC...</DialogTitle>
+            <DialogTitle className="font-headline text-2xl uppercase">DÉPLACER VERS...</DialogTitle>
           </DialogHeader>
           <div className="space-y-2 mt-4">
-            {dayNamesFull.filter(d => d !== selectedDayToSwap).map((day) => (
-              <button
-                key={day}
-                onClick={() => swapDays(selectedDayToSwap!, day)}
-                className="w-full p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl text-left hover:border-primary transition-all flex justify-between items-center"
-              >
-                <span className="font-headline text-xl text-white uppercase">{day}</span>
-                <span className="text-zinc-600 text-[10px] font-bold uppercase tracking-widest">
-                  {currentProgram.sessions.find(s => s.id === schedule[day])?.name || "Repos"}
-                </span>
-              </button>
-            ))}
+            {dayNamesFull.filter(d => d !== selectedDayToMove).map((day) => {
+              const isOccupied = !!schedule[day];
+              return (
+                <button
+                  key={day}
+                  onClick={() => moveSession(day)}
+                  className="w-full p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl text-left hover:border-primary transition-all flex justify-between items-center group"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-headline text-xl text-white uppercase">{day}</span>
+                    <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
+                      {schedule[day] ? currentProgram.sessions.find(s => s.id === schedule[day])?.name : "Repos"}
+                    </span>
+                  </div>
+                  <span className={cn(
+                    "text-[8px] font-bold uppercase px-2 py-1 rounded-full",
+                    isOccupied ? "bg-amber-500/10 text-amber-500" : "bg-green-500/10 text-green-500"
+                  )}>
+                    {isOccupied ? "Occupé" : "Disponible"}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>

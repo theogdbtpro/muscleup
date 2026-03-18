@@ -1,15 +1,15 @@
-
 "use client";
 
 import { UserProfile } from "@/app/page";
-import { PROGRAMS, Session } from "@/data/programs";
+import { PROGRAMS } from "@/data/programs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, Settings, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 type HubProps = {
   profile: UserProfile;
@@ -27,6 +27,7 @@ const OBJECTIVE_TIPS: Record<string, string> = {
 };
 
 export default function Hub({ profile, setView, onStartSession }: HubProps) {
+  const { toast } = useToast();
   const [history, setHistory] = useState<any[]>([]);
   const [completedDates, setCompletedDates] = useState<string[]>([]);
   const [isSessionPickerOpen, setIsSessionPickerOpen] = useState(false);
@@ -74,19 +75,17 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     return count;
   }, [completedDates]);
 
-  // Logic for custom schedule from localStorage
-  const schedule = useMemo(() => {
+  const [schedule, setSchedule] = useState<Record<string, string | null>>(() => {
     const saved = localStorage.getItem("muscleup_schedule");
     if (saved) return JSON.parse(saved);
     
-    // Default mapping from program
     const mapping: Record<string, string | null> = {};
     dayNamesFull.forEach(d => {
       const s = program.sessions.find(ps => ps.day === d);
       mapping[d] = s ? s.id : null;
     });
     return mapping;
-  }, [program]);
+  });
 
   const todaySessionId = schedule[todayName];
   const todaySession = program.sessions.find(s => s.id === todaySessionId);
@@ -98,6 +97,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     monday.setDate(now.getDate() - currentDayIdx);
     monday.setHours(0,0,0,0);
     history.forEach(h => {
+      if (!h.date) return;
       const hDate = new Date(h.date);
       if (hDate >= monday) {
         const dayIdx = (hDate.getDay() + 6) % 7;
@@ -112,11 +112,44 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     const monday = new Date(now);
     monday.setDate(now.getDate() - currentDayIdx);
     monday.setHours(0,0,0,0);
-    return history.filter(h => new Date(h.date) >= monday).length;
+    return history.filter(h => h.date && new Date(h.date) >= monday).length;
   }, [history, currentDayIdx]);
 
   const totalWeeklyGoal = parseInt(profile.frequency) || 3;
   const weeklyProgressPercent = Math.min((weeklySessionsDone / totalWeeklyGoal) * 100, 100);
+
+  const handlePostpone = () => {
+    if (!todaySession) return;
+    
+    let nextAvailableDayIdx = -1;
+    for (let i = currentDayIdx + 1; i < 7; i++) {
+      if (!schedule[dayNamesFull[i]]) {
+        nextAvailableDayIdx = i;
+        break;
+      }
+    }
+
+    if (nextAvailableDayIdx !== -1) {
+      const nextDayName = dayNamesFull[nextAvailableDayIdx];
+      const newSchedule = { ...schedule };
+      newSchedule[nextDayName] = todaySessionId;
+      newSchedule[todayName] = null;
+      
+      setSchedule(newSchedule);
+      localStorage.setItem("muscleup_schedule", JSON.stringify(newSchedule));
+      
+      toast({
+        title: `Séance reportée au ${nextDayName} ✓`,
+        description: "Ton planning a été mis à jour pour accommoder ce changement.",
+      });
+    } else {
+      toast({
+        title: "Impossible de reporter",
+        description: "Aucun jour de repos disponible cette semaine. Séance annulée.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-20">
@@ -135,7 +168,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
         </div>
       </header>
 
-      {/* Program Info Banner */}
       <button 
         onClick={() => setView("settings")}
         className="w-full bg-[#1A1A1A] p-[10px_14px] rounded-[10px] flex items-center justify-between group border border-transparent hover:border-[#2A2A2A] transition-all"
@@ -176,17 +208,26 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             </Button>
           )}
           {!finishedToday && (
-            <button 
-              onClick={() => setIsSessionPickerOpen(true)}
-              className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors mt-2"
-            >
-              Choisir une autre séance →
-            </button>
+            <div className="flex flex-col gap-3 mt-4">
+              <button 
+                onClick={() => setIsSessionPickerOpen(true)}
+                className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors"
+              >
+                Choisir une autre séance →
+              </button>
+              {todaySession && (
+                <button 
+                  onClick={handlePostpone}
+                  className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors"
+                >
+                  Reporter à demain →
+                </button>
+              )}
+            </div>
           )}
         </div>
       </Card>
 
-      {/* Session Picker Modal */}
       <Dialog open={isSessionPickerOpen} onOpenChange={setIsSessionPickerOpen}>
         <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
           <DialogHeader>
@@ -288,7 +329,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
         </div>
       </section>
 
-      <section className="space-y-4 pb-6">
+      <section className="space-y-4 pb-10">
         <h2 className="text-xl font-headline text-white tracking-wide">MA PROGRESSION</h2>
         <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-6 space-y-4 shadow-xl">
           <div className="flex justify-between items-end">
