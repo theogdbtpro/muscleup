@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { UserProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   const [tempProfile, setTempProfile] = useState<UserProfile>({ ...profile });
   const [isObjectiveModalOpen, setIsObjectiveModalOpen] = useState(false);
   const [selectedDayToMove, setSelectedDayToMove] = useState<string | null>(null);
+  const [pendingTargetDay, setPendingTargetDay] = useState<string | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [moveMessage, setMoveMessage] = useState<string | null>(null);
 
@@ -36,32 +37,26 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   function generateOptimizedSchedule(freq: string, objId: string) {
     const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
     const selectedDays: string[] = [];
-    
     if (freq === "2j") selectedDays.push("Lundi", "Jeudi");
     else if (freq === "3j") selectedDays.push("Lundi", "Mercredi", "Vendredi");
     else if (freq === "4j") selectedDays.push("Lundi", "Mardi", "Jeudi", "Vendredi");
     else if (freq === "5j") selectedDays.push("Lundi", "Mardi", "Mercredi", "Vendredi", "Samedi");
-
     const program = PROGRAMS.find(p => p.id === objId) || PROGRAMS[0];
     const sessionIds = program.sessions.filter(s => !s.isRestDay).map(s => s.id);
-
     const newSchedule: Record<string, string | null> = {};
     days.forEach(d => newSchedule[d] = null);
-
     selectedDays.forEach((day, idx) => {
       newSchedule[day] = sessionIds[idx % sessionIds.length];
     });
-
     return newSchedule;
   }
 
   const handleUpdateBaseInfo = (updates: Partial<UserProfile>) => {
     const newProfile = { ...tempProfile, ...updates };
     setTempProfile(newProfile);
-    
     if (updates.frequency || updates.objective) {
       const newSchedule = generateOptimizedSchedule(
-        updates.frequency || tempProfile.frequency, 
+        updates.frequency || tempProfile.frequency,
         updates.objective || tempProfile.objective
       );
       setSchedule(newSchedule);
@@ -78,32 +73,49 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
       description: "Tes modifications ont été enregistrées avec succès.",
       variant: "default",
     });
-    setTimeout(() => {
-      onBack();
-    }, 1500);
+    setTimeout(() => onBack(), 1000);
   };
 
-  const moveSession = (targetDay: string) => {
-    if (!selectedDayToMove) return;
+  const checkAdjacency = (targetDay: string) => {
+    const targetIdx = dayNamesFull.indexOf(targetDay);
+    const prevDay = dayNamesFull[(targetIdx + 6) % 7];
+    const nextDay = dayNamesFull[(targetIdx + 1) % 7];
     
+    // Check if neighbors (excluding the day we're moving from) are training days
+    const isPrevTraining = !!schedule[prevDay] && prevDay !== selectedDayToMove;
+    const isNextTraining = !!schedule[nextDay] && nextDay !== selectedDayToMove;
+    
+    return isPrevTraining || isNextTraining;
+  };
+
+  const handleDayClick = (targetDay: string) => {
+    if (checkAdjacency(targetDay)) {
+      setPendingTargetDay(targetDay);
+    } else {
+      executeMove(targetDay);
+    }
+  };
+
+  const executeMove = (targetDay: string) => {
+    if (!selectedDayToMove) return;
     const newSchedule = { ...schedule };
     const sourceSession = newSchedule[selectedDayToMove];
     const targetSession = newSchedule[targetDay];
-    
     newSchedule[targetDay] = sourceSession;
     newSchedule[selectedDayToMove] = targetSession;
-    
+
     setSchedule(newSchedule);
     setSelectedDayToMove(null);
-    setMoveMessage("Séance déplacée ✓ Planning ré-optimisé");
+    setPendingTargetDay(null);
+    setMoveMessage("Séance déplacée ✓");
     setTimeout(() => setMoveMessage(null), 3000);
   };
 
   const optimizationWarnings = useMemo(() => {
     const warnings: string[] = [];
-    for (let i = 0; i < dayNamesFull.length - 1; i++) {
+    for (let i = 0; i < dayNamesFull.length; i++) {
       const today = dayNamesFull[i];
-      const tomorrow = dayNamesFull[i+1];
+      const tomorrow = dayNamesFull[(i + 1) % dayNamesFull.length];
       if (schedule[today] && schedule[tomorrow]) {
         warnings.push(`Repos limité entre ${today} et ${tomorrow}.`);
       }
@@ -120,16 +132,13 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
         <h1 className="text-3xl font-headline text-white tracking-tight uppercase">PARAMÈTRES</h1>
       </header>
 
-      <div className="space-y-10 flex-1 overflow-y-auto no-scrollbar pb-24">
+      <div className="space-y-10 flex-1 overflow-y-auto no-scrollbar pb-10">
         <section className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Target className="w-4 h-4 text-primary" />
             <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Objectif actuel</h2>
           </div>
-          <button 
-            onClick={() => setIsObjectiveModalOpen(true)}
-            className="w-full p-6 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl flex justify-between items-center group"
-          >
+          <button onClick={() => setIsObjectiveModalOpen(true)} className="w-full p-6 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl flex justify-between items-center">
             <div className="flex items-center gap-4">
               <span className="text-4xl">{currentProgram.emoji}</span>
               <span className="font-headline text-2xl text-white uppercase">{currentProgram.name}</span>
@@ -145,16 +154,9 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
           </div>
           <div className="grid grid-cols-3 gap-3">
             {["Débutant", "Intermédiaire", "Avancé"].map((l) => (
-              <button
-                key={l}
-                onClick={() => handleUpdateBaseInfo({ level: l })}
-                className={cn(
-                  "p-4 rounded-xl border-2 transition-all flex justify-center items-center text-[10px] font-bold uppercase",
-                  tempProfile.level === l
-                    ? "bg-primary/10 border-primary text-white"
-                    : "bg-[#1A1A1A] border-transparent text-zinc-600"
-                )}
-              >
+              <button key={l} onClick={() => handleUpdateBaseInfo({ level: l })}
+                className={cn("p-4 rounded-xl border-2 transition-all flex justify-center items-center text-[10px] font-bold uppercase",
+                  tempProfile.level === l ? "bg-primary/10 border-primary text-white" : "bg-[#1A1A1A] border-transparent text-zinc-600")}>
                 {l}
               </button>
             ))}
@@ -168,16 +170,9 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
           </div>
           <div className="grid grid-cols-4 gap-3">
             {["2j", "3j", "4j", "5j"].map((f) => (
-              <button
-                key={f}
-                onClick={() => handleUpdateBaseInfo({ frequency: f })}
-                className={cn(
-                  "h-16 rounded-xl border-2 transition-all flex items-center justify-center font-headline text-2xl",
-                  tempProfile.frequency === f
-                    ? "bg-primary/10 border-primary text-white"
-                    : "bg-[#1A1A1A] border-transparent text-zinc-600"
-                )}
-              >
+              <button key={f} onClick={() => handleUpdateBaseInfo({ frequency: f })}
+                className={cn("h-16 rounded-xl border-2 transition-all flex items-center justify-center font-headline text-2xl",
+                  tempProfile.frequency === f ? "bg-primary/10 border-primary text-white" : "bg-[#1A1A1A] border-transparent text-zinc-600")}>
                 {f}
               </button>
             ))}
@@ -190,20 +185,13 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               <Calendar className="w-4 h-4 text-primary" />
               <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Planning de la semaine</h2>
             </div>
-            {showSuccessMessage && (
-              <div className="flex items-center gap-1.5 text-green-500 animate-in fade-in slide-in-from-right-2">
+            {(showSuccessMessage || moveMessage) && (
+              <div className="flex items-center gap-1.5 text-green-500 animate-in fade-in">
                 <CheckCircle className="w-3.5 h-3.5" />
-                <span className="text-[9px] font-bold uppercase tracking-tighter">Planning optimisé ✓</span>
-              </div>
-            )}
-            {moveMessage && (
-              <div className="flex items-center gap-1.5 text-green-500 animate-in fade-in slide-in-from-right-2">
-                <CheckCircle className="w-3.5 h-3.5" />
-                <span className="text-[9px] font-bold uppercase tracking-tighter">{moveMessage}</span>
+                <span className="text-[9px] font-bold uppercase">{moveMessage || "Planning optimisé ✓"}</span>
               </div>
             )}
           </div>
-          
           <div className="space-y-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
             {dayNamesFull.map((day) => {
               const sessionId = schedule[day];
@@ -216,17 +204,13 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
                       {session ? session.name : "Repos"}
                     </span>
                   </div>
-                  <button 
-                    onClick={() => setSelectedDayToMove(day)}
-                    className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                  >
+                  <button onClick={() => setSelectedDayToMove(day)} className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
                     <ArrowRightLeft className="w-4 h-4" />
                   </button>
                 </div>
               );
             })}
           </div>
-
           {optimizationWarnings.length > 0 && (
             <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl space-y-2">
               <div className="flex items-center gap-2 text-amber-500">
@@ -234,18 +218,15 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
                 <span className="text-[10px] font-bold uppercase tracking-widest">Avertissement Récupération</span>
               </div>
               <p className="text-[10px] text-amber-200/70 italic leading-tight">
-                ⚠️ Attention : pas assez de repos entre certaines séances. Idéalement 48h minimum entre deux séances intenses.
+                ⚠️ Attention : pas assez de repos entre certaines séances. Idéalement 48h minimum.
               </p>
             </div>
           )}
         </section>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 w-full max-w-[430px] mx-auto p-6 bg-gradient-to-t from-[#0F0F0F] via-[#0F0F0F] to-transparent">
-        <Button
-          onClick={handleSave}
-          className="w-full h-16 rounded-xl text-xl font-headline bg-primary text-white shadow-xl shadow-primary/20"
-        >
+      <div className="sticky bottom-0 pt-4 bg-[#0F0F0F] z-20">
+        <Button onClick={handleSave} className="w-full h-16 rounded-xl text-xl font-headline bg-primary text-white shadow-xl shadow-primary/20">
           SAUVEGARDER MON PROGRAMME ✓
         </Button>
       </div>
@@ -257,19 +238,9 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 mt-4">
             {PROGRAMS.map((prog) => (
-              <button
-                key={prog.id}
-                onClick={() => {
-                  handleUpdateBaseInfo({ objective: prog.id });
-                  setIsObjectiveModalOpen(false);
-                }}
-                className={cn(
-                  "p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2",
-                  tempProfile.objective === prog.id
-                    ? "bg-primary/10 border-primary text-white"
-                    : "bg-[#0F0F0F] border-transparent text-zinc-600"
-                )}
-              >
+              <button key={prog.id} onClick={() => { handleUpdateBaseInfo({ objective: prog.id }); setIsObjectiveModalOpen(false); }}
+                className={cn("p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2",
+                  tempProfile.objective === prog.id ? "bg-primary/10 border-primary text-white" : "bg-[#0F0F0F] border-transparent text-zinc-600")}>
                 <span className="text-3xl">{prog.emoji}</span>
                 <span className="font-bold text-[10px] uppercase text-center tracking-tight">{prog.name}</span>
               </button>
@@ -278,36 +249,54 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!selectedDayToMove} onOpenChange={() => setSelectedDayToMove(null)}>
+      <Dialog open={!!selectedDayToMove} onOpenChange={() => { setSelectedDayToMove(null); setPendingTargetDay(null); }}>
         <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl uppercase">DÉPLACER VERS...</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2 mt-4">
-            {dayNamesFull.filter(d => d !== selectedDayToMove).map((day) => {
-              const isOccupied = !!schedule[day];
-              return (
-                <button
-                  key={day}
-                  onClick={() => moveSession(day)}
-                  className="w-full p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl text-left hover:border-primary transition-all flex justify-between items-center group"
-                >
-                  <div className="flex flex-col">
-                    <span className="font-headline text-xl text-white uppercase">{day}</span>
-                    <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
-                      {schedule[day] ? currentProgram.sessions.find(s => s.id === schedule[day])?.name : "Repos"}
+          
+          {pendingTargetDay ? (
+            <div className="space-y-6 mt-4 animate-in zoom-in-95">
+              <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-2xl text-center space-y-3">
+                <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
+                <p className="text-sm font-bold text-amber-200 uppercase tracking-tight">
+                  ⚠️ Séances consécutives — pas idéal pour la récupération
+                </p>
+                <p className="text-xs text-amber-500/70 italic">
+                  S'entraîner deux jours de suite limite le temps de reconstruction des fibres musculaires.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3">
+                <Button onClick={() => executeMove(pendingTargetDay)} className="h-14 bg-primary hover:bg-primary/90 text-white font-headline text-xl rounded-xl">
+                  CONFIRMER QUAND MÊME
+                </Button>
+                <Button onClick={() => setPendingTargetDay(null)} variant="ghost" className="h-14 text-zinc-500 font-headline text-xl">
+                  ANNULER
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2 mt-4">
+              {dayNamesFull.filter(d => d !== selectedDayToMove).map((day) => {
+                const isOccupied = !!schedule[day];
+                return (
+                  <button key={day} onClick={() => handleDayClick(day)}
+                    className="w-full p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl text-left hover:border-primary transition-all flex justify-between items-center">
+                    <div className="flex flex-col">
+                      <span className="font-headline text-xl text-white uppercase">{day}</span>
+                      <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
+                        {schedule[day] ? currentProgram.sessions.find(s => s.id === schedule[day])?.name : "Repos"}
+                      </span>
+                    </div>
+                    <span className={cn("text-[8px] font-bold uppercase px-2 py-1 rounded-full",
+                      isOccupied ? "bg-amber-500/10 text-amber-500" : "bg-green-500/10 text-green-500")}>
+                      {isOccupied ? "Occupé" : "Disponible"}
                     </span>
-                  </div>
-                  <span className={cn(
-                    "text-[8px] font-bold uppercase px-2 py-1 rounded-full",
-                    isOccupied ? "bg-amber-500/10 text-amber-500" : "bg-green-500/10 text-green-500"
-                  )}>
-                    {isOccupied ? "Occupé" : "Disponible"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
