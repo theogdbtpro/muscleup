@@ -5,7 +5,7 @@ import { UserProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronLeft, Target, Award, Calendar, Repeat, ArrowRightLeft, CheckCircle, AlertTriangle } from "lucide-react";
+import { ChevronLeft, Target, Award, Calendar, Repeat, ArrowRightLeft, CheckCircle, AlertTriangle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -65,6 +65,15 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     }
   };
 
+  const handleReoptimize = () => {
+    const newSchedule = generateOptimizedSchedule(tempProfile.frequency, tempProfile.objective);
+    setSchedule(newSchedule);
+    toast({
+      title: "Planning ré-optimisé ✓",
+      description: "Récupération maximale configurée.",
+    });
+  };
+
   const handleSave = () => {
     onUpdateProfile(tempProfile);
     localStorage.setItem("muscleup_schedule", JSON.stringify(schedule));
@@ -81,7 +90,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     const prevDay = dayNamesFull[(targetIdx + 6) % 7];
     const nextDay = dayNamesFull[(targetIdx + 1) % 7];
     
-    // Check if neighbors (excluding the day we're moving from) are training days
     const isPrevTraining = !!schedule[prevDay] && prevDay !== selectedDayToMove;
     const isNextTraining = !!schedule[nextDay] && nextDay !== selectedDayToMove;
     
@@ -180,7 +188,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
         </section>
 
         <section className="space-y-4">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-primary" />
               <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Planning de la semaine</h2>
@@ -192,17 +200,39 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               </div>
             )}
           </div>
+
+          <button 
+            onClick={handleReoptimize}
+            className="w-full flex items-center justify-center gap-2 p-3 border border-dashed border-primary/50 text-primary rounded-xl text-xs font-bold uppercase hover:bg-primary/5 transition-all mb-4"
+          >
+            <Sparkles className="w-4 h-4" />
+            Ré-optimiser automatiquement
+          </button>
+
           <div className="space-y-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
-            {dayNamesFull.map((day) => {
+            {dayNamesFull.map((day, idx) => {
               const sessionId = schedule[day];
               const session = currentProgram.sessions.find(s => s.id === sessionId);
+              
+              // Check for adjacency (warning indicator)
+              const prevDay = dayNamesFull[(idx + 6) % 7];
+              const nextDay = dayNamesFull[(idx + 1) % 7];
+              const hasAdjacencyIssue = !!sessionId && (!!schedule[prevDay] || !!schedule[nextDay]);
+
               return (
                 <div key={day} className="p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0">
                   <div className="flex items-center gap-4">
                     <span className="text-xs font-bold w-12 text-zinc-600">{day}</span>
-                    <span className={cn("text-sm font-bold uppercase tracking-tight", session ? "text-white" : "text-zinc-700")}>
-                      {session ? session.name : "Repos"}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={cn("text-sm font-bold uppercase tracking-tight", session ? "text-white" : "text-zinc-700")}>
+                        {session ? session.name : "Repos"}
+                      </span>
+                      {hasAdjacencyIssue && (
+                        <div className="w-5 h-5 bg-amber-500/20 rounded-full flex items-center justify-center" title="Repos non-optimal">
+                          <span className="text-amber-500 text-[10px] font-bold">!</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <button onClick={() => setSelectedDayToMove(day)} className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
                     <ArrowRightLeft className="w-4 h-4" />
@@ -211,6 +241,10 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               );
             })}
           </div>
+          <p className="text-[10px] text-zinc-500 italic text-center mt-2">
+            Clique sur ✨ pour que l'IA replace tes séances aux jours les plus optimaux pour ta récupération
+          </p>
+
           {optimizationWarnings.length > 0 && (
             <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl space-y-2">
               <div className="flex items-center gap-2 text-amber-500">
