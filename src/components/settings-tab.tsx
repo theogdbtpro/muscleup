@@ -269,12 +269,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               );
             })}
           </div>
-          
-          {!isHighFrequency && (
-            <p className="text-[10px] text-zinc-500 italic text-center mt-2">
-              Clique sur ✨ pour que l'IA replace tes séances aux jours les plus optimaux pour ta récupération
-            </p>
-          )}
 
           {optimizationWarnings.length > 0 && (
             <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl space-y-2">
