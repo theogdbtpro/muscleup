@@ -1,17 +1,20 @@
+
 "use client";
 
 import { UserProfile } from "@/app/page";
-import { PROGRAMS } from "@/data/programs";
+import { PROGRAMS, Session } from "@/data/programs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, Settings } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 type HubProps = {
   profile: UserProfile;
   setView: (view: any) => void;
+  onStartSession: (sessionId?: string) => void;
 };
 
 const OBJECTIVE_TIPS: Record<string, string> = {
@@ -23,16 +26,19 @@ const OBJECTIVE_TIPS: Record<string, string> = {
   "abdos": "La sangle abdominale se forge aussi dans l'assiette, reste hydraté."
 };
 
-export default function Hub({ profile, setView }: HubProps) {
+export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const [history, setHistory] = useState<any[]>([]);
   const [completedDates, setCompletedDates] = useState<string[]>([]);
+  const [isSessionPickerOpen, setIsSessionPickerOpen] = useState(false);
 
   const program = useMemo(() => {
     return PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
   }, [profile.objective]);
 
   const days = ["L", "M", "M", "J", "V", "S", "D"];
+  const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   const currentDayIdx = (new Date().getDay() + 6) % 7;
+  const todayName = dayNamesFull[currentDayIdx];
 
   useEffect(() => {
     const savedHistory = localStorage.getItem("muscleup_history");
@@ -48,21 +54,42 @@ export default function Hub({ profile, setView }: HubProps) {
   }, [completedDates]);
 
   const streak = useMemo(() => {
-    if (completedDates.length === 0) return 0;
-    const sorted = Array.from(new Set(completedDates)).sort((a, b) => b.localeCompare(a));
+    const dates = Array.from(new Set(completedDates)).sort().reverse();
+    if (dates.length === 0) return 0;
+    
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
-    if (sorted[0] !== today && sorted[0] !== yesterdayStr) return 0;
-    let count = 1;
-    for (let i = 0; i < sorted.length - 1; i++) {
-      const diff = (new Date(sorted[i]).getTime() - new Date(sorted[i+1]).getTime()) / 86400000;
-      if (Math.round(diff) === 1) count++;
-      else break;
+    
+    if (dates[0] !== today && dates[0] !== yesterdayStr) return 0;
+    
+    let count = 0;
+    let checkDate = dates[0] === today ? new Date() : yesterday;
+    
+    while (dates.includes(checkDate.toISOString().split('T')[0])) {
+      count++;
+      checkDate.setDate(checkDate.getDate() - 1);
     }
     return count;
   }, [completedDates]);
+
+  // Logic for custom schedule from localStorage
+  const schedule = useMemo(() => {
+    const saved = localStorage.getItem("muscleup_schedule");
+    if (saved) return JSON.parse(saved);
+    
+    // Default mapping from program
+    const mapping: Record<string, string | null> = {};
+    dayNamesFull.forEach(d => {
+      const s = program.sessions.find(ps => ps.day === d);
+      mapping[d] = s ? s.id : null;
+    });
+    return mapping;
+  }, [program]);
+
+  const todaySessionId = schedule[todayName];
+  const todaySession = program.sessions.find(s => s.id === todaySessionId);
 
   const dayStatuses = useMemo(() => {
     const statuses = new Array(7).fill("upcoming");
@@ -100,9 +127,14 @@ export default function Hub({ profile, setView }: HubProps) {
           </h1>
           <p className="text-zinc-500 text-[10px] font-bold uppercase mt-1 tracking-widest">Forger ton corps, maintenant.</p>
         </div>
-        <div className="bg-[#E24B4A]/10 px-4 py-2 rounded-full flex items-center gap-2 border border-[#E24B4A]/20">
-          <Flame className="w-4 h-4 text-[#E24B4A] fill-[#E24B4A]" />
-          <span className="text-sm font-bold text-white tracking-tighter">{streak} JOURS</span>
+        <div className="flex items-center gap-3">
+          <div className="bg-[#E24B4A]/10 px-4 py-2 rounded-full flex items-center gap-2 border border-[#E24B4A]/20">
+            <Flame className="w-4 h-4 text-[#E24B4A] fill-[#E24B4A]" />
+            <span className="text-sm font-bold text-white tracking-tighter">{streak} JOURS</span>
+          </div>
+          <button onClick={() => setView("settings")} className="p-2 text-zinc-500 hover:text-white transition-colors">
+            <Settings className="w-6 h-6" />
+          </button>
         </div>
       </header>
 
@@ -116,22 +148,59 @@ export default function Hub({ profile, setView }: HubProps) {
               {finishedToday ? "Bravo !" : "Séance du jour"}
             </h3>
             <h4 className="text-4xl font-headline text-white leading-tight uppercase">
-              {finishedToday ? "SÉANCE TERMINÉE ✓" : `${program.name} — ${profile.level}`}
+              {finishedToday ? "SÉANCE TERMINÉE ✓" : (todaySession ? todaySession.name : "Repos aujourd'hui")}
             </h4>
             <p className={cn("font-medium text-sm", finishedToday ? "text-green-200" : "text-white/80")}>
-              {finishedToday ? "Ton corps te remercie. Repose-toi bien !" : `Durée estimée : ${program.sessions[0].duration}`}
+              {finishedToday ? "Ton corps te remercie. Repose-toi bien !" : (todaySession ? `Durée estimée : ${todaySession.duration}` : "Profite pour bien récupérer.")}
             </p>
           </div>
-          {!finishedToday && (
+          {!finishedToday && todaySession && (
             <Button
-              onClick={() => setView("programme")}
+              onClick={() => onStartSession()}
               className="w-full h-14 bg-white text-[#E24B4A] rounded-xl text-lg font-headline hover:bg-white/90 shadow-xl"
             >
               C'EST PARTI !
             </Button>
           )}
+          {!finishedToday && (
+            <button 
+              onClick={() => setIsSessionPickerOpen(true)}
+              className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors mt-2"
+            >
+              Choisir une autre séance →
+            </button>
+          )}
         </div>
       </Card>
+
+      {/* Session Picker Modal */}
+      <Dialog open={isSessionPickerOpen} onOpenChange={setIsSessionPickerOpen}>
+        <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl">CHOISIR UNE SÉANCE</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-4">
+            {program.sessions.filter(s => !s.isRestDay).map((s) => (
+              <button
+                key={s.id}
+                onClick={() => {
+                  onStartSession(s.id);
+                  setIsSessionPickerOpen(false);
+                }}
+                className="w-full p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl text-left hover:border-[#E24B4A] transition-all flex justify-between items-center group"
+              >
+                <div>
+                  <div className="font-headline text-xl uppercase">{s.name}</div>
+                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{s.exercises.length} exercices • {s.duration}</div>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-[#E24B4A]/10 flex items-center justify-center group-hover:bg-[#E24B4A] transition-colors">
+                  <Activity className="w-4 h-4 text-[#E24B4A] group-hover:text-white" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex justify-between items-end px-1">
         {days.map((day, i) => {
@@ -185,8 +254,9 @@ export default function Hub({ profile, setView }: HubProps) {
       <section className="space-y-4">
         <h2 className="text-xl font-headline text-white tracking-wide">PROGRAMME DE LA SEMAINE</h2>
         <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
-          {["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"].map((dayName, idx) => {
-            const session = program.sessions.find(s => s.day === dayName);
+          {dayNamesFull.map((dayName, idx) => {
+            const sessionId = schedule[dayName];
+            const session = program.sessions.find(s => s.id === sessionId);
             const isDone = dayStatuses[idx] === "done";
             const isToday = idx === currentDayIdx;
             const isRest = !session || session.isRestDay;
