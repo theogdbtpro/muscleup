@@ -1,12 +1,11 @@
-
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { UserProfile } from "@/app/page";
-import { PROGRAMS, Program } from "@/data/programs";
+import { PROGRAMS } from "@/data/programs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronLeft, Target, Award, Calendar, Repeat, ArrowRightLeft } from "lucide-react";
+import { ChevronLeft, Target, Award, Calendar, Repeat, ArrowRightLeft, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type SettingsTabProps = {
@@ -18,27 +17,60 @@ type SettingsTabProps = {
 export default function SettingsTab({ profile, onUpdateProfile, onBack }: SettingsTabProps) {
   const [tempProfile, setTempProfile] = useState<UserProfile>({ ...profile });
   const [isObjectiveModalOpen, setIsObjectiveModalOpen] = useState(false);
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedDayToSwap, setSelectedDayToSwap] = useState<string | null>(null);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 
-  // Custom schedule from localStorage
   const [schedule, setSchedule] = useState<Record<string, string | null>>(() => {
     const saved = localStorage.getItem("muscleup_schedule");
     if (saved) return JSON.parse(saved);
     
-    // Default from program
-    const program = PROGRAMS.find(p => p.id === profile.objective) || PROGRAMS[0];
-    const mapping: Record<string, string | null> = {};
-    dayNamesFull.forEach(d => {
-      const s = program.sessions.find(ps => ps.day === d);
-      mapping[d] = s ? s.id : null;
-    });
-    return mapping;
+    // Default initial generation
+    return generateOptimizedSchedule(profile.frequency, profile.objective);
   });
 
   const currentProgram = PROGRAMS.find(p => p.id === tempProfile.objective) || PROGRAMS[0];
+
+  function generateOptimizedSchedule(freq: string, objId: string) {
+    const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+    const selectedDays: string[] = [];
+    
+    // Define target days based on frequency
+    if (freq === "2j") selectedDays.push("Lundi", "Jeudi");
+    else if (freq === "3j") selectedDays.push("Lundi", "Mercredi", "Vendredi");
+    else if (freq === "4j") selectedDays.push("Lundi", "Mardi", "Jeudi", "Vendredi");
+    else if (freq === "5j") selectedDays.push("Lundi", "Mardi", "Mercredi", "Vendredi", "Samedi");
+
+    const program = PROGRAMS.find(p => p.id === objId) || PROGRAMS[0];
+    const sessionIds = program.sessions.filter(s => !s.isRestDay).map(s => s.id);
+
+    const newSchedule: Record<string, string | null> = {};
+    days.forEach(d => newSchedule[d] = null);
+
+    selectedDays.forEach((day, idx) => {
+      // Alternate through available sessions
+      newSchedule[day] = sessionIds[idx % sessionIds.length];
+    });
+
+    return newSchedule;
+  }
+
+  // Effect to regenerate schedule when frequency or objective changes
+  const handleUpdateBaseInfo = (updates: Partial<UserProfile>) => {
+    const newProfile = { ...tempProfile, ...updates };
+    setTempProfile(newProfile);
+    
+    if (updates.frequency || updates.objective) {
+      const newSchedule = generateOptimizedSchedule(
+        updates.frequency || tempProfile.frequency, 
+        updates.objective || tempProfile.objective
+      );
+      setSchedule(newSchedule);
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+    }
+  };
 
   const handleSave = () => {
     onUpdateProfile(tempProfile);
@@ -93,7 +125,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
             {["Débutant", "Intermédiaire", "Avancé"].map((l) => (
               <button
                 key={l}
-                onClick={() => setTempProfile({ ...tempProfile, level: l })}
+                onClick={() => handleUpdateBaseInfo({ level: l })}
                 className={cn(
                   "p-4 rounded-xl border-2 transition-all flex justify-center items-center text-[10px] font-bold uppercase",
                   tempProfile.level === l
@@ -117,7 +149,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
             {["2j", "3j", "4j", "5j"].map((f) => (
               <button
                 key={f}
-                onClick={() => setTempProfile({ ...tempProfile, frequency: f })}
+                onClick={() => handleUpdateBaseInfo({ frequency: f })}
                 className={cn(
                   "h-16 rounded-xl border-2 transition-all flex items-center justify-center font-headline text-2xl",
                   tempProfile.frequency === f
@@ -133,9 +165,17 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
 
         {/* Schedule Section */}
         <section className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar className="w-4 h-4 text-primary" />
-            <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Planning de la semaine</h2>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-primary" />
+              <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Planning de la semaine</h2>
+            </div>
+            {showSuccessMessage && (
+              <div className="flex items-center gap-1.5 text-green-500 animate-in fade-in slide-in-from-right-2">
+                <CheckCircle className="w-3.5 h-3.5" />
+                <span className="text-[9px] font-bold uppercase tracking-tighter">Planning optimisé ✓</span>
+              </div>
+            )}
           </div>
           <div className="space-y-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
             {dayNamesFull.map((day) => {
@@ -183,7 +223,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               <button
                 key={prog.id}
                 onClick={() => {
-                  setTempProfile({ ...tempProfile, objective: prog.id });
+                  handleUpdateBaseInfo({ objective: prog.id });
                   setIsObjectiveModalOpen(false);
                 }}
                 className={cn(
