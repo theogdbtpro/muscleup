@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, Settings } from "lucide-react";
+import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, Settings, ChevronRight } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -119,7 +119,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const weeklyProgressPercent = Math.min((weeklySessionsDone / totalWeeklyGoal) * 100, 100);
 
   return (
-    <div className="p-6 space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-20">
       <header className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-headline text-white leading-none">
@@ -132,11 +132,24 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             <Flame className="w-4 h-4 text-[#E24B4A] fill-[#E24B4A]" />
             <span className="text-sm font-bold text-white tracking-tighter">{streak} JOURS</span>
           </div>
-          <button onClick={() => setView("settings")} className="p-2 text-zinc-500 hover:text-white transition-colors">
-            <Settings className="w-6 h-6" />
-          </button>
         </div>
       </header>
+
+      {/* Program Info Banner */}
+      <button 
+        onClick={() => setView("settings")}
+        className="w-full bg-[#1A1A1A] p-[10px_14px] rounded-[10px] flex items-center justify-between group border border-transparent hover:border-[#2A2A2A] transition-all"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-base">{program.emoji}</span>
+          <span className="text-[12px] font-bold text-zinc-300 uppercase tracking-tight">
+            {program.name} · {profile.level} · {profile.frequency}/sem
+          </span>
+        </div>
+        <div className="bg-[#E24B4A] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter shadow-sm flex items-center gap-1">
+          Modifier <ChevronRight className="w-3 h-3" />
+        </div>
+      </button>
 
       <Card className={cn(
         "p-8 rounded-2xl border-none relative overflow-hidden shadow-2xl transition-all",
