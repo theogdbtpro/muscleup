@@ -29,6 +29,11 @@ export default function Home() {
     setProfile(newProfile);
   };
 
+  const handleUpdateProfile = (updatedProfile: UserProfile) => {
+    localStorage.setItem("muscleup_profile", JSON.stringify(updatedProfile));
+    setProfile(updatedProfile);
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#0F0F0F]">
@@ -41,8 +46,14 @@ export default function Home() {
     return <Onboarding onComplete={handleOnboardingComplete} />;
   }
 
-  return <Dashboard profile={profile} onReset={() => {
-    localStorage.removeItem("muscleup_profile");
-    setProfile(null);
-  }} />;
+  return (
+    <Dashboard 
+      profile={profile} 
+      onUpdateProfile={handleUpdateProfile}
+      onReset={() => {
+        localStorage.removeItem("muscleup_profile");
+        setProfile(null);
+      }} 
+    />
+  );
 }
