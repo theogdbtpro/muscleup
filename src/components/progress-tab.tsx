@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { UserProfile } from "@/app/page";
-import { ChevronLeft, Flame, Trophy, History, Dumbbell } from "lucide-react";
+import { ChevronLeft, Flame, Trophy, History, Dumbbell, Check } from "lucide-react";
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from "recharts";
 
 type ProgressTabProps = {
