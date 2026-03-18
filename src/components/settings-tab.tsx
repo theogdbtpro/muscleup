@@ -21,10 +21,10 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   const [isObjectiveModalOpen, setIsObjectiveModalOpen] = useState(false);
   const [selectedDayToMove, setSelectedDayToMove] = useState<string | null>(null);
   const [pendingTargetDay, setPendingTargetDay] = useState<string | null>(null);
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [moveMessage, setMoveMessage] = useState<string | null>(null);
 
   const dayNamesFull = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+  const isHighFrequency = tempProfile.frequency === "4j" || tempProfile.frequency === "5j";
 
   const [schedule, setSchedule] = useState<Record<string, string | null>>(() => {
     const saved = localStorage.getItem("muscleup_schedule");
@@ -41,6 +41,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     else if (freq === "3j") selectedDays.push("Lundi", "Mercredi", "Vendredi");
     else if (freq === "4j") selectedDays.push("Lundi", "Mardi", "Jeudi", "Vendredi");
     else if (freq === "5j") selectedDays.push("Lundi", "Mardi", "Mercredi", "Vendredi", "Samedi");
+    
     const program = PROGRAMS.find(p => p.id === objId) || PROGRAMS[0];
     const sessionIds = program.sessions.filter(s => !s.isRestDay).map(s => s.id);
     const newSchedule: Record<string, string | null> = {};
@@ -60,8 +61,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
         updates.objective || tempProfile.objective
       );
       setSchedule(newSchedule);
-      setShowSuccessMessage(true);
-      setTimeout(() => setShowSuccessMessage(false), 3000);
     }
   };
 
@@ -80,12 +79,12 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     toast({
       title: "Programme mis à jour !",
       description: "Tes modifications ont été enregistrées avec succès.",
-      variant: "default",
     });
     setTimeout(() => onBack(), 1000);
   };
 
   const checkAdjacency = (targetDay: string) => {
+    if (isHighFrequency) return false;
     const targetIdx = dayNamesFull.indexOf(targetDay);
     const prevDay = dayNamesFull[(targetIdx + 6) % 7];
     const nextDay = dayNamesFull[(targetIdx + 1) % 7];
@@ -119,7 +118,35 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     setTimeout(() => setMoveMessage(null), 3000);
   };
 
+  const handleAutoOptimizeMove = () => {
+    if (!selectedDayToMove) return;
+    
+    // Find the first free day that is not adjacent to any other workout
+    let optimizedDay = null;
+    for (const day of dayNamesFull) {
+      if (!schedule[day] && day !== selectedDayToMove) {
+        // Check adjacency of this potential day
+        const idx = dayNamesFull.indexOf(day);
+        const prev = dayNamesFull[(idx + 6) % 7];
+        const next = dayNamesFull[(idx + 1) % 7];
+        if (!schedule[prev] && !schedule[next]) {
+          optimizedDay = day;
+          break;
+        }
+      }
+    }
+
+    if (optimizedDay) {
+      executeMove(optimizedDay);
+      toast({ title: "Optimisé ✨", description: `Séance placée le ${optimizedDay}` });
+    } else {
+      toast({ title: "Aucun jour idéal", description: "Déplacement manuel requis.", variant: "destructive" });
+      setPendingTargetDay(null);
+    }
+  };
+
   const optimizationWarnings = useMemo(() => {
+    if (isHighFrequency) return [];
     const warnings: string[] = [];
     for (let i = 0; i < dayNamesFull.length; i++) {
       const today = dayNamesFull[i];
@@ -129,7 +156,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
       }
     }
     return warnings;
-  }, [schedule]);
+  }, [schedule, isHighFrequency]);
 
   return (
     <div className="min-h-full bg-[#0F0F0F] flex flex-col p-6 animate-in slide-in-from-right duration-300">
@@ -193,31 +220,32 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               <Calendar className="w-4 h-4 text-primary" />
               <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Planning de la semaine</h2>
             </div>
-            {(showSuccessMessage || moveMessage) && (
+            {moveMessage && (
               <div className="flex items-center gap-1.5 text-green-500 animate-in fade-in">
                 <CheckCircle className="w-3.5 h-3.5" />
-                <span className="text-[9px] font-bold uppercase">{moveMessage || "Planning optimisé ✓"}</span>
+                <span className="text-[9px] font-bold uppercase">{moveMessage}</span>
               </div>
             )}
           </div>
 
-          <button 
-            onClick={handleReoptimize}
-            className="w-full flex items-center justify-center gap-2 p-3 border border-dashed border-primary/50 text-primary rounded-xl text-xs font-bold uppercase hover:bg-primary/5 transition-all mb-4"
-          >
-            <Sparkles className="w-4 h-4" />
-            Ré-optimiser automatiquement
-          </button>
+          {!isHighFrequency && (
+            <button 
+              onClick={handleReoptimize}
+              className="w-full flex items-center justify-center gap-2 p-3 border border-dashed border-primary/50 text-primary rounded-xl text-xs font-bold uppercase hover:bg-primary/5 transition-all mb-4"
+            >
+              <Sparkles className="w-4 h-4" />
+              Ré-optimiser automatiquement
+            </button>
+          )}
 
           <div className="space-y-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
             {dayNamesFull.map((day, idx) => {
               const sessionId = schedule[day];
               const session = currentProgram.sessions.find(s => s.id === sessionId);
               
-              // Check for adjacency (warning indicator)
               const prevDay = dayNamesFull[(idx + 6) % 7];
               const nextDay = dayNamesFull[(idx + 1) % 7];
-              const hasAdjacencyIssue = !!sessionId && (!!schedule[prevDay] || !!schedule[nextDay]);
+              const hasAdjacencyIssue = !isHighFrequency && !!sessionId && (!!schedule[prevDay] || !!schedule[nextDay]);
 
               return (
                 <div key={day} className="p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0">
@@ -228,7 +256,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
                         {session ? session.name : "Repos"}
                       </span>
                       {hasAdjacencyIssue && (
-                        <div className="w-5 h-5 bg-amber-500/20 rounded-full flex items-center justify-center" title="Repos non-optimal">
+                        <div className="w-5 h-5 bg-amber-500/20 rounded-full flex items-center justify-center">
                           <span className="text-amber-500 text-[10px] font-bold">!</span>
                         </div>
                       )}
@@ -241,9 +269,12 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               );
             })}
           </div>
-          <p className="text-[10px] text-zinc-500 italic text-center mt-2">
-            Clique sur ✨ pour que l'IA replace tes séances aux jours les plus optimaux pour ta récupération
-          </p>
+          
+          {!isHighFrequency && (
+            <p className="text-[10px] text-zinc-500 italic text-center mt-2">
+              Clique sur ✨ pour que l'IA replace tes séances aux jours les plus optimaux pour ta récupération
+            </p>
+          )}
 
           {optimizationWarnings.length > 0 && (
             <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl space-y-2">
@@ -297,12 +328,15 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
                   ⚠️ Séances consécutives — pas idéal pour la récupération
                 </p>
                 <p className="text-xs text-amber-500/70 italic">
-                  S'entraîner deux jours de suite limite le temps de reconstruction des fibres musculaires.
+                  Pour 2-3 séances/semaine, 48h de repos entre chaque séance maximise tes gains.
                 </p>
               </div>
               <div className="flex flex-col gap-3">
-                <Button onClick={() => executeMove(pendingTargetDay)} className="h-14 bg-primary hover:bg-primary/90 text-white font-headline text-xl rounded-xl">
-                  CONFIRMER QUAND MÊME
+                <Button onClick={() => executeMove(pendingTargetDay)} className="h-14 bg-white hover:bg-white/90 text-[#0F0F0F] font-headline text-xl rounded-xl">
+                  CONFIRMER CE JOUR
+                </Button>
+                <Button onClick={handleAutoOptimizeMove} className="h-14 bg-primary hover:bg-primary/90 text-white font-headline text-xl rounded-xl flex items-center justify-center gap-2">
+                  <Sparkles className="w-5 h-5" /> OPTIMISER AUTOMATIQUEMENT
                 </Button>
                 <Button onClick={() => setPendingTargetDay(null)} variant="ghost" className="h-14 text-zinc-500 font-headline text-xl">
                   ANNULER
