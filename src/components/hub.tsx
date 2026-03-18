@@ -25,58 +25,44 @@ const OBJECTIVE_TIPS: Record<string, string> = {
 
 export default function Hub({ profile, setView }: HubProps) {
   const [history, setHistory] = useState<any[]>([]);
-  
+  const [completedDates, setCompletedDates] = useState<string[]>([]);
+
   const program = useMemo(() => {
     return PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
   }, [profile.objective]);
 
   const days = ["L", "M", "M", "J", "V", "S", "D"];
-  const currentDayIdx = (new Date().getDay() + 6) % 7; // Lundi = 0
+  const currentDayIdx = (new Date().getDay() + 6) % 7;
 
   useEffect(() => {
-    const saved = localStorage.getItem("muscleup_history");
-    if (saved) setHistory(JSON.parse(saved));
+    const savedHistory = localStorage.getItem("muscleup_history");
+    if (savedHistory) setHistory(JSON.parse(savedHistory));
+    
+    const savedDates = localStorage.getItem("completedDates");
+    if (savedDates) setCompletedDates(JSON.parse(savedDates));
   }, []);
 
   const finishedToday = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
-    return history.some(h => h.date && h.date.split('T')[0] === todayStr);
-  }, [history]);
+    return completedDates.includes(todayStr);
+  }, [completedDates]);
 
-  // Calcul du Streak selon la consigne : jours consécutifs réels
   const streak = useMemo(() => {
-    const storedDates = localStorage.getItem("completedDates");
-    if (!storedDates) return 0;
-    
-    const dates = JSON.parse(storedDates) as string[];
-    if (dates.length === 0) return 0;
-    
-    // Trier les dates par ordre décroissant
-    const sortedUniqueDates = Array.from(new Set(dates)).sort((a, b) => b.localeCompare(a));
-    
+    if (completedDates.length === 0) return 0;
+    const sorted = Array.from(new Set(completedDates)).sort((a, b) => b.localeCompare(a));
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
-    
-    // Si la dernière séance n'est ni aujourd'hui ni hier, le streak est brisé
-    if (sortedUniqueDates[0] !== today && sortedUniqueDates[0] !== yesterdayStr) return 0;
-    
-    let currentStreak = 1;
-    for (let i = 0; i < sortedUniqueDates.length - 1; i++) {
-      const current = new Date(sortedUniqueDates[i]);
-      const prev = new Date(sortedUniqueDates[i + 1]);
-      const diff = (current.getTime() - prev.getTime()) / (1000 * 3600 * 24);
-      
-      // On utilise Math.round pour éviter les problèmes de précision de Date
-      if (Math.round(diff) === 1) {
-        currentStreak++;
-      } else {
-        break;
-      }
+    if (sorted[0] !== today && sorted[0] !== yesterdayStr) return 0;
+    let count = 1;
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const diff = (new Date(sorted[i]).getTime() - new Date(sorted[i+1]).getTime()) / 86400000;
+      if (Math.round(diff) === 1) count++;
+      else break;
     }
-    return currentStreak;
-  }, [history]);
+    return count;
+  }, [completedDates]);
 
   const dayStatuses = useMemo(() => {
     const statuses = new Array(7).fill("upcoming");
@@ -84,7 +70,6 @@ export default function Hub({ profile, setView }: HubProps) {
     const monday = new Date(now);
     monday.setDate(now.getDate() - currentDayIdx);
     monday.setHours(0,0,0,0);
-
     history.forEach(h => {
       const hDate = new Date(h.date);
       if (hDate >= monday) {
@@ -92,7 +77,6 @@ export default function Hub({ profile, setView }: HubProps) {
         statuses[dayIdx] = "done";
       }
     });
-
     return statuses;
   }, [history, currentDayIdx]);
 
@@ -101,7 +85,6 @@ export default function Hub({ profile, setView }: HubProps) {
     const monday = new Date(now);
     monday.setDate(now.getDate() - currentDayIdx);
     monday.setHours(0,0,0,0);
-    
     return history.filter(h => new Date(h.date) >= monday).length;
   }, [history, currentDayIdx]);
 
@@ -113,17 +96,16 @@ export default function Hub({ profile, setView }: HubProps) {
       <header className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-headline text-white leading-none">
-            {profile.name ? `Bonjour ${profile.name}` : "Bonjour !"}
+            {profile.name ? `Bonjour ${profile.name} !` : "Bonjour !"}
           </h1>
           <p className="text-zinc-500 text-[10px] font-bold uppercase mt-1 tracking-widest">Forger ton corps, maintenant.</p>
         </div>
         <div className="bg-[#E24B4A]/10 px-4 py-2 rounded-full flex items-center gap-2 border border-[#E24B4A]/20">
           <Flame className="w-4 h-4 text-[#E24B4A] fill-[#E24B4A]" />
-          <span className="text-sm font-bold text-white tracking-tighter">🔥 {streak} JOURS</span>
+          <span className="text-sm font-bold text-white tracking-tighter">{streak} JOURS</span>
         </div>
       </header>
 
-      {/* Hero Card Workout */}
       <Card className={cn(
         "p-8 rounded-2xl border-none relative overflow-hidden shadow-2xl transition-all",
         finishedToday ? "bg-[#1A4A2A]" : "bg-[#E24B4A]"
@@ -141,7 +123,7 @@ export default function Hub({ profile, setView }: HubProps) {
             </p>
           </div>
           {!finishedToday && (
-            <Button 
+            <Button
               onClick={() => setView("programme")}
               className="w-full h-14 bg-white text-[#E24B4A] rounded-xl text-lg font-headline hover:bg-white/90 shadow-xl"
             >
@@ -151,19 +133,17 @@ export default function Hub({ profile, setView }: HubProps) {
         </div>
       </Card>
 
-      {/* Days Week Row */}
       <div className="flex justify-between items-end px-1">
         {days.map((day, i) => {
           const isToday = i === currentDayIdx;
           const isDone = dayStatuses[i] === "done";
-
           return (
             <div key={i} className="flex flex-col items-center gap-2">
               <div className={cn(
                 "rounded-full flex items-center justify-center transition-all duration-300 border font-headline text-xl",
-                isToday 
-                  ? "w-[44px] h-[44px] bg-[#E24B4A] border-[#E24B4A] text-white shadow-lg shadow-[#E24B4A]/20 scale-110" 
-                  : isDone 
+                isToday
+                  ? "w-[44px] h-[44px] bg-[#E24B4A] border-[#E24B4A] text-white shadow-lg scale-110"
+                  : isDone
                     ? "w-[40px] h-[40px] bg-[#1A4A2A] border-[#4CAF50] text-[#4CAF50]"
                     : "w-[40px] h-[40px] bg-[#1A1A1A] border-[#2A2A2A] text-zinc-600"
               )}>
@@ -175,86 +155,56 @@ export default function Hub({ profile, setView }: HubProps) {
         })}
       </div>
 
-      {/* Quick Access Menu */}
       <div className="grid grid-cols-3 gap-3">
-        <button 
-          onClick={() => setView("progres")}
-          className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors"
-        >
+        <button onClick={() => setView("progres")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors">
           <Activity className="w-6 h-6 text-[#EE3BAA]" />
           <span className="text-[10px] font-bold uppercase text-zinc-400">Progrès</span>
         </button>
-        <button 
-          onClick={() => setView("nutrition")}
-          className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors"
-        >
+        <button onClick={() => setView("nutrition")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors">
           <Utensils className="w-6 h-6 text-[#E24B4A]" />
           <span className="text-[10px] font-bold uppercase text-zinc-400">Nutrition</span>
         </button>
-        <button 
-          onClick={() => setView("coach")}
-          className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors"
-        >
+        <button onClick={() => setView("coach")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors">
           <MessageSquare className="w-6 h-6 text-green-500" />
           <span className="text-[10px] font-bold uppercase text-zinc-400">Coach IA</span>
         </button>
       </div>
 
-      {/* Section Conseil du jour */}
       <section className="space-y-4">
         <h2 className="text-xl font-headline text-white tracking-wide">CONSEIL DU JOUR</h2>
         <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-5 flex items-start gap-4">
           <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
             <Lightbulb className="w-5 h-5 text-amber-500" />
           </div>
-          <div>
-            <p className="text-sm text-zinc-300 leading-relaxed italic">
-              "{OBJECTIVE_TIPS[profile.objective] || "Reste constant, les résultats viendront avec le temps."}"
-            </p>
-          </div>
+          <p className="text-sm text-zinc-300 leading-relaxed italic">
+            "{OBJECTIVE_TIPS[profile.objective] || "Reste constant, les résultats viendront avec le temps."}"
+          </p>
         </Card>
       </section>
 
-      {/* Section Programme de la semaine */}
       <section className="space-y-4">
         <h2 className="text-xl font-headline text-white tracking-wide">PROGRAMME DE LA SEMAINE</h2>
         <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
-          {["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"].map((dayName, idx) => {
+          {["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"].map((dayName, idx) => {
             const session = program.sessions.find(s => s.day === dayName);
             const isDone = dayStatuses[idx] === "done";
             const isToday = idx === currentDayIdx;
             const isRest = !session || session.isRestDay;
-
             return (
-              <div 
-                key={dayName} 
-                className={cn(
-                  "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0",
-                  isToday ? "bg-[#E24B4A]/5" : ""
-                )}
-              >
+              <div key={dayName} className={cn("p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0", isToday ? "bg-[#E24B4A]/5" : "")}>
                 <div className="flex items-center gap-4">
-                  <span className={cn("text-xs font-bold w-8", isToday ? "text-[#E24B4A]" : "text-zinc-600")}>
-                    {dayName.slice(0, 3)}
+                  <span className={cn("text-xs font-bold w-8", isToday ? "text-[#E24B4A]" : "text-zinc-600")}>{dayName.slice(0,3)}</span>
+                  <span className={cn("text-sm font-bold uppercase tracking-tight", isToday ? "text-white" : "text-zinc-400")}>
+                    {isRest ? "Repos" : session.name}
                   </span>
-                  <div>
-                    <div className={cn("text-sm font-bold uppercase tracking-tight", isToday ? "text-white" : "text-zinc-400")}>
-                      {isRest ? "Repos" : session.name}
-                    </div>
-                  </div>
                 </div>
-                {isDone ? (
-                  <CheckCircle2 className="w-4 h-4 text-[#4CAF50]" />
-                ) : (
-                  <Circle className="w-4 h-4 text-zinc-800" />
-                )}
+                {isDone ? <CheckCircle2 className="w-4 h-4 text-[#4CAF50]" /> : <Circle className="w-4 h-4 text-zinc-800" />}
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* Ma progression hebdomadaire */}
       <section className="space-y-4 pb-6">
         <h2 className="text-xl font-headline text-white tracking-wide">MA PROGRESSION</h2>
         <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-6 space-y-4 shadow-xl">

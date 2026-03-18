@@ -106,7 +106,10 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       <div className="mt-16 sticky bottom-0 pt-4 bg-[#0F0F0F]">
         <Button
           disabled={!isFormValid}
-          onClick={() => onComplete({ name, objective, level, frequency, onboarded: true })}
+          onClick={() => {
+            localStorage.setItem('userName', name);
+            onComplete({ name, objective, level, frequency, onboarded: true });
+          }}
           className="w-full h-14 rounded-xl text-xl font-headline bg-[#E24B4A] hover:bg-[#E24B4A]/90 text-white shadow-xl shadow-[#E24B4A]/20"
         >
           COMMENCER MON PROGRAMME
