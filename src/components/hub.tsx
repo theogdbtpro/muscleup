@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, Clock, Timer, Zap, Info, X } from "lucide-react";
+import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, Clock, Timer, Zap, Info, X, Dumbbell, Home as HomeIcon } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -262,15 +262,25 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     }
   };
 
+  const isHome = profile.location === 'maison';
+
   return (
     <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-20">
 
-      <header className="flex justify-between items-center">
+      <header className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-headline text-white leading-none">
             {profile.name ? `Bonjour ${profile.name} !` : "Bonjour !"}
           </h1>
-          <p className="text-zinc-500 text-[10px] font-bold uppercase mt-1 tracking-widest">Forger ton corps, maintenant.</p>
+          <div className="flex items-center gap-2 mt-2">
+            <div className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-tighter",
+              isHome ? "bg-amber-500/10 border-amber-500/20 text-amber-500" : "bg-blue-500/10 border-blue-500/20 text-blue-500"
+            )}>
+              {isHome ? <HomeIcon className="w-3 h-3" /> : <Dumbbell className="w-3 h-3" />}
+              {isHome ? "Mode Maison" : "Mode Salle"}
+            </div>
+          </div>
         </div>
         <div className="bg-[#E24B4A]/10 px-4 py-2 rounded-full flex items-center gap-2 border border-[#E24B4A]/20">
           <Flame className="w-4 h-4 text-[#E24B4A] fill-[#E24B4A]" />
@@ -279,13 +289,18 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       </header>
 
       <button onClick={() => setView("settings")} className="w-full bg-[#1A1A1A] p-[10px_14px] rounded-[10px] flex items-center justify-between border border-transparent hover:border-[#2A2A2A] transition-all">
-        <div className="flex items-center gap-2">
-          <span className="text-base">{program.emoji}</span>
-          <span className="text-[12px] font-bold text-zinc-300 uppercase tracking-tight">
-            {program.name} · {profile.level} · {profile.frequency}/sem · {profile.location === 'maison' ? '🏠' : '🏋️'}
-          </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xl">{program.emoji}</span>
+          <div className="text-left">
+            <span className="text-[12px] font-bold text-white uppercase block leading-tight">
+              {program.name}
+            </span>
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight">
+              {profile.level} · {profile.frequency}/sem · {isHome ? 'Équipement réduit' : 'Full équipement'}
+            </span>
+          </div>
         </div>
-        <div className="bg-[#E24B4A] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter flex items-center gap-1">
+        <div className="bg-[#E24B4A] text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-tighter flex items-center gap-1 shrink-0">
           Modifier <ChevronRight className="w-3 h-3" />
         </div>
       </button>
@@ -322,8 +337,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           )}
         </div>
       </Card>
-      {/* ... reste de hub.tsx inchangé ... */}
-      
+
       <Dialog open={isSessionPickerOpen} onOpenChange={setIsSessionPickerOpen}>
         <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
           <DialogHeader>
