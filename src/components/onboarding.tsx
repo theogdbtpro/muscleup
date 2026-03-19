@@ -1,28 +1,43 @@
+
 "use client";
 
 import { useState } from "react";
-import { UserProfile } from "@/app/page";
+import { UserProfile, BodyProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Dumbbell, Home } from "lucide-react";
+import { Dumbbell, Home, User, Target, ChevronRight } from "lucide-react";
+import BodyProfileView from "./body-profile";
 
 type OnboardingProps = {
   onComplete: (profile: UserProfile) => void;
 };
 
 export default function Onboarding({ onComplete }: OnboardingProps) {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(-1); // -1 is Body Profile
+  const [bodyProfile, setBodyProfile] = useState<BodyProfile | undefined>(undefined);
   const [name, setName] = useState("");
   const [objective, setObjective] = useState("");
   const [level, setLevel] = useState("");
   const [frequency, setFrequency] = useState("");
   const [location, setLocation] = useState<'salle' | 'maison' | ''>("");
 
-  const isFormValid = name && objective && level && frequency && location;
+  const isFormValid = name && objective && level && frequency && location && bodyProfile;
 
   const nextStep = () => setStep(step + 1);
+
+  if (step === -1) {
+    return (
+      <BodyProfileView 
+        onSave={(data) => {
+          setBodyProfile(data);
+          nextStep();
+        }}
+        onBack={() => {}} // Can't go back from first step
+      />
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col p-6 bg-[#0F0F0F] overflow-y-auto no-scrollbar pb-10">
@@ -158,7 +173,15 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           <Button
             disabled={!isFormValid}
             onClick={() => {
-              onComplete({ name, objective, level, frequency, location: location as any, onboarded: true });
+              onComplete({ 
+                name, 
+                objective, 
+                level, 
+                frequency, 
+                location: location as any, 
+                onboarded: true,
+                bodyProfile 
+              });
             }}
             className="w-full h-14 rounded-xl text-xl font-headline bg-[#E24B4A] hover:bg-[#E24B4A]/90 text-white shadow-xl shadow-[#E24B4A]/20"
           >

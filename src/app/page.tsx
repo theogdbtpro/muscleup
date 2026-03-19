@@ -1,8 +1,22 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import Onboarding from "@/components/onboarding";
 import Dashboard from "@/components/dashboard";
+
+export type BodyProfile = {
+  poids: number;
+  taille: number;
+  age: number;
+  sexe: 'homme' | 'femme';
+  objectifPoids: 'perdre' | 'maintenir' | 'prendre';
+  activiteQuotidienne: 'sedentaire' | 'leger' | 'modere' | 'actif' | 'tres-actif';
+  tourTaille?: number;
+  tourHanche?: number;
+  tourPoitrine?: number;
+  blessures: string[];
+};
 
 export type UserProfile = {
   name: string;
@@ -11,6 +25,7 @@ export type UserProfile = {
   frequency: string;
   location: 'salle' | 'maison';
   onboarded: boolean;
+  bodyProfile?: BodyProfile;
 };
 
 export default function Home() {
@@ -27,12 +42,24 @@ export default function Home() {
 
   const handleOnboardingComplete = (newProfile: UserProfile) => {
     localStorage.setItem("muscleup_profile", JSON.stringify(newProfile));
+    if (newProfile.bodyProfile) {
+      localStorage.setItem("muscleup_body_profile", JSON.stringify(newProfile.bodyProfile));
+    }
     setProfile(newProfile);
   };
 
   const handleUpdateProfile = (updatedProfile: UserProfile) => {
     localStorage.setItem("muscleup_profile", JSON.stringify(updatedProfile));
+    if (updatedProfile.bodyProfile) {
+      localStorage.setItem("muscleup_body_profile", JSON.stringify(updatedProfile.bodyProfile));
+    }
     setProfile(updatedProfile);
+  };
+
+  const handleReset = () => {
+    localStorage.removeItem("muscleup_profile");
+    localStorage.removeItem("muscleup_body_profile");
+    setProfile(null);
   };
 
   if (loading) {
@@ -51,10 +78,7 @@ export default function Home() {
     <Dashboard 
       profile={profile} 
       onUpdateProfile={handleUpdateProfile}
-      onReset={() => {
-        localStorage.removeItem("muscleup_profile");
-        setProfile(null);
-      }} 
+      onReset={handleReset} 
     />
   );
 }

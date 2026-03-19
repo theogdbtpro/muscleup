@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { UserProfile } from "@/app/page";
+import { UserProfile, BodyProfile } from "@/app/page";
 import Hub from "./hub";
 import ProgramTab from "./program-tab";
 import ProgressTab from "./progress-tab";
@@ -10,8 +10,9 @@ import NutritionTab from "./nutrition-tab";
 import CoachTab from "./coach-tab";
 import SettingsTab from "./settings-tab";
 import BottomNav from "./bottom-nav";
+import BodyProfileView from "./body-profile";
 
-type View = "accueil" | "programme" | "progres" | "coach" | "nutrition" | "settings";
+type View = "accueil" | "programme" | "progres" | "coach" | "nutrition" | "settings" | "body-profile";
 
 type DashboardProps = {
   profile: UserProfile;
@@ -35,6 +36,11 @@ export default function Dashboard({ profile, onUpdateProfile, onReset }: Dashboa
     if (sessionId) setManualSessionId(sessionId);
     else setManualSessionId(null);
     setView("programme");
+  };
+
+  const handleSaveBodyProfile = (data: BodyProfile) => {
+    onUpdateProfile({ ...profile, bodyProfile: data });
+    setView("accueil");
   };
 
   return (
@@ -82,11 +88,20 @@ export default function Dashboard({ profile, onUpdateProfile, onReset }: Dashboa
             onBack={() => handleSetView("accueil")} 
           />
         )}
+        {view === "body-profile" && (
+          <BodyProfileView 
+            initialData={profile.bodyProfile}
+            onSave={handleSaveBodyProfile}
+            onBack={() => handleSetView("accueil")}
+          />
+        )}
       </div>
-      <BottomNav
-        activeTab={view === "accueil" ? "accueil" : view as any}
-        setActiveTab={(tab) => handleSetView(tab as any)}
-      />
+      {view !== "body-profile" && (
+        <BottomNav
+          activeTab={view === "accueil" ? "accueil" : view as any}
+          setActiveTab={(tab) => handleSetView(tab as any)}
+        />
+      )}
     </div>
   );
 }

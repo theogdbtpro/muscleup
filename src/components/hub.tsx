@@ -1,3 +1,4 @@
+
 "use client";
 
 import { UserProfile } from "@/app/page";
@@ -6,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, Clock, Timer, Zap, Info, X, Dumbbell, Home as HomeIcon } from "lucide-react";
+import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, Clock, Timer, Zap, Info, X, Dumbbell, Home as HomeIcon, BarChart } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -264,6 +265,13 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
 
   const isHome = profile.location === 'maison';
 
+  const bodyStatsSummary = useMemo(() => {
+    if (!profile.bodyProfile) return null;
+    const { poids, taille } = profile.bodyProfile;
+    const imc = (poids / ((taille / 100) ** 2)).toFixed(1);
+    return `${poids}kg · ${taille}cm · IMC ${imc}`;
+  }, [profile.bodyProfile]);
+
   return (
     <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-20">
 
@@ -413,6 +421,27 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             "{OBJECTIVE_TIPS[profile.objective] || "Reste constant, les résultats viendront avec le temps."}"
           </p>
         </Card>
+      </section>
+
+      {/* Body Profile Summary Button */}
+      <section className="space-y-4">
+        <button 
+          onClick={() => setView("body-profile")}
+          className="w-full bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-2xl flex items-center justify-between hover:bg-[#2A2A2A] transition-all group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <BarChart className="w-6 h-6 text-primary" />
+            </div>
+            <div className="text-left">
+              <span className="text-[12px] font-bold text-white uppercase block leading-tight">Mon profil corporel 📊</span>
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight">
+                {bodyStatsSummary || "Complète tes mesures"}
+              </span>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-primary transition-colors" />
+        </button>
       </section>
 
       <section className="space-y-4 pb-10">
