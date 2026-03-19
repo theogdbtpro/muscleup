@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -14,6 +15,106 @@ type ProgramTabProps = {
   onUpdateProfile: (profile: UserProfile) => void;
   manualSessionId?: string | null;
 };
+
+function ExerciseDiagram({ muscle }: { muscle: string }) {
+  const m = muscle.toLowerCase();
+  
+  // Déterminer si on affiche la silhouette de face ou de dos
+  const isBackView = m.includes('dos') || m.includes('trapèze') || m.includes('ischio') || m.includes('fessier') || m.includes('triceps') || m.includes('mollet');
+
+  return (
+    <div className="flex flex-col items-center justify-center p-4 bg-[#0F0F0F] rounded-2xl border border-zinc-800/50 mb-6 mx-auto w-fit">
+      <svg width="120" height="180" viewBox="0 0 200 300" className="mx-auto">
+        {/* Silhouette de base - Corps Simplifié */}
+        <g stroke="#2A2A2A" strokeWidth="2" fill="none">
+          {/* Tête */}
+          <circle cx="100" cy="40" r="15" />
+          {/* Cou */}
+          <path d="M95 55 L105 55" />
+          {/* Torse */}
+          <path d="M70 65 L130 65 L120 160 L80 160 Z" />
+          {/* Bras Gauche */}
+          <path d="M70 65 L50 140" />
+          {/* Bras Droit */}
+          <path d="M130 65 L150 140" />
+          {/* Jambes */}
+          <path d="M85 160 L75 280" />
+          <path d="M115 160 L125 280" />
+        </g>
+
+        {/* Zones Musculaires - Mise en évidence */}
+        <g fill="#E24B4A" opacity="0.8">
+          {/* Pectoraux (Face) */}
+          {m.includes('pectoro') && !isBackView && (
+            <path d="M75 75 Q100 70 125 75 L120 105 Q100 110 80 105 Z" />
+          )}
+          
+          {/* Biceps (Face) */}
+          {(m.includes('bicep') || m.includes('avant-bras')) && !isBackView && (
+            <>
+              <ellipse cx="60" cy="100" rx="8" ry="15" transform="rotate(-15 60 100)" />
+              <ellipse cx="140" cy="100" rx="8" ry="15" transform="rotate(15 140 100)" />
+            </>
+          )}
+
+          {/* Abdos (Face) */}
+          {(m.includes('abdo') || m.includes('oblique') || m.includes('transverse')) && !isBackView && (
+            <rect x="85" y="115" width="30" height="40" rx="5" />
+          )}
+
+          {/* Quadriceps (Face) */}
+          {m.includes('quadri') && !isBackView && (
+            <>
+              <path d="M85 170 L78 230 L95 230 L100 170 Z" />
+              <path d="M115 170 L122 230 L105 230 L100 170 Z" />
+            </>
+          )}
+
+          {/* Épaules (Face/Dos) */}
+          {m.includes('épaule') && (
+            <>
+              <circle cx="70" cy="70" r="10" />
+              <circle cx="130" cy="70" r="10" />
+            </>
+          )}
+
+          {/* Dos & Trapèzes (Dos) */}
+          {(m.includes('dos') || m.includes('trapèze')) && isBackView && (
+            <path d="M75 70 L125 70 L120 155 L80 155 Z" />
+          )}
+
+          {/* Triceps (Dos) */}
+          {m.includes('tricep') && isBackView && (
+            <>
+              <ellipse cx="60" cy="100" rx="7" ry="14" transform="rotate(-15 60 100)" />
+              <ellipse cx="140" cy="100" rx="7" ry="14" transform="rotate(15 140 100)" />
+            </>
+          )}
+
+          {/* Fessiers & Ischios (Dos) */}
+          {(m.includes('ischio') || m.includes('fessier')) && isBackView && (
+            <>
+              <path d="M80 160 L120 160 L115 190 L85 190 Z" /> {/* Fessiers */}
+              <path d="M85 195 L78 245 L95 245 L98 195 Z" />   {/* Ischio G */}
+              <path d="M115 195 L122 245 L105 245 L102 195 Z" /> {/* Ischio D */}
+            </>
+          )}
+
+          {/* Mollets (Dos/Profil) */}
+          {m.includes('mollet') && (
+            <>
+              <ellipse cx="78" cy="255" rx="6" ry="12" />
+              <ellipse cx="122" cy="255" rx="6" ry="12" />
+            </>
+          )}
+        </g>
+      </svg>
+      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-2">
+        Vue {isBackView ? 'Postérieure' : 'Antérieure'}
+      </span>
+    </div>
+  );
+}
 
 export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSessionId }: ProgramTabProps) {
   const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
@@ -214,11 +315,13 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
           >
             <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-8" />
             
-            <header className="mb-8">
+            <ExerciseDiagram muscle={selectedExercise.muscle} />
+
+            <header className="mb-8 text-center">
               <h2 className="text-4xl font-headline text-primary uppercase leading-none mb-3">
                 {selectedExercise.name}
               </h2>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 justify-center">
                 <span className="px-3 py-1 bg-[#EE3BAA]/10 text-[#EE3BAA] text-[10px] font-bold uppercase rounded-md border border-[#EE3BAA]/20">
                   {selectedExercise.muscle}
                 </span>
