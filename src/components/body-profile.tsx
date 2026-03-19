@@ -91,45 +91,50 @@ export default function BodyProfileView({ initialData, onSave, onBack }: BodyPro
             <User className="w-4 h-4 text-primary" />
             <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Mesures de base</h2>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-zinc-600 uppercase">Poids (kg)</label>
-              <Input 
-                type="number" 
-                value={formData.poids}
-                onChange={(e) => setFormData(prev => ({ ...prev, poids: parseFloat(e.target.value) || 0 }))}
-                className="bg-[#1A1A1A] border-none h-14 text-xl font-headline"
-              />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-zinc-600 uppercase">Poids (kg)</label>
+                <Input 
+                  type="number" 
+                  value={formData.poids}
+                  onChange={(e) => setFormData(prev => ({ ...prev, poids: parseFloat(e.target.value) || 0 }))}
+                  className="bg-[#1A1A1A] border-none h-14 text-xl font-headline"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-zinc-600 uppercase">Taille (cm)</label>
+                <Input 
+                  type="number" 
+                  value={formData.taille}
+                  onChange={(e) => setFormData(prev => ({ ...prev, taille: parseFloat(e.target.value) || 0 }))}
+                  className="bg-[#1A1A1A] border-none h-14 text-xl font-headline"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-zinc-600 uppercase">Taille (cm)</label>
-              <Input 
-                type="number" 
-                value={formData.taille}
-                onChange={(e) => setFormData(prev => ({ ...prev, taille: parseFloat(e.target.value) || 0 }))}
-                className="bg-[#1A1A1A] border-none h-14 text-xl font-headline"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-zinc-600 uppercase">Âge</label>
-              <Input 
-                type="number" 
-                value={formData.age}
-                onChange={(e) => setFormData(prev => ({ ...prev, age: parseInt(e.target.value) || 0 }))}
-                className="bg-[#1A1A1A] border-none h-14 text-xl font-headline"
-              />
-            </div>
-            <div className="flex gap-2 pt-6">
-              <button 
-                onClick={() => setFormData(prev => ({ ...prev, sexe: 'homme' }))}
-                className={cn("flex-1 h-14 rounded-xl font-headline text-lg border-2 transition-all", 
-                  formData.sexe === 'homme' ? "bg-primary/10 border-primary text-white" : "bg-[#1A1A1A] border-transparent text-zinc-600")}
-              >H</button>
-              <button 
-                onClick={() => setFormData(prev => ({ ...prev, sexe: 'femme' }))}
-                className={cn("flex-1 h-14 rounded-xl font-headline text-lg border-2 transition-all", 
-                  formData.sexe === 'femme' ? "bg-primary/10 border-primary text-white" : "bg-[#1A1A1A] border-transparent text-zinc-600")}
-              >F</button>
+
+            <div className="flex items-center gap-[12px]">
+              <div className="flex-1 space-y-2">
+                <label className="text-[10px] font-bold text-zinc-600 uppercase">Âge</label>
+                <Input 
+                  type="number" 
+                  value={formData.age}
+                  onChange={(e) => setFormData(prev => ({ ...prev, age: parseInt(e.target.value) || 0 }))}
+                  className="bg-[#1A1A1A] border-none h-14 text-xl font-headline"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setFormData(prev => ({ ...prev, sexe: 'homme' }))}
+                  className={cn("w-14 h-14 rounded-xl font-headline text-lg border-2 transition-all", 
+                    formData.sexe === 'homme' ? "bg-primary/10 border-primary text-white" : "bg-[#1A1A1A] border-transparent text-zinc-600")}
+                >H</button>
+                <button 
+                  onClick={() => setFormData(prev => ({ ...prev, sexe: 'femme' }))}
+                  className={cn("w-14 h-14 rounded-xl font-headline text-lg border-2 transition-all", 
+                    formData.sexe === 'femme' ? "bg-primary/10 border-primary text-white" : "bg-[#1A1A1A] border-transparent text-zinc-600")}
+                >F</button>
+              </div>
             </div>
           </div>
         </section>
