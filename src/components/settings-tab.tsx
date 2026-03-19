@@ -1,11 +1,12 @@
+
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { UserProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronLeft, Target, Award, Calendar, Repeat, ArrowRightLeft, CheckCircle, AlertTriangle, Sparkles, MapPin } from "lucide-react";
+import { ChevronLeft, Target, Award, Calendar, Repeat, CheckCircle, AlertTriangle, Sparkles, MapPin, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -19,10 +20,10 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   const { toast } = useToast();
   const [tempProfile, setTempProfile] = useState<UserProfile>({ ...profile });
   const [isObjectiveModalOpen, setIsObjectiveModalOpen] = useState(false);
-  const [selectedDayToMove, setSelectedDayToMove] = useState<string | null>(null);
-  const [pendingTargetDay, setPendingTargetDay] = useState<string | null>(null);
+  const [draggedDay, setDraggedDay] = useState<string | null>(null);
+  const [touchTargetDay, setTouchTargetDay] = useState<string | null>(null);
   const [moveMessage, setMoveMessage] = useState<string | null>(null);
-
+  
   const dayNamesFull = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
   const isHighFrequency = tempProfile.frequency === "4j" || tempProfile.frequency === "5j";
 
@@ -83,64 +84,58 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     setTimeout(() => onBack(), 1000);
   };
 
-  const checkAdjacency = (targetDay: string) => {
-    if (isHighFrequency) return false;
-    const targetIdx = dayNamesFull.indexOf(targetDay);
-    const prevDay = dayNamesFull[(targetIdx + 6) % 7];
-    const nextDay = dayNamesFull[(targetIdx + 1) % 7];
-    
-    const isPrevTraining = !!schedule[prevDay] && prevDay !== selectedDayToMove;
-    const isNextTraining = !!schedule[nextDay] && nextDay !== selectedDayToMove;
-    
-    return isPrevTraining || isNextTraining;
-  };
-
-  const handleDayClick = (targetDay: string) => {
-    if (checkAdjacency(targetDay)) {
-      setPendingTargetDay(targetDay);
-    } else {
-      executeMove(targetDay);
-    }
-  };
-
-  const executeMove = (targetDay: string) => {
-    if (!selectedDayToMove) return;
+  const executeSwap = (source: string, target: string) => {
+    if (source === target) return;
     const newSchedule = { ...schedule };
-    const sourceSession = newSchedule[selectedDayToMove];
-    const targetSession = newSchedule[targetDay];
-    newSchedule[targetDay] = sourceSession;
-    newSchedule[selectedDayToMove] = targetSession;
+    const sourceSession = newSchedule[source];
+    const targetSession = newSchedule[target];
+    newSchedule[target] = sourceSession;
+    newSchedule[source] = targetSession;
 
     setSchedule(newSchedule);
-    setSelectedDayToMove(null);
-    setPendingTargetDay(null);
-    setMoveMessage("Séance déplacée ✓");
+    setMoveMessage(`Séance déplacée le ${target} ✓`);
     setTimeout(() => setMoveMessage(null), 3000);
   };
 
-  const handleAutoOptimizeMove = () => {
-    if (!selectedDayToMove) return;
-    
-    let optimizedDay = null;
-    for (const day of dayNamesFull) {
-      if (!schedule[day] && day !== selectedDayToMove) {
-        const idx = dayNamesFull.indexOf(day);
-        const prev = dayNamesFull[(idx + 6) % 7];
-        const next = dayNamesFull[(idx + 1) % 7];
-        if (!schedule[prev] && !schedule[next]) {
-          optimizedDay = day;
-          break;
-        }
-      }
-    }
+  // --- Handlers Drag & Drop (Mouse) ---
+  const onDragStart = (day: string) => {
+    setDraggedDay(day);
+  };
 
-    if (optimizedDay) {
-      executeMove(optimizedDay);
-      toast({ title: "Optimisé ✨", description: `Séance placée le ${optimizedDay}` });
-    } else {
-      toast({ title: "Aucun jour idéal", description: "Déplacement manuel requis.", variant: "destructive" });
-      setPendingTargetDay(null);
+  const onDragOver = (e: React.DragEvent, day: string) => {
+    e.preventDefault();
+    setTouchTargetDay(day);
+  };
+
+  const onDrop = (day: string) => {
+    if (draggedDay) {
+      executeSwap(draggedDay, day);
     }
+    setDraggedDay(null);
+    setTouchTargetDay(null);
+  };
+
+  // --- Handlers Touch (Mobile) ---
+  const handleTouchStart = (day: string) => {
+    setDraggedDay(day);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    const dayElement = element?.closest('[data-day]');
+    if (dayElement) {
+      const day = dayElement.getAttribute('data-day');
+      setTouchTargetDay(day);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (draggedDay && touchTargetDay && draggedDay !== touchTargetDay) {
+      executeSwap(draggedDay, touchTargetDay);
+    }
+    setDraggedDay(null);
+    setTouchTargetDay(null);
   };
 
   const optimizationWarnings = useMemo(() => {
@@ -232,7 +227,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
         </section>
 
         <section className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-primary" />
               <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Planning de la semaine</h2>
@@ -244,6 +239,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               </div>
             )}
           </div>
+          <p className="text-[10px] text-zinc-600 uppercase font-bold tracking-widest mb-4">Glisse les séances pour réorganiser</p>
 
           {!isHighFrequency && (
             <button 
@@ -263,10 +259,29 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               const prevDay = dayNamesFull[(idx + 6) % 7];
               const nextDay = dayNamesFull[(idx + 1) % 7];
               const hasAdjacencyIssue = !isHighFrequency && !!sessionId && (!!schedule[prevDay] || !!schedule[nextDay]);
+              const isDragging = draggedDay === day;
+              const isTouchTarget = touchTargetDay === day;
 
               return (
-                <div key={day} className="p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0">
+                <div 
+                  key={day}
+                  data-day={day}
+                  draggable={true}
+                  onDragStart={() => onDragStart(day)}
+                  onDragOver={(e) => onDragOver(e, day)}
+                  onDragEnd={() => setDraggedDay(null)}
+                  onDrop={() => onDrop(day)}
+                  onTouchStart={() => handleTouchStart(day)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  className={cn(
+                    "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-200 cursor-grab active:cursor-grabbing touch-none",
+                    isDragging ? "opacity-30 border-primary bg-primary/5" : "opacity-100",
+                    isTouchTarget && !isDragging ? "bg-primary/10 border-l-4 border-l-primary" : ""
+                  )}
+                >
                   <div className="flex items-center gap-4">
+                    <GripVertical className="w-4 h-4 text-zinc-700 shrink-0" />
                     <span className="text-xs font-bold w-12 text-zinc-600">{day}</span>
                     <div className="flex items-center gap-2">
                       <span className={cn("text-sm font-bold uppercase tracking-tight", session ? "text-white" : "text-zinc-700")}>
@@ -279,9 +294,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
                       )}
                     </div>
                   </div>
-                  <button onClick={() => setSelectedDayToMove(day)} className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
-                    <ArrowRightLeft className="w-4 h-4" />
-                  </button>
                 </div>
               );
             })}
@@ -322,60 +334,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               </button>
             ))}
           </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!selectedDayToMove} onOpenChange={() => { setSelectedDayToMove(null); setPendingTargetDay(null); }}>
-        <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
-          <DialogHeader>
-            <DialogTitle className="font-headline text-2xl uppercase">DÉPLACER VERS...</DialogTitle>
-          </DialogHeader>
-          
-          {pendingTargetDay ? (
-            <div className="space-y-6 mt-4 animate-in zoom-in-95">
-              <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-2xl text-center space-y-3">
-                <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
-                <p className="text-sm font-bold text-amber-200 uppercase tracking-tight">
-                  ⚠️ Séances consécutives — pas idéal pour la récupération
-                </p>
-                <p className="text-xs text-amber-500/70 italic">
-                  Pour 2-3 séances/semaine, 48h de repos entre chaque séance maximise tes gains.
-                </p>
-              </div>
-              <div className="flex flex-col gap-3">
-                <Button onClick={() => executeMove(pendingTargetDay)} className="h-14 bg-white hover:bg-white/90 text-[#0F0F0F] font-headline text-xl rounded-xl">
-                  CONFIRMER CE JOUR
-                </Button>
-                <Button onClick={handleAutoOptimizeMove} className="h-14 bg-primary hover:bg-primary/90 text-white font-headline text-xl rounded-xl flex items-center justify-center gap-2">
-                  <Sparkles className="w-5 h-5" /> OPTIMISER AUTOMATIQUEMENT
-                </Button>
-                <Button onClick={() => setPendingTargetDay(null)} variant="ghost" className="h-14 text-zinc-500 font-headline text-xl">
-                  ANNULER
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2 mt-4">
-              {dayNamesFull.filter(d => d !== selectedDayToMove).map((day) => {
-                const isOccupied = !!schedule[day];
-                return (
-                  <button key={day} onClick={() => handleDayClick(day)}
-                    className="w-full p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl text-left hover:border-primary transition-all flex justify-between items-center">
-                    <div className="flex flex-col">
-                      <span className="font-headline text-xl text-white uppercase">{day}</span>
-                      <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
-                        {schedule[day] ? currentProgram.sessions.find(s => s.id === schedule[day])?.name : "Repos"}
-                      </span>
-                    </div>
-                    <span className={cn("text-[8px] font-bold uppercase px-2 py-1 rounded-full",
-                      isOccupied ? "bg-amber-500/10 text-amber-500" : "bg-green-500/10 text-green-500")}>
-                      {isOccupied ? "Occupé" : "Disponible"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -410,19 +410,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           <span className="text-[10px] font-bold uppercase text-zinc-400">Coach IA</span>
         </button>
       </div>
-
-      <section className="space-y-4">
-        <h2 className="text-xl font-headline text-white tracking-wide">CONSEIL DU JOUR</h2>
-        <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-5 flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-            <Lightbulb className="w-5 h-5 text-amber-500" />
-          </div>
-          <p className="text-sm text-zinc-300 leading-relaxed italic">
-            "{OBJECTIVE_TIPS[profile.objective] || "Reste constant, les résultats viendront avec le temps."}"
-          </p>
-        </Card>
-      </section>
-
+      
       {/* Body Profile Summary Button */}
       <section className="space-y-4">
         <button 
@@ -442,6 +430,18 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           </div>
           <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-primary transition-colors" />
         </button>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-xl font-headline text-white tracking-wide">CONSEIL DU JOUR</h2>
+        <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-5 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+            <Lightbulb className="w-5 h-5 text-amber-500" />
+          </div>
+          <p className="text-sm text-zinc-300 leading-relaxed italic">
+            "{OBJECTIVE_TIPS[profile.objective] || "Reste constant, les résultats viendront avec le temps."}"
+          </p>
+        </Card>
       </section>
 
       <section className="space-y-4 pb-10">
