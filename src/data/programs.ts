@@ -5,6 +5,7 @@ export type Exercise = {
   technique: string;
   muscle: string;
   rest: string;
+  position: string;
 };
 
 export type Session = {
@@ -45,28 +46,92 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'gb-1',
-        name: 'Focus Biceps',
+        name: 'Séance Biceps',
         day: 'Lundi',
         duration: '45 min',
         isRestDay: false,
         exercises: [
-          { name: 'Curl Barre EZ', sets: '4', reps: '10-12', technique: 'Coudes collés au corps.', muscle: 'Biceps', rest: '60s' },
-          { name: 'Curl Marteau', sets: '3', reps: '12', technique: 'Prise neutre, contrôle la descente.', muscle: 'Biceps', rest: '60s' },
-          { name: 'Curl Incliné', sets: '3', reps: '12', technique: 'Étirement maximal en bas.', muscle: 'Biceps', rest: '60s' },
-          { name: 'Spider Curl', sets: '3', reps: '15', technique: 'Isolant, ne balance pas le corps.', muscle: 'Biceps', rest: '60s' }
+          { 
+            name: 'Curl Barre EZ', 
+            sets: '4', 
+            reps: '10-12', 
+            technique: 'Coudes collés au corps.', 
+            muscle: 'Biceps', 
+            rest: '60s',
+            position: 'Debout, pieds écartés largeur épaules. Saisir la barre EZ en prise supination sur la partie courbée. Monter la barre en fléchissant les coudes jusqu\'aux épaules sans balancer le buste. Redescendre lentement. Erreur : écarter les coudes.'
+          },
+          { 
+            name: 'Curl Marteau', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Prise neutre, contrôle la descente.', 
+            muscle: 'Biceps', 
+            rest: '60s',
+            position: 'Debout, un haltère dans chaque main, paumes face aux cuisses. Monter les haltères simultanément en gardant la prise neutre. Contracter fort en haut. Erreur : s\'aider de l\'élan du dos.'
+          },
+          { 
+            name: 'Curl Incliné', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Étirement maximal en bas.', 
+            muscle: 'Biceps', 
+            rest: '60s',
+            position: 'Assis sur un banc incliné à 45°. Bras ballants vers le sol. Effectuer un curl en gardant les coudes fixes vers l\'arrière. L\'étirement en bas est crucial. Erreur : ramener les coudes vers l\'avant.'
+          },
+          { 
+            name: 'Curl Concentré', 
+            sets: '3', 
+            reps: '15', 
+            technique: 'Isolant, ne balance pas le corps.', 
+            muscle: 'Biceps', 
+            rest: '60s',
+            position: 'Assis sur un banc, buste penché. Appuyer le coude contre l\'intérieur de la cuisse. Monter l\'haltère vers l\'épaule opposée. Contrôler la descente. Erreur : décoller le coude de la jambe.'
+          }
         ]
       },
       {
         id: 'gb-2',
-        name: 'Focus Triceps',
+        name: 'Séance Triceps',
         day: 'Mercredi',
         duration: '45 min',
         isRestDay: false,
         exercises: [
-          { name: 'Barre au front', sets: '4', reps: '10', technique: 'Coudes serrés vers l\'intérieur.', muscle: 'Triceps', rest: '90s' },
-          { name: 'Extension Poulie', sets: '4', reps: '15', technique: 'Contracte fort en bas.', muscle: 'Triceps', rest: '60s' },
-          { name: 'Dips Machine', sets: '3', reps: '12', technique: 'Buste droit pour focus triceps.', muscle: 'Triceps', rest: '60s' },
-          { name: 'Extension Haltère', sets: '3', reps: '12', technique: 'Derrière la tête, bras vertical.', muscle: 'Triceps', rest: '60s' }
+          { 
+            name: 'Barre au front', 
+            sets: '4', 
+            reps: '10', 
+            technique: 'Coudes serrés vers l\'intérieur.', 
+            muscle: 'Triceps', 
+            rest: '90s',
+            position: 'Allongé sur un banc, bras verticaux tenant la barre EZ. Descendre la barre vers le front en pliant uniquement les coudes. Remonter en tendant les bras. Erreur : écarter les coudes vers l\'extérieur.'
+          },
+          { 
+            name: 'Extension Poulie', 
+            sets: '4', 
+            reps: '15', 
+            technique: 'Contracte fort en bas.', 
+            muscle: 'Triceps', 
+            rest: '60s',
+            position: 'Face à la poulie haute, barre droite en mains. Coudes fixés aux côtes. Pousser la barre vers le bas jusqu\'à extension complète des bras. Remonter jusqu\'à la poitrine. Erreur : bouger les coudes d\'avant en arrière.'
+          },
+          { 
+            name: 'Dips Machine', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Buste droit pour focus triceps.', 
+            muscle: 'Triceps', 
+            rest: '60s',
+            position: 'Assis sur la machine, mains sur les poignées. Pousser vers le bas en gardant le dos bien droit contre le dossier. Freiner la remontée. Erreur : hausser les épaules ou se pencher trop en avant.'
+          },
+          { 
+            name: 'Extension Haltère', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Derrière la tête, bras vertical.', 
+            muscle: 'Triceps', 
+            rest: '60s',
+            position: 'Assis ou debout, tenir un haltère à deux mains au-dessus de la tête. Descendre l\'haltère derrière la nuque en pliant les coudes. Remonter vers le plafond. Erreur : creuser le bas du dos.'
+          }
         ]
       },
       {
@@ -76,10 +141,42 @@ export const PROGRAMS: Program[] = [
         duration: '50 min',
         isRestDay: false,
         exercises: [
-          { name: 'Curl Pupitre', sets: '3', reps: '12', technique: 'Focus pic du biceps.', muscle: 'Biceps', rest: '60s' },
-          { name: 'Kickback Poulie', sets: '3', reps: '15', technique: 'Extension totale du bras.', muscle: 'Triceps', rest: '60s' },
-          { name: 'Curl Inversé', sets: '3', reps: '15', technique: 'Travail des avant-bras.', muscle: 'Biceps/Avant-bras', rest: '60s' },
-          { name: 'Pompes Diamant', sets: '3', reps: 'Max', technique: 'Mains en triangle.', muscle: 'Triceps', rest: '60s' }
+          { 
+            name: 'Curl Pupitre', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Focus pic du biceps.', 
+            muscle: 'Biceps', 
+            rest: '60s',
+            position: 'Bras posés sur le pupitre Larry Scott. Tendre les bras presque totalement sans verrouiller. Monter la barre vers le visage en gardant les aisselles calées. Erreur : décoller le buste du pupitre.'
+          },
+          { 
+            name: 'Extension Poulie Corde', 
+            sets: '3', 
+            reps: '15', 
+            technique: 'Extension totale du bras.', 
+            muscle: 'Triceps', 
+            rest: '60s',
+            position: 'Face à la poulie, saisir la corde. Pousser vers le bas et écarter les mains en fin de mouvement pour accentuer la contraction. Erreur : ne pas faire l\'écartement final.'
+          },
+          { 
+            name: 'Curl Inversé', 
+            sets: '3', 
+            reps: '15', 
+            technique: 'Travail des avant-bras.', 
+            muscle: 'Avant-bras', 
+            rest: '60s',
+            position: 'Debout, saisir la barre en prise pronation (paumes vers le sol). Monter la barre comme un curl classique. Travail intense des avant-bras garanti. Erreur : fléchir les poignets.'
+          },
+          { 
+            name: 'Pompes Diamant', 
+            sets: '3', 
+            reps: 'Max', 
+            technique: 'Mains en triangle.', 
+            muscle: 'Triceps', 
+            rest: '60s',
+            position: 'Position de pompes, index et pouces se touchant pour former un diamant au sol. Descendre la poitrine vers les mains. Coudes proches du corps. Erreur : laisser les hanches tomber.'
+          }
         ]
       }
     ],
@@ -101,28 +198,92 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'pec-1',
-        name: 'Push Lourd',
+        name: 'Séance Force',
         day: 'Lundi',
         duration: '55 min',
         isRestDay: false,
         exercises: [
-          { name: 'Développé Couché', sets: '4', reps: '6-8', technique: 'Cage sortie, omoplates serrées.', muscle: 'Pectoraux', rest: '120s' },
-          { name: 'Développé Incliné', sets: '3', reps: '8-10', technique: 'Barre vers le haut du torse.', muscle: 'Haut Pectoraux', rest: '90s' },
-          { name: 'Dips Lestés', sets: '3', reps: '10', technique: 'Buste penché vers l\'avant.', muscle: 'Bas Pectoraux', rest: '90s' },
-          { name: 'Développé Haltères', sets: '3', reps: '10', technique: 'Amplitude maximale.', muscle: 'Pectoraux', rest: '90s' }
+          { 
+            name: 'Développé Couché', 
+            sets: '4', 
+            reps: '6-8', 
+            technique: 'Cage sortie, omoplates serrées.', 
+            muscle: 'Pectoraux', 
+            rest: '120s',
+            position: 'Allongé sur le banc, pieds au sol. Saisir la barre plus large que les épaules. Descendre jusqu\'au milieu des pectoraux. Pousser en expirant. Erreur : décoller les fessiers du banc.'
+          },
+          { 
+            name: 'Développé Incliné', 
+            sets: '3', 
+            reps: '8-10', 
+            technique: 'Barre vers le haut du torse.', 
+            muscle: 'Haut Pectoraux', 
+            rest: '90s',
+            position: 'Banc incliné à 30-45°. Descendre la barre vers le haut de la poitrine (clavicules). Pousser à la verticale. Erreur : rebondir la barre sur la cage thoracique.'
+          },
+          { 
+            name: 'Dips Lestés', 
+            sets: '3', 
+            reps: '10', 
+            technique: 'Buste penché vers l\'avant.', 
+            muscle: 'Bas Pectoraux', 
+            rest: '90s',
+            position: 'Aux barres parallèles. Se pencher en avant pour engager les pecs. Descendre jusqu\'à ce que les bras soient parallèles au sol. Remonter. Erreur : rester trop droit (travail triceps).'
+          },
+          { 
+            name: 'Développé Haltères', 
+            sets: '3', 
+            reps: '10', 
+            technique: 'Amplitude maximale.', 
+            muscle: 'Pectoraux', 
+            rest: '90s',
+            position: 'Allongé sur banc plat. Descendre les haltères sur les côtés de la poitrine pour un étirement maximal. Remonter en rapprochant les haltères. Erreur : cogner les haltères en haut.'
+          }
         ]
       },
       {
         id: 'pec-2',
-        name: 'Push Volume',
+        name: 'Séance Volume',
         day: 'Jeudi',
         duration: '50 min',
         isRestDay: false,
         exercises: [
-          { name: 'Écartés Poulie', sets: '4', reps: '15', technique: 'Focus sur la contraction.', muscle: 'Pectoraux', rest: '60s' },
-          { name: 'Machine Convergence', sets: '3', reps: '12', technique: 'Tension continue.', muscle: 'Pectoraux', rest: '60s' },
-          { name: 'Crossover Bas', sets: '3', reps: '15', technique: 'Ramène les mains vers le haut.', muscle: 'Haut Pec', rest: '60s' },
-          { name: 'Pompes Déclinées', sets: '3', reps: 'Max', technique: 'Pieds surélevés.', muscle: 'Haut Pec', rest: '60s' }
+          { 
+            name: 'Écartés Poulie', 
+            sets: '4', 
+            reps: '15', 
+            technique: 'Focus sur la contraction.', 
+            muscle: 'Pectoraux', 
+            rest: '60s',
+            position: 'Debout entre les poulies hautes. Bras légèrement fléchis. Ramener les mains l\'une vers l\'autre devant soi. Serrer les pecs en fin de mouvement. Erreur : tendre les bras complètement.'
+          },
+          { 
+            name: 'Machine Convergente', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Tension continue.', 
+            muscle: 'Pectoraux', 
+            rest: '60s',
+            position: 'Assis sur la machine. Pousser les poignées en gardant le dos collé. Ne pas verrouiller les coudes en haut pour garder la tension. Erreur : décoller les épaules du dossier.'
+          },
+          { 
+            name: 'Croisé Poulie Bas', 
+            sets: '3', 
+            reps: '15', 
+            technique: 'Ramène les mains vers le haut.', 
+            muscle: 'Haut Pectoraux', 
+            rest: '60s',
+            position: 'Poulies en position basse. Ramener les poignées vers le haut et l\'intérieur, niveau menton. Focus sur le haut des pecs. Erreur : s\'aider d\'un mouvement de balancier.'
+          },
+          { 
+            name: 'Pompes Déclinées', 
+            sets: '3', 
+            reps: 'Max', 
+            technique: 'Pieds surélevés.', 
+            muscle: 'Haut Pectoraux', 
+            rest: '60s',
+            position: 'Mains au sol, pieds sur un banc. Corps bien droit. Descendre la poitrine vers le sol. Coudes à 45°. Erreur : laisser le bas du dos se creuser.'
+          }
         ]
       }
     ],
@@ -149,10 +310,42 @@ export const PROGRAMS: Program[] = [
         duration: '60 min',
         isRestDay: false,
         exercises: [
-          { name: 'Tractions Large', sets: '4', reps: 'Max', technique: 'Tire avec les coudes.', muscle: 'Grand dorsal', rest: '120s' },
-          { name: 'Tirage Poitrine', sets: '3', reps: '12', technique: 'Buste légèrement incliné.', muscle: 'Dos', rest: '90s' },
-          { name: 'Pull bras tendus', sets: '3', reps: '15', technique: 'Isolation du grand dorsal.', muscle: 'Grand dorsal', rest: '60s' },
-          { name: 'Tirage Triangle', sets: '3', reps: '12', technique: 'Focus épaisseur.', muscle: 'Dos', rest: '90s' }
+          { 
+            name: 'Tractions Larges', 
+            sets: '4', 
+            reps: 'Max', 
+            technique: 'Tire avec les coudes.', 
+            muscle: 'Grand dorsal', 
+            rest: '120s',
+            position: 'Suspendu à la barre, mains larges. Tirer le corps vers le haut en ramenant les coudes vers les hanches. Poitrine vers la barre. Erreur : arrondir le haut du dos.'
+          },
+          { 
+            name: 'Tirage Poitrine', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Buste légèrement incliné.', 
+            muscle: 'Dos', 
+            rest: '90s',
+            position: 'Assis à la machine de tirage vertical. Saisir la barre large. Tirer vers le haut des pectoraux en serrant les omoplates. Erreur : tirer la barre derrière la nuque.'
+          },
+          { 
+            name: 'Pull Bras Tendus', 
+            sets: '3', 
+            reps: '15', 
+            technique: 'Isolation du grand dorsal.', 
+            muscle: 'Grand dorsal', 
+            rest: '60s',
+            position: 'Face à la poulie haute, bras tendus devant soi. Tirer la barre vers les cuisses sans plier les bras. Ressentir l\'étirement en haut. Erreur : plier les coudes.'
+          },
+          { 
+            name: 'Tirage Triangle', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Focus épaisseur.', 
+            muscle: 'Dos', 
+            rest: '90s',
+            position: 'Assis au tirage horizontal, poignée triangle. Tirer vers le bas de l\'abdomen en gardant le dos droit. Épaules basses. Erreur : basculer le buste trop en arrière.'
+          }
         ]
       },
       {
@@ -162,10 +355,42 @@ export const PROGRAMS: Program[] = [
         duration: '55 min',
         isRestDay: false,
         exercises: [
-          { name: 'Rowing Barre', sets: '4', reps: '8', technique: 'Dos bien plat, buste à 45°.', muscle: 'Milieu dos', rest: '120s' },
-          { name: 'Rowing Haltère', sets: '3', reps: '10', technique: 'Un bras après l\'autre.', muscle: 'Dos', rest: '90s' },
-          { name: 'Rowing Assis', sets: '3', reps: '12', technique: 'Serre les omoplates.', muscle: 'Dos', rest: '60s' },
-          { name: 'Facepull', sets: '3', reps: '15', technique: 'Focus arrière épaule.', muscle: 'Trapèzes', rest: '60s' }
+          { 
+            name: 'Rowing Barre', 
+            sets: '4', 
+            reps: '8', 
+            technique: 'Dos bien plat, buste à 45°.', 
+            muscle: 'Milieu dos', 
+            rest: '120s',
+            position: 'Debout, jambes fléchies, buste penché. Tirer la barre vers le nombril en gardant les coudes proches du corps. Omoplates serrées. Erreur : arrondir le bas du dos.'
+          },
+          { 
+            name: 'Rowing Haltère', 
+            sets: '3', 
+            reps: '10', 
+            technique: 'Un bras après l\'autre.', 
+            muscle: 'Dos', 
+            rest: '90s',
+            position: 'Une main et un genou sur un banc. Tirer l\'haltère vers la hanche avec l\'autre main. Dos parallèle au banc. Erreur : hausser l\'épaule lors du tirage.'
+          },
+          { 
+            name: 'Rowing Assis', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Serre les omoplates.', 
+            muscle: 'Dos', 
+            rest: '60s',
+            position: 'Assis à la machine rowing, prise neutre. Tirer vers soi en ouvrant la cage thoracique. Contrôler le retour en étirant bien. Erreur : utiliser le mouvement des jambes.'
+          },
+          { 
+            name: 'Tirage Visage', 
+            sets: '3', 
+            reps: '15', 
+            technique: 'Focus arrière épaule.', 
+            muscle: 'Trapèzes', 
+            rest: '60s',
+            position: 'Corde à la poulie haute. Tirer vers le front en écartant les mains de chaque côté du visage. Coudes hauts. Erreur : tirer vers le bas.'
+          }
         ]
       }
     ],
@@ -187,41 +412,137 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'fb-1',
-        name: 'Full Body A',
+        name: 'Séance Corps Entier A',
         day: 'Lundi',
         duration: '65 min',
         isRestDay: false,
         exercises: [
-          { name: 'Squat Barre', sets: '4', reps: '10', technique: 'Descente contrôlée.', muscle: 'Jambes', rest: '120s' },
-          { name: 'Développé Couché', sets: '4', reps: '10', technique: 'Cage sortie.', muscle: 'Pectoraux', rest: '90s' },
-          { name: 'Tractions', sets: '3', reps: 'Max', technique: 'Menton au dessus de la barre.', muscle: 'Dos', rest: '90s' },
-          { name: 'Planche', sets: '3', reps: '1min', technique: 'Gainage maximal.', muscle: 'Abdos', rest: '60s' }
+          { 
+            name: 'Squat Barre', 
+            sets: '4', 
+            reps: '10', 
+            technique: 'Descente contrôlée.', 
+            muscle: 'Jambes', 
+            rest: '120s',
+            position: 'Barre sur les trapèzes, pieds largeur épaules. Descendre jusqu\'à la parallèle en gardant le dos droit. Pousser sur les talons. Erreur : genoux qui rentrent vers l\'intérieur.'
+          },
+          { 
+            name: 'Développé Couché', 
+            sets: '4', 
+            reps: '10', 
+            technique: 'Cage sortie.', 
+            muscle: 'Pectoraux', 
+            rest: '90s',
+            position: 'Allongé sur banc plat. Descendre la barre au contact de la poitrine. Remonter en tendant les bras sans claquer les coudes. Erreur : tête qui se décolle du banc.'
+          },
+          { 
+            name: 'Tractions', 
+            sets: '3', 
+            reps: 'Max', 
+            technique: 'Menton au dessus de la barre.', 
+            muscle: 'Dos', 
+            rest: '90s',
+            position: 'Saisie de la barre fixe. Tirer le corps verticalement jusqu\'à ce que le menton dépasse la barre. Descente contrôlée. Erreur : ne pas faire l\'amplitude complète.'
+          },
+          { 
+            name: 'Gainage Planche', 
+            sets: '3', 
+            reps: '1min', 
+            technique: 'Gainage maximal.', 
+            muscle: 'Abdominaux', 
+            rest: '60s',
+            position: 'En appui sur les avant-bras et les orteils. Corps parfaitement aligné. Contracter fessiers et abdos. Erreur : fesses trop hautes ou dos creux.'
+          }
         ]
       },
       {
         id: 'fb-2',
-        name: 'Full Body B',
+        name: 'Séance Corps Entier B',
         day: 'Mercredi',
         duration: '65 min',
         isRestDay: false,
         exercises: [
-          { name: 'SDT Jambes Tendues', sets: '3', reps: '12', technique: 'Dos plat, étirement ischios.', muscle: 'Ischios', rest: '120s' },
-          { name: 'Développé Militaire', sets: '4', reps: '10', technique: 'Debout, gainage fort.', muscle: 'Épaules', rest: '90s' },
-          { name: 'Rowing Haltère', sets: '3', reps: '12', technique: 'Tire avec le coude.', muscle: 'Dos', rest: '90s' },
-          { name: 'Fentes Marchées', sets: '3', reps: '20 pas', technique: 'Genou proche du sol.', muscle: 'Jambes', rest: '90s' }
+          { 
+            name: 'Soulevé de Terre Jambes Tendues', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Dos plat, étirement ischios.', 
+            muscle: 'Ischio-jambiers', 
+            rest: '120s',
+            position: 'Haltères devant soi, jambes presque tendues. Descendre les haltères le long des jambes en poussant les fesses en arrière. Remonter. Erreur : arrondir le dos pour descendre plus bas.'
+          },
+          { 
+            name: 'Développé Militaire', 
+            sets: '4', 
+            reps: '10', 
+            technique: 'Debout, gainage fort.', 
+            muscle: 'Épaules', 
+            rest: '90s',
+            position: 'Barre devant les clavicules. Pousser vers le plafond en gardant le corps bien fixe. Tête qui avance légèrement en haut. Erreur : s\'aider d\'une impulsion des jambes.'
+          },
+          { 
+            name: 'Rowing Haltère', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Tire avec le coude.', 
+            muscle: 'Dos', 
+            rest: '90s',
+            position: 'Appuyé sur un banc, buste horizontal. Tirer l\'haltère vers la taille. Bien relâcher l\'épaule en bas pour étirer. Erreur : rotation excessive du buste.'
+          },
+          { 
+            name: 'Fentes Marchées', 
+            sets: '3', 
+            reps: '20 pas', 
+            technique: 'Genou proche du sol.', 
+            muscle: 'Jambes', 
+            rest: '90s',
+            position: 'Faire un grand pas en avant. Descendre le genou arrière vers le sol. Garder le buste fier. Alterner les jambes en avançant. Erreur : pencher le haut du corps en avant.'
+          }
         ]
       },
       {
         id: 'fb-3',
-        name: 'Full Body C',
+        name: 'Séance Corps Entier C',
         day: 'Vendredi',
         duration: '60 min',
         isRestDay: false,
         exercises: [
-          { name: 'Presse à cuisses', sets: '4', reps: '12', technique: 'Pieds au milieu de la plateforme.', muscle: 'Quadriceps', rest: '90s' },
-          { name: 'Chest Press', sets: '3', reps: '12', technique: 'Tension continue.', muscle: 'Pectoraux', rest: '60s' },
-          { name: 'Tirage Vertical', sets: '3', reps: '12', technique: 'Focus largeur.', muscle: 'Dos', rest: '90s' },
-          { name: 'Mollets Debout', sets: '4', reps: '15', technique: 'Extension maximale.', muscle: 'Mollets', rest: '60s' }
+          { 
+            name: 'Presse à Cuisses', 
+            sets: '4', 
+            reps: '12', 
+            technique: 'Pieds au milieu de la plateforme.', 
+            muscle: 'Quadriceps', 
+            rest: '90s',
+            position: 'Assis, pieds écartés largeur épaules sur le plateau. Descendre lentement vers la poitrine. Repousser sans verrouiller les genoux. Erreur : décoller le bas du dos du siège.'
+          },
+          { 
+            name: 'Développé Poitrine Machine', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Tension continue.', 
+            muscle: 'Pectoraux', 
+            rest: '60s',
+            position: 'Réglage de la hauteur du siège. Pousser les poignées devant soi. Garder les coudes à hauteur de poitrine. Erreur : claquer les poids lors du retour.'
+          },
+          { 
+            name: 'Tirage Vertical', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Focus largeur.', 
+            muscle: 'Dos', 
+            rest: '90s',
+            position: 'Prise large à la barre. Tirer vers le haut de la poitrine. Imaginer ramener les coudes dans les poches arrière. Erreur : utiliser l\'élan du corps.'
+          },
+          { 
+            name: 'Mollets Debout', 
+            sets: '4', 
+            reps: '15', 
+            technique: 'Extension maximale.', 
+            muscle: 'Mollets', 
+            rest: '60s',
+            position: 'Sur une marche, talons dans le vide. Monter le plus haut possible sur la pointe des pieds. Descendre sous le niveau de la marche. Erreur : sauter ou rebondir.'
+          }
         ]
       }
     ],
@@ -243,28 +564,92 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'jam-1',
-        name: 'Quad & Fessiers',
+        name: 'Quadriceps et Fessiers',
         day: 'Lundi',
         duration: '60 min',
         isRestDay: false,
         exercises: [
-          { name: 'Squat Arrière', sets: '4', reps: '10', technique: 'Descente lente, dos droit.', muscle: 'Quadriceps', rest: '120s' },
-          { name: 'Presse 45°', sets: '3', reps: '12', technique: 'Pieds larges pour les fessiers.', muscle: 'Quadriceps/Fessiers', rest: '90s' },
-          { name: 'Leg Extension', sets: '3', reps: '15', technique: 'Contraction en haut.', muscle: 'Quadriceps', rest: '60s' },
-          { name: 'Abducteurs', sets: '3', reps: '20', technique: 'Travail du moyen fessier.', muscle: 'Fessiers', rest: '60s' }
+          { 
+            name: 'Squat Arrière', 
+            sets: '4', 
+            reps: '10', 
+            technique: 'Descente lente, dos droit.', 
+            muscle: 'Quadriceps', 
+            rest: '120s',
+            position: 'Barre en appui sur les trapèzes. Descendre en brisant la parallèle des genoux. Garder le regard vers l\'horizon. Erreur : laisser les talons décoller du sol.'
+          },
+          { 
+            name: 'Presse 45°', 
+            sets: '3', 
+            reps: '12', 
+            technique: 'Pieds larges pour les fessiers.', 
+            muscle: 'Quadriceps/Fessiers', 
+            rest: '90s',
+            position: 'Positionner les pieds en haut de la plateforme pour engager plus les fessiers. Descendre jusqu\'à ce que les jambes forment un angle droit. Erreur : mettre les mains sur les genoux.'
+          },
+          { 
+            name: 'Extension Jambes', 
+            sets: '3', 
+            reps: '15', 
+            technique: 'Contraction en haut.', 
+            muscle: 'Quadriceps', 
+            rest: '60s',
+            position: 'Assis à la machine Leg Extension. Ajuster le rouleau sur le bas des tibias. Tendre les jambes au maximum. Marquer un temps d\'arrêt en haut. Erreur : s\'aider des bras sur les poignées.'
+          },
+          { 
+            name: 'Abducteurs', 
+            sets: '3', 
+            reps: '20', 
+            technique: 'Travail du moyen fessier.', 
+            muscle: 'Fessiers', 
+            rest: '60s',
+            position: 'Assis sur la machine à abducteurs. Écarter les jambes le plus possible. Se pencher légèrement en avant pour mieux isoler le moyen fessier. Erreur : claquer les poids lors du retour.'
+          }
         ]
       },
       {
         id: 'jam-2',
-        name: 'Ischios & Mollets',
+        name: 'Ischio-jambiers et Mollets',
         day: 'Jeudi',
         duration: '55 min',
         isRestDay: false,
         exercises: [
-          { name: 'Soulevé de terre Roumain', sets: '4', reps: '10', technique: 'Bascule du bassin.', muscle: 'Ischios', rest: '120s' },
-          { name: 'Leg Curl Assis', sets: '4', reps: '12', technique: 'Tire fort vers le bas.', muscle: 'Ischios', rest: '60s' },
-          { name: 'Mollets Presse', sets: '4', reps: '20', technique: 'Amplitude maximale.', muscle: 'Mollets', rest: '60s' },
-          { name: 'Hips Thrust', sets: '4', reps: '10', technique: 'Contracte fort les fessiers.', muscle: 'Fessiers', rest: '90s' }
+          { 
+            name: 'Soulevé de Terre Roumain', 
+            sets: '4', 
+            reps: '10', 
+            technique: 'Bascule du bassin.', 
+            muscle: 'Ischio-jambiers', 
+            rest: '120s',
+            position: 'Debout, barre en mains. Descendre la barre le long des cuisses en poussant les hanches vers l\'arrière. Arrêter quand l\'étirement est maximal. Erreur : descendre la barre trop loin en arrondissant le dos.'
+          },
+          { 
+            name: 'Curl Jambes Assis', 
+            sets: '4', 
+            reps: '12', 
+            technique: 'Tire fort vers le bas.', 
+            muscle: 'Ischio-jambiers', 
+            rest: '60s',
+            position: 'Assis, jambes sur le boudin. Ramener les talons vers les fesses. Bien plaquer les cuisses contre le siège. Erreur : décoller les fesses du siège durant l\'effort.'
+          },
+          { 
+            name: 'Mollets à la Presse', 
+            sets: '4', 
+            reps: '20', 
+            technique: 'Amplitude maximale.', 
+            muscle: 'Mollets', 
+            rest: '60s',
+            position: 'Pieds en bas du plateau de la presse. Uniquement les orteils sur le plateau. Pousser vers l\'extension complète. Erreur : ne pas descendre assez bas (étirement).'
+          },
+          { 
+            name: 'Hip Thrust', 
+            sets: '4', 
+            reps: '10', 
+            technique: 'Contracte fort les fessiers.', 
+            muscle: 'Fessiers', 
+            rest: '90s',
+            position: 'Haut du dos sur un banc, barre sur les hanches. Monter le bassin vers le plafond en contractant les fessiers. Regard fixe devant soi. Erreur : cambrer le dos en fin de mouvement.'
+          }
         ]
       }
     ],
@@ -286,28 +671,92 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'abd-1',
-        name: 'Abdos Force',
+        name: 'Abdominaux Force',
         day: 'Lundi',
         duration: '35 min',
         isRestDay: false,
         exercises: [
-          { name: 'Crunch Poulie', sets: '4', reps: '15', technique: 'Enroule la colonne.', muscle: 'Grand droit', rest: '60s' },
-          { name: 'Relevé de jambes', sets: '4', reps: '12', technique: 'Contrôle la descente.', muscle: 'Bas abdos', rest: '60s' },
-          { name: 'Russian Twist', sets: '3', reps: '20', technique: 'Rotation du buste.', muscle: 'Obliques', rest: '45s' },
-          { name: 'Ab Wheel', sets: '3', reps: '10', technique: 'Gainage strict.', muscle: 'Abdos', rest: '60s' }
+          { 
+            name: 'Crunch Poulie', 
+            sets: '4', 
+            reps: '15', 
+            technique: 'Enroule la colonne.', 
+            muscle: 'Grand droit', 
+            rest: '60s',
+            position: 'A genoux devant la poulie haute, corde en mains derrière la nuque. Enrouler le buste vers les genoux en contractant les abdos. Garder les hanches fixes. Erreur : tirer avec les bras.'
+          },
+          { 
+            name: 'Relevé de Jambes', 
+            sets: '4', 
+            reps: '12', 
+            technique: 'Contrôle la descente.', 
+            muscle: 'Bas abdominaux', 
+            rest: '60s',
+            position: 'Suspendu à la barre fixe ou allongé. Lever les jambes tendues jusqu\'à l\'horizontale. Redescendre sans toucher le sol pour garder la tension. Erreur : balancer le corps.'
+          },
+          { 
+            name: 'Torsion Russe', 
+            sets: '3', 
+            reps: '20', 
+            technique: 'Rotation du buste.', 
+            muscle: 'Obliques', 
+            rest: '45s',
+            position: 'Assis, jambes légèrement fléchies et décollées du sol. Faire pivoter le haut du corps de gauche à droite en touchant le sol avec un poids. Erreur : bouger uniquement les bras sans le buste.'
+          },
+          { 
+            name: 'Roue Abdominale', 
+            sets: '3', 
+            reps: '10', 
+            technique: 'Gainage strict.', 
+            muscle: 'Abdominaux', 
+            rest: '60s',
+            position: 'A genoux, roue devant soi. Faire rouler vers l\'avant le plus loin possible sans creuser le dos. Revenir en contractant fort les abdos. Erreur : laisser le bas du dos se cambrer.'
+          }
         ]
       },
       {
         id: 'abd-2',
-        name: 'Core Stability',
+        name: 'Gainage et Stabilité',
         day: 'Jeudi',
         duration: '30 min',
         isRestDay: false,
         exercises: [
-          { name: 'Planche', sets: '3', reps: '1min', technique: 'Corps aligné.', muscle: 'Transverse', rest: '60s' },
-          { name: 'Planche Latérale', sets: '3', reps: '45s/côté', technique: 'Hanches hautes.', muscle: 'Obliques', rest: '45s' },
-          { name: 'Hollow Hold', sets: '3', reps: '45s', technique: 'Dos collé au sol.', muscle: 'Abdos', rest: '60s' },
-          { name: 'Dead Bug', sets: '4', reps: '12', technique: 'Mouvement lent et contrôlé.', muscle: 'Abdos profonds', rest: '60s' }
+          { 
+            name: 'Gainage Planche', 
+            sets: '3', 
+            reps: '1min', 
+            technique: 'Corps aligné.', 
+            muscle: 'Transverse', 
+            rest: '60s',
+            position: 'Appui sur les coudes. Corps droit comme une planche. Regarder le sol. Contracter tout le corps pour stabiliser. Erreur : lever les fesses trop haut.'
+          },
+          { 
+            name: 'Gainage Latéral', 
+            sets: '3', 
+            reps: '45s/côté', 
+            technique: 'Hanches hautes.', 
+            muscle: 'Obliques', 
+            rest: '45s',
+            position: 'Appui sur un seul coude et le côté du pied. Garder le corps aligné sur le plan vertical. Monter les hanches vers le haut. Erreur : laisser les hanches tomber vers le sol.'
+          },
+          { 
+            name: 'Gainage Creux', 
+            sets: '3', 
+            reps: '45s', 
+            technique: 'Dos collé au sol.', 
+            muscle: 'Abdominaux', 
+            rest: '60s',
+            position: 'Allongé sur le dos. Décoller les épaules et les jambes. Le bas du dos doit rester impérativement plaqué au sol. Erreur : laisser le bas du dos se décoller.'
+          },
+          { 
+            name: 'Dead Bug', 
+            sets: '4', 
+            reps: '12', 
+            technique: 'Mouvement lent et contrôlé.', 
+            muscle: 'Abdominaux profonds', 
+            rest: '60s',
+            position: 'Sur le dos, jambes à 90°, bras vers le plafond. Descendre simultanément bras droit et jambe gauche. Revenir. Alterner. Erreur : bouger trop vite sans contrôle.'
+          }
         ]
       }
     ],

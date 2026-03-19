@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, Clock, Dumbbell } from "lucide-react";
+import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, Clock } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -225,21 +225,14 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             const isDone = dayStatuses[idx] === "done";
             const isToday = idx === currentDayIdx;
             const isRest = !session || session.isRestDay;
-            
             return (
-              <div 
-                key={dayName} 
+              <div key={dayName}
                 onClick={() => !isRest && setSelectedPreviewSession({ session: session!, day: dayName })}
-                className={cn(
-                  "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-colors", 
+                className={cn("p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-colors",
                   isToday ? "bg-[#E24B4A]/5" : "",
-                  !isRest ? "cursor-pointer hover:bg-white/5" : ""
-                )}
-              >
+                  !isRest ? "cursor-pointer hover:bg-white/5" : "")}>
                 <div className="flex items-center gap-4">
-                  <span className={cn("text-xs font-bold w-20 flex-shrink-0", isToday ? "text-[#E24B4A]" : "text-zinc-600")}>
-                    {dayName}
-                  </span>
+                  <span className={cn("text-xs font-bold w-20 flex-shrink-0", isToday ? "text-[#E24B4A]" : "text-zinc-600")}>{dayName}</span>
                   <span className={cn("text-sm font-bold uppercase tracking-tight", isToday ? "text-white" : isRest ? "text-zinc-700" : "text-zinc-400")}>
                     {isRest ? "Repos" : session.name}
                   </span>
@@ -250,71 +243,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           })}
         </div>
       </section>
-
-      {/* Session Preview Modal */}
-      <Dialog open={!!selectedPreviewSession} onOpenChange={() => setSelectedPreviewSession(null)}>
-        <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white p-0 overflow-hidden sm:rounded-t-3xl sm:rounded-b-none bottom-0 top-auto translate-y-0 left-0 right-0 max-w-full m-0 border-x-0 border-b-0 animate-in slide-in-from-bottom duration-300">
-          {selectedPreviewSession && (
-            <div className="p-6 space-y-6 pb-10">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-3xl font-headline text-[#E24B4A] uppercase leading-none">{selectedPreviewSession.session.name}</h2>
-                  <div className="flex items-center gap-3 mt-2 text-zinc-500 font-bold uppercase text-[10px] tracking-widest">
-                    <span>{selectedPreviewSession.day}</span>
-                    <span>•</span>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {selectedPreviewSession.session.duration}
-                    </div>
-                  </div>
-                </div>
-                <button onClick={() => setSelectedPreviewSession(null)} className="p-2 text-zinc-500 hover:text-white transition-colors">
-                  <ChevronRight className="w-6 h-6 rotate-90" />
-                </button>
-              </div>
-
-              <div className="space-y-3 max-h-[40vh] overflow-y-auto no-scrollbar">
-                {selectedPreviewSession.session.exercises.map((ex, i) => (
-                  <div key={i} className="bg-[#0F0F0F] p-4 rounded-xl border border-[#2A2A2A] flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center font-headline text-xl text-zinc-600">
-                      {i + 1}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-sm text-white uppercase tracking-tight">{ex.name}</div>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-[10px] font-bold text-zinc-500 uppercase">{ex.sets} × {ex.reps}</span>
-                        <span className="text-[10px] font-bold text-[#EE3BAA] uppercase tracking-tighter">{ex.muscle}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-3 pt-4">
-                {selectedPreviewSession.day === todayName ? (
-                  <Button 
-                    onClick={() => { onStartSession(selectedPreviewSession.session.id); setSelectedPreviewSession(null); }}
-                    className="w-full h-16 bg-[#E24B4A] hover:bg-[#E24B4A]/90 text-white font-headline text-2xl rounded-2xl shadow-xl shadow-[#E24B4A]/20"
-                  >
-                    C'EST PARTI !
-                  </Button>
-                ) : (
-                  <Button disabled className="w-full h-16 bg-[#2A2A2A] text-zinc-500 font-headline text-2xl rounded-2xl border border-transparent">
-                    PRÉVISUALISATION
-                  </Button>
-                )}
-                <Button 
-                  variant="ghost" 
-                  onClick={() => setSelectedPreviewSession(null)}
-                  className="w-full text-zinc-500 font-bold uppercase text-xs tracking-widest"
-                >
-                  Fermer
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       <div className="grid grid-cols-3 gap-3">
         <button onClick={() => setView("progres")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors">
@@ -356,6 +284,72 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           <Progress value={weeklyProgressPercent} className="h-3 bg-[#0F0F0F]" />
         </Card>
       </section>
+
+      {/* Modal prévisualisation séance — bottom sheet custom */}
+      {selectedPreviewSession && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70"
+          onClick={() => setSelectedPreviewSession(null)}
+        >
+          <div
+            className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-6" />
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-3xl font-headline text-[#E24B4A] uppercase leading-none">{selectedPreviewSession.session.name}</h2>
+                <div className="flex items-center gap-3 mt-2 text-zinc-500 font-bold uppercase text-[10px] tracking-widest">
+                  <span>{selectedPreviewSession.day}</span>
+                  <span>•</span>
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    <span>{selectedPreviewSession.session.duration}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              {selectedPreviewSession.session.exercises.map((ex, i) => (
+                <div key={i} className="bg-[#0F0F0F] p-4 rounded-xl border border-[#2A2A2A] flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center font-headline text-xl text-[#E24B4A] flex-shrink-0">
+                    {i + 1}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-bold text-sm text-white uppercase tracking-tight">{ex.name}</div>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase">{ex.sets} × {ex.reps}</span>
+                      <span className="text-[10px] font-bold text-[#EE3BAA] uppercase tracking-tighter">{ex.muscle}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              {selectedPreviewSession.day === todayName ? (
+                <Button
+                  onClick={() => { onStartSession(selectedPreviewSession.session.id); setSelectedPreviewSession(null); }}
+                  className="w-full h-14 bg-[#E24B4A] text-white font-headline text-xl rounded-xl shadow-xl"
+                >
+                  C'EST PARTI !
+                </Button>
+              ) : (
+                <div className="w-full h-14 bg-[#2A2A2A] rounded-xl flex items-center justify-center">
+                  <span className="text-zinc-500 font-bold text-xs uppercase tracking-widest">Séance prévue ce jour</span>
+                </div>
+              )}
+              <button
+                onClick={() => setSelectedPreviewSession(null)}
+                className="w-full text-center text-xs font-bold uppercase tracking-widest text-zinc-600 hover:text-zinc-400 py-3 transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

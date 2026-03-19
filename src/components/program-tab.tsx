@@ -1,12 +1,10 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
 import { UserProfile } from "@/app/page";
 import { PROGRAMS, Exercise } from "@/data/programs";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronLeft, Check, Timer, Info, X } from "lucide-react";
+import { ChevronLeft, Check, Timer, Info, X, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
@@ -20,7 +18,6 @@ type ProgramTabProps = {
 export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSessionId }: ProgramTabProps) {
   const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
   
-  // Custom schedule from localStorage
   const schedule = useMemo(() => {
     const saved = localStorage.getItem("muscleup_schedule");
     if (saved) return JSON.parse(saved);
@@ -50,7 +47,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
 
   const progress = (checkedExercises.length / currentSession.exercises.length) * 100;
 
-  // Rest Timer Logic
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isResting && timeLeft > 0) {
@@ -67,7 +63,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
       setCheckedExercises(checkedExercises.filter(i => i !== idx));
     } else {
       setCheckedExercises([...checkedExercises, idx]);
-      // Trigger rest timer
       setIsResting(true);
       setTimeLeft(60);
     }
@@ -111,7 +106,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
         </div>
       </header>
 
-      {/* Progress Bar */}
       <div className="w-full h-1.5 bg-[#1A1A1A] rounded-full mb-10 overflow-hidden">
         <div 
           className="h-full bg-primary transition-all duration-500 ease-out"
@@ -119,7 +113,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
         />
       </div>
 
-      {/* Rest Timer Overlay */}
       {isResting && (
         <div className="mb-8 p-6 bg-[#1A1A1A] rounded-2xl border border-primary/30 flex flex-col items-center animate-in zoom-in-95">
           <div className="relative w-24 h-24 flex items-center justify-center mb-2">
@@ -169,7 +162,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
                 {isChecked ? <Check className="w-5 h-5" /> : <span className="font-bold text-xs">{idx + 1}</span>}
               </div>
               
-              <div className="flex-1" onClick={() => setSelectedExercise(ex)}>
+              <div className="flex-1 cursor-pointer" onClick={() => setSelectedExercise(ex)}>
                 <h3 className={cn("font-bold text-sm transition-colors uppercase tracking-tight", isChecked ? "text-white" : "text-zinc-400")}>
                   {ex.name}
                 </h3>
@@ -210,41 +203,65 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
         </div>
       </div>
 
-      {/* Exercise Details Modal */}
-      <Dialog open={!!selectedExercise} onOpenChange={() => setSelectedExercise(null)}>
-        <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
-          {selectedExercise && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="font-headline text-3xl uppercase text-primary">{selectedExercise.name}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-6 mt-4">
-                <div className="bg-[#0F0F0F] p-4 rounded-xl border border-[#2A2A2A]">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">Muscle ciblé</span>
-                  <span className="text-lg font-headline text-white uppercase">{selectedExercise.muscle}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">Technique</span>
-                  <p className="text-zinc-300 leading-relaxed italic">"{selectedExercise.technique}"</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-[#2A2A2A]/30 p-4 rounded-xl text-center">
-                    <span className="text-2xl font-headline text-white">{selectedExercise.sets}</span>
-                    <span className="text-[10px] block font-bold text-zinc-500 uppercase mt-1">Séries</span>
-                  </div>
-                  <div className="bg-[#2A2A2A]/30 p-4 rounded-xl text-center">
-                    <span className="text-2xl font-headline text-white">{selectedExercise.reps}</span>
-                    <span className="text-[10px] block font-bold text-zinc-500 uppercase mt-1">Reps</span>
-                  </div>
-                </div>
-                <Button onClick={() => setSelectedExercise(null)} className="w-full bg-[#2A2A2A] hover:bg-[#3A3A3A] font-headline text-xl">
-                  FERMER
-                </Button>
+      {selectedExercise && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-end justify-center bg-black/80 animate-in fade-in duration-300"
+          onClick={() => setSelectedExercise(null)}
+        >
+          <div 
+            className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-[30px] p-8 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-8" />
+            
+            <header className="mb-8">
+              <h2 className="text-4xl font-headline text-primary uppercase leading-none mb-3">
+                {selectedExercise.name}
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 bg-[#EE3BAA]/10 text-[#EE3BAA] text-[10px] font-bold uppercase rounded-md border border-[#EE3BAA]/20">
+                  {selectedExercise.muscle}
+                </span>
+                <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-[10px] font-bold uppercase rounded-md">
+                  {selectedExercise.sets} Séries × {selectedExercise.reps}
+                </span>
+                <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-[10px] font-bold uppercase rounded-md flex items-center gap-1">
+                  <Timer className="w-3 h-3" /> {selectedExercise.rest}
+                </span>
               </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+            </header>
+
+            <div className="space-y-8">
+              <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-primary" />
+                  <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Position & Mouvement</h3>
+                </div>
+                <p className="text-sm text-zinc-300 leading-relaxed bg-[#0F0F0F] p-5 rounded-2xl border border-zinc-800/50">
+                  {selectedExercise.position}
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Info className="w-4 h-4 text-[#EE3BAA]" />
+                  <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Conseil technique</h3>
+                </div>
+                <p className="text-sm text-zinc-400 leading-relaxed italic border-l-2 border-[#EE3BAA] pl-4">
+                  "{selectedExercise.technique}"
+                </p>
+              </section>
+
+              <Button 
+                onClick={() => setSelectedExercise(null)}
+                className="w-full h-14 bg-zinc-800 hover:bg-zinc-700 text-white font-headline text-xl rounded-xl transition-colors"
+              >
+                FERMER
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
