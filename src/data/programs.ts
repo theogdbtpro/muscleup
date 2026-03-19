@@ -1,4 +1,3 @@
-
 export type Exercise = {
   name: string;
   sets: string;
@@ -55,7 +54,7 @@ export const PROGRAMS: Program[] = [
         exercises: [
           { 
             name: 'Curl Barre EZ', 
-            englishName: 'ez barbell curl',
+            englishName: 'ez-bar-curl',
             sets: '4', 
             reps: '10-12', 
             technique: 'Coudes collés au corps.', 
@@ -65,7 +64,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Curl Marteau', 
-            englishName: 'hammer curl',
+            englishName: 'hammer-curl',
             sets: '3', 
             reps: '12', 
             technique: 'Prise neutre, contrôle la descente.', 
@@ -75,7 +74,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Curl Incliné', 
-            englishName: 'incline dumbbell curl',
+            englishName: 'incline-dumbbell-curl',
             sets: '3', 
             reps: '12', 
             technique: 'Étirement maximal en bas.', 
@@ -85,7 +84,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Curl Concentré', 
-            englishName: 'concentration curl',
+            englishName: 'concentration-curl',
             sets: '3', 
             reps: '15', 
             technique: 'Isolant, ne balance pas le corps.', 
@@ -104,7 +103,7 @@ export const PROGRAMS: Program[] = [
         exercises: [
           { 
             name: 'Barre au front', 
-            englishName: 'ez barbell lyng triceps extension',
+            englishName: 'skull-crusher',
             sets: '4', 
             reps: '10', 
             technique: 'Coudes serrés vers l\'intérieur.', 
@@ -114,7 +113,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Extension Poulie', 
-            englishName: 'cable triceps pushdown',
+            englishName: 'tricep-pushdown',
             sets: '4', 
             reps: '15', 
             technique: 'Contracte fort en bas.', 
@@ -124,7 +123,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Dips Machine', 
-            englishName: 'lever seated dip',
+            englishName: 'machine-dip',
             sets: '3', 
             reps: '12', 
             technique: 'Buste droit pour focus triceps.', 
@@ -134,7 +133,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Extension Haltère', 
-            englishName: 'dumbbell overhead triceps extension',
+            englishName: 'overhead-tricep-extension',
             sets: '3', 
             reps: '12', 
             technique: 'Derrière la tête, bras vertical.', 
@@ -153,7 +152,7 @@ export const PROGRAMS: Program[] = [
         exercises: [
           { 
             name: 'Curl Pupitre', 
-            englishName: 'ez barbell preacher curl',
+            englishName: 'preacher-curl',
             sets: '3', 
             reps: '12', 
             technique: 'Focus pic du biceps.', 
@@ -163,7 +162,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Extension Poulie Corde', 
-            englishName: 'cable triceps pushdown (rope attachment)',
+            englishName: 'tricep-pushdown',
             sets: '3', 
             reps: '15', 
             technique: 'Extension totale du bras.', 
@@ -173,7 +172,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Curl Inversé', 
-            englishName: 'reverse barbell curl',
+            englishName: 'reverse-curl',
             sets: '3', 
             reps: '15', 
             technique: 'Travail des avant-bras.', 
@@ -183,7 +182,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Pompes Diamant', 
-            englishName: 'diamond pushup',
+            englishName: 'push-up',
             sets: '3', 
             reps: 'Max', 
             technique: 'Mains en triangle.', 
@@ -219,7 +218,7 @@ export const PROGRAMS: Program[] = [
         exercises: [
           { 
             name: 'Développé Couché', 
-            englishName: 'barbell bench press',
+            englishName: 'bench-press',
             sets: '4', 
             reps: '6-8', 
             technique: 'Cage sortie, omoplates serrées.', 
@@ -229,7 +228,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Développé Incliné', 
-            englishName: 'barbell incline bench press',
+            englishName: 'incline-bench-press',
             sets: '3', 
             reps: '8-10', 
             technique: 'Barre vers le haut du torse.', 
@@ -239,17 +238,17 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Dips Lestés', 
-            englishName: 'weighted dip',
+            englishName: 'weighted-dip',
             sets: '3', 
             reps: '10', 
             technique: 'Buste penché vers l\'avant.', 
-            muscle: 'Bas Pectoraux', 
+            muscle: 'Pectoraux', 
             rest: '90s',
             position: 'Aux barres parallèles. Se pencher en avant pour engager les pecs. Descendre jusqu\'à ce que les bras soient parallèles au sol. Remonter. Erreur : rester trop droit (travail triceps).'
           },
           { 
             name: 'Développé Haltères', 
-            englishName: 'dumbbell bench press',
+            englishName: 'dumbbell-press',
             sets: '3', 
             reps: '10', 
             technique: 'Amplitude maximale.', 
@@ -268,7 +267,7 @@ export const PROGRAMS: Program[] = [
         exercises: [
           { 
             name: 'Écartés Poulie', 
-            englishName: 'cable crossover',
+            englishName: 'cable-fly',
             sets: '4', 
             reps: '15', 
             technique: 'Focus sur la contraction.', 
@@ -278,7 +277,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Machine Convergente', 
-            englishName: 'lever chest press',
+            englishName: 'chest-press',
             sets: '3', 
             reps: '12', 
             technique: 'Tension continue.', 
@@ -288,7 +287,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Croisé Poulie Bas', 
-            englishName: 'low cable crossover',
+            englishName: 'low-cable-fly',
             sets: '3', 
             reps: '15', 
             technique: 'Ramène les mains vers le haut.', 
@@ -298,7 +297,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Pompes Déclinées', 
-            englishName: 'decline pushup',
+            englishName: 'decline-push-up',
             sets: '3', 
             reps: 'Max', 
             technique: 'Pieds surélevés.', 
@@ -334,7 +333,7 @@ export const PROGRAMS: Program[] = [
         exercises: [
           { 
             name: 'Tractions Larges', 
-            englishName: 'pull up',
+            englishName: 'pull-up',
             sets: '4', 
             reps: 'Max', 
             technique: 'Tire avec les coudes.', 
@@ -344,17 +343,17 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Tirage Poitrine', 
-            englishName: 'lat pulldown',
+            englishName: 'lat-pulldown',
             sets: '3', 
             reps: '12', 
             technique: 'Buste légèrement incliné.', 
-            muscle: 'Dos', 
+            muscle: 'Grand dorsal', 
             rest: '90s',
             position: 'Assis à la machine de tirage vertical. Saisir la barre large. Tirer vers le haut des pectoraux en serrant les omoplates. Erreur : tirer la barre derrière la nuque.'
           },
           { 
             name: 'Pull Bras Tendus', 
-            englishName: 'cable straight arm pulldown',
+            englishName: 'straight-arm-pulldown',
             sets: '3', 
             reps: '15', 
             technique: 'Isolation du grand dorsal.', 
@@ -364,11 +363,11 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Tirage Triangle', 
-            englishName: 'v-bar pulldown',
+            englishName: 'seated-row',
             sets: '3', 
             reps: '12', 
             technique: 'Focus épaisseur.', 
-            muscle: 'Dos', 
+            muscle: 'Grand dorsal', 
             rest: '90s',
             position: 'Assis au tirage horizontal, poignée triangle. Tirer vers le bas de l\'abdomen en gardant le dos droit. Épaules basses. Erreur : basculer le buste trop en arrière.'
           }
@@ -383,17 +382,17 @@ export const PROGRAMS: Program[] = [
         exercises: [
           { 
             name: 'Rowing Barre', 
-            englishName: 'barbell bent over row',
+            englishName: 'barbell-row',
             sets: '4', 
             reps: '8', 
             technique: 'Dos bien plat, buste à 45°.', 
-            muscle: 'Milieu dos', 
+            muscle: 'Dos', 
             rest: '120s',
             position: 'Debout, jambes fléchies, buste penché. Tirer la barre vers le nombril en gardant les coudes proches du corps. Omoplates serrées. Erreur : arrondir le bas du dos.'
           },
           { 
             name: 'Rowing Haltère', 
-            englishName: 'dumbbell row',
+            englishName: 'dumbbell-row',
             sets: '3', 
             reps: '10', 
             technique: 'Un bras après l\'autre.', 
@@ -403,7 +402,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Rowing Assis', 
-            englishName: 'cable seated row',
+            englishName: 'seated-row',
             sets: '3', 
             reps: '12', 
             technique: 'Serre les omoplates.', 
@@ -413,7 +412,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Tirage Visage', 
-            englishName: 'face pull',
+            englishName: 'face-pull',
             sets: '3', 
             reps: '15', 
             technique: 'Focus arrière épaule.', 
@@ -449,7 +448,7 @@ export const PROGRAMS: Program[] = [
         exercises: [
           { 
             name: 'Squat Barre', 
-            englishName: 'barbell squat',
+            englishName: 'barbell-squat',
             sets: '4', 
             reps: '10', 
             technique: 'Descente contrôlée.', 
@@ -459,7 +458,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Développé Couché', 
-            englishName: 'barbell bench press',
+            englishName: 'bench-press',
             sets: '4', 
             reps: '10', 
             technique: 'Cage sortie.', 
@@ -469,7 +468,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Tractions', 
-            englishName: 'pull up',
+            englishName: 'pull-up',
             sets: '3', 
             reps: 'Max', 
             technique: 'Menton au dessus de la barre.', 
@@ -498,7 +497,7 @@ export const PROGRAMS: Program[] = [
         exercises: [
           { 
             name: 'Soulevé de Terre Jambes Tendues', 
-            englishName: 'barbell stiff leg deadlift',
+            englishName: 'romanian-deadlift',
             sets: '3', 
             reps: '12', 
             technique: 'Dos plat, étirement ischios.', 
@@ -508,7 +507,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Développé Militaire', 
-            englishName: 'barbell overhead press',
+            englishName: 'overhead-press',
             sets: '4', 
             reps: '10', 
             technique: 'Debout, gainage fort.', 
@@ -518,7 +517,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Rowing Haltère', 
-            englishName: 'dumbbell row',
+            englishName: 'dumbbell-row',
             sets: '3', 
             reps: '12', 
             technique: 'Tire avec le coude.', 
@@ -528,7 +527,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Fentes Marchées', 
-            englishName: 'walking lunge',
+            englishName: 'walking-lunge',
             sets: '3', 
             reps: '20 pas', 
             technique: 'Genou proche du sol.', 
@@ -547,7 +546,7 @@ export const PROGRAMS: Program[] = [
         exercises: [
           { 
             name: 'Presse à Cuisses', 
-            englishName: 'sled leg press',
+            englishName: 'leg-press',
             sets: '4', 
             reps: '12', 
             technique: 'Pieds au milieu de la plateforme.', 
@@ -557,7 +556,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Développé Poitrine Machine', 
-            englishName: 'lever chest press',
+            englishName: 'chest-press',
             sets: '3', 
             reps: '12', 
             technique: 'Tension continue.', 
@@ -567,7 +566,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Tirage Vertical', 
-            englishName: 'lat pulldown',
+            englishName: 'lat-pulldown',
             sets: '3', 
             reps: '12', 
             technique: 'Focus largeur.', 
@@ -577,7 +576,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Mollets Debout', 
-            englishName: 'standing calf raise',
+            englishName: 'standing-calf-raise',
             sets: '4', 
             reps: '15', 
             technique: 'Extension maximale.', 
@@ -613,7 +612,7 @@ export const PROGRAMS: Program[] = [
         exercises: [
           { 
             name: 'Squat Arrière', 
-            englishName: 'barbell squat',
+            englishName: 'barbell-squat',
             sets: '4', 
             reps: '10', 
             technique: 'Descente lente, dos droit.', 
@@ -623,17 +622,17 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Presse 45°', 
-            englishName: 'sled leg press',
+            englishName: 'leg-press',
             sets: '3', 
             reps: '12', 
             technique: 'Pieds larges pour les fessiers.', 
-            muscle: 'Quadriceps/Fessiers', 
+            muscle: 'Jambes', 
             rest: '90s',
             position: 'Positionner les pieds en haut de la plateforme pour engager plus les fessiers. Descendre jusqu\'à ce que les jambes forment un angle droit. Erreur : mettre les mains sur les genoux.'
           },
           { 
             name: 'Extension Jambes', 
-            englishName: 'lever leg extension',
+            englishName: 'leg-extension',
             sets: '3', 
             reps: '15', 
             technique: 'Contraction en haut.', 
@@ -643,7 +642,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Abducteurs', 
-            englishName: 'lever hip abductor',
+            englishName: 'abduction-machine',
             sets: '3', 
             reps: '20', 
             technique: 'Travail du moyen fessier.', 
@@ -662,7 +661,7 @@ export const PROGRAMS: Program[] = [
         exercises: [
           { 
             name: 'Soulevé de Terre Roumain', 
-            englishName: 'barbell romanian deadlift',
+            englishName: 'romanian-deadlift',
             sets: '4', 
             reps: '10', 
             technique: 'Bascule du bassin.', 
@@ -672,7 +671,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Curl Jambes Assis', 
-            englishName: 'lever seated leg curl',
+            englishName: 'seated-leg-curl',
             sets: '4', 
             reps: '12', 
             technique: 'Tire fort vers le bas.', 
@@ -682,7 +681,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Mollets à la Presse', 
-            englishName: 'sled calf press',
+            englishName: 'leg-press',
             sets: '4', 
             reps: '20', 
             technique: 'Amplitude maximale.', 
@@ -692,7 +691,7 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Hip Thrust', 
-            englishName: 'barbell hip thrust',
+            englishName: 'hip-thrust',
             sets: '4', 
             reps: '10', 
             technique: 'Contracte fort les fessiers.', 
@@ -728,37 +727,37 @@ export const PROGRAMS: Program[] = [
         exercises: [
           { 
             name: 'Crunch Poulie', 
-            englishName: 'cable crunch',
+            englishName: 'cable-crunch',
             sets: '4', 
             reps: '15', 
             technique: 'Enroule la colonne.', 
-            muscle: 'Grand droit', 
+            muscle: 'Abdominaux', 
             rest: '60s',
             position: 'A genoux devant la poulie haute, corde en mains derrière la nuque. Enrouler le buste vers les genoux en contractant les abdos. Garder les hanches fixes. Erreur : tirer avec les bras.'
           },
           { 
             name: 'Relevé de Jambes', 
-            englishName: 'hanging leg raise',
+            englishName: 'leg-raise',
             sets: '4', 
             reps: '12', 
             technique: 'Contrôle la descente.', 
-            muscle: 'Bas abdominaux', 
+            muscle: 'Abdominaux', 
             rest: '60s',
             position: 'Suspendu à la barre fixe ou allongé. Lever les jambes tendues jusqu\'à l\'horizontale. Redescendre sans toucher le sol pour garder la tension. Erreur : balancer le corps.'
           },
           { 
             name: 'Torsion Russe', 
-            englishName: 'weighted russian twist',
+            englishName: 'russian-twist',
             sets: '3', 
             reps: '20', 
             technique: 'Rotation du buste.', 
-            muscle: 'Obliques', 
+            muscle: 'Abdominaux', 
             rest: '45s',
             position: 'Assis, jambes légèrement fléchies et décollées du sol. Faire pivoter le haut du corps de gauche à droite en touchant le sol avec un poids. Erreur : bouger uniquement les bras sans le buste.'
           },
           { 
             name: 'Roue Abdominale', 
-            englishName: 'ab roller',
+            englishName: 'ab-wheel-rollout',
             sets: '3', 
             reps: '10', 
             technique: 'Gainage strict.', 
@@ -781,23 +780,23 @@ export const PROGRAMS: Program[] = [
             sets: '3', 
             reps: '1min', 
             technique: 'Corps aligné.', 
-            muscle: 'Transverse', 
+            muscle: 'Abdominaux', 
             rest: '60s',
             position: 'Appui sur les coudes. Corps droit comme une planche. Regarder le sol. Contracter tout le corps pour stabiliser. Erreur : lever les fesses trop haut.'
           },
           { 
             name: 'Gainage Latéral', 
-            englishName: 'side plank',
+            englishName: 'side-plank',
             sets: '3', 
             reps: '45s/côté', 
             technique: 'Hanches hautes.', 
-            muscle: 'Obliques', 
+            muscle: 'Abdominaux', 
             rest: '45s',
             position: 'Appui sur un seul coude et le côté du pied. Garder le corps aligné sur le plan vertical. Monter les hanches vers le haut. Erreur : laisser les hanches tomber vers le sol.'
           },
           { 
             name: 'Gainage Creux', 
-            englishName: 'hollow hold',
+            englishName: 'hollow-hold',
             sets: '3', 
             reps: '45s', 
             technique: 'Dos collé au sol.', 
@@ -807,11 +806,11 @@ export const PROGRAMS: Program[] = [
           },
           { 
             name: 'Dead Bug', 
-            englishName: 'dead bug',
+            englishName: 'dead-bug',
             sets: '4', 
             reps: '12', 
             technique: 'Mouvement lent et contrôlé.', 
-            muscle: 'Abdominaux profonds', 
+            muscle: 'Abdominaux', 
             rest: '60s',
             position: 'Sur le dos, jambes à 90°, bras vers le plafond. Descendre simultanément bras droit et jambe gauche. Revenir. Alterner. Erreur : bouger trop vite sans contrôle.'
           }

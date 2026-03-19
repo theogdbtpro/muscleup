@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -8,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, Check, Timer, Info, X, Zap, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
-import { searchExerciseGif } from "@/services/exercisedb";
 
 function ExerciseDiagram({ muscle }: { muscle: string }) {
   const m = muscle.toLowerCase();
@@ -137,8 +135,8 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
 
   const [checkedExercises, setCheckedExercises] = useState<number[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
-  const [gifUrl, setGifUrl] = useState<string | null>(null);
-  const [isGifLoading, setIsGifLoading] = useState(false);
+  const [isGifLoading, setIsGifLoading] = useState(true);
+  const [gifError, setGifError] = useState(false);
   const [isResting, setIsResting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
 
@@ -154,17 +152,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
     }
     return () => clearInterval(timer);
   }, [isResting, timeLeft]);
-
-  useEffect(() => {
-    if (selectedExercise) {
-      setIsGifLoading(true);
-      setGifUrl(null);
-      searchExerciseGif(selectedExercise.englishName).then(url => {
-        setGifUrl(url);
-        setIsGifLoading(false);
-      });
-    }
-  }, [selectedExercise]);
 
   const toggleExercise = (idx: number) => {
     if (checkedExercises.includes(idx)) {
@@ -200,6 +187,10 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
     });
 
     onBack();
+  };
+
+  const getGifUrl = (englishName: string) => {
+    return `https://muscles.wiki/exercises/${englishName}.gif`;
   };
 
   return (
@@ -285,7 +276,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
                 </div>
               </div>
 
-              <button onClick={() => setSelectedExercise(ex)} className="p-2 text-zinc-700 hover:text-white">
+              <button onClick={() => { setSelectedExercise(ex); setIsGifLoading(true); setGifError(false); }} className="p-2 text-zinc-700 hover:text-white">
                 <Info className="w-5 h-5" />
               </button>
             </div>
@@ -322,24 +313,31 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
           >
             <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-8" />
             
-            {/* GIF Preview */}
-            <div className="flex justify-center mb-6">
-              {isGifLoading ? (
-                <div className="w-[200px] h-[200px] bg-zinc-800 rounded-xl flex flex-col items-center justify-center animate-pulse border border-zinc-700">
+            {/* GIF Preview from muscles.wiki */}
+            <div className="flex justify-center mb-6 relative">
+              {isGifLoading && (
+                <div className="w-[200px] h-[200px] bg-zinc-800 rounded-xl flex flex-col items-center justify-center animate-pulse border border-zinc-700 absolute inset-0 mx-auto z-10">
                   <Loader2 className="w-8 h-8 text-zinc-600 animate-spin mb-2" />
                   <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Chargement...</span>
                 </div>
-              ) : gifUrl ? (
-                <img 
-                  src={gifUrl} 
-                  alt={selectedExercise.name} 
-                  className="w-[200px] h-[200px] rounded-xl object-cover border border-zinc-800 shadow-2xl shadow-black" 
-                />
-              ) : (
+              )}
+              
+              {gifError ? (
                 <div className="w-[200px] h-[200px] bg-zinc-900/50 rounded-xl flex flex-col items-center justify-center border border-zinc-800">
                   <Info className="w-8 h-8 text-zinc-800 mb-2" />
                   <span className="text-[10px] font-bold text-zinc-700 uppercase tracking-widest text-center px-4">Aperçu non disponible</span>
                 </div>
+              ) : (
+                <img 
+                  src={getGifUrl(selectedExercise.englishName)} 
+                  alt={selectedExercise.name} 
+                  className={cn(
+                    "w-[200px] h-[200px] rounded-xl object-cover border border-zinc-800 shadow-2xl shadow-black transition-opacity duration-300",
+                    isGifLoading ? "opacity-0" : "opacity-100"
+                  )} 
+                  onLoad={() => setIsGifLoading(false)}
+                  onError={() => { setGifError(true); setIsGifLoading(false); }}
+                />
               )}
             </div>
 
