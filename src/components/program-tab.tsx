@@ -39,7 +39,12 @@ function ExerciseAnimation({ muscle }: { muscle: string }) {
     </div>
   );
 }
-
+type ProgramTabProps = {
+  profile: UserProfile;
+  onBack: () => void;
+  onUpdateProfile: (profile: UserProfile) => void;
+  manualSessionId?: string | null;
+};
 export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSessionId }: ProgramTabProps) {
   const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
   const schedule = useMemo(() => {

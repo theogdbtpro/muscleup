@@ -121,11 +121,9 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   const handleAutoOptimizeMove = () => {
     if (!selectedDayToMove) return;
     
-    // Find the first free day that is not adjacent to any other workout
     let optimizedDay = null;
     for (const day of dayNamesFull) {
       if (!schedule[day] && day !== selectedDayToMove) {
-        // Check adjacency of this potential day
         const idx = dayNamesFull.indexOf(day);
         const prev = dayNamesFull[(idx + 6) % 7];
         const next = dayNamesFull[(idx + 1) % 7];
@@ -170,20 +168,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
       <div className="space-y-10 flex-1 overflow-y-auto no-scrollbar pb-10">
         <section className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
-            <Target className="w-4 h-4 text-primary" />
-            <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Objectif actuel</h2>
-          </div>
-          <button onClick={() => setIsObjectiveModalOpen(true)} className="w-full p-6 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <span className="text-4xl">{currentProgram.emoji}</span>
-              <span className="font-headline text-2xl text-white uppercase">{currentProgram.name}</span>
-            </div>
-            <span className="text-primary font-bold text-xs uppercase tracking-widest">Changer</span>
-          </button>
-        </section>
-
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
             <MapPin className="w-4 h-4 text-primary" />
             <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Lieu d'entraînement</h2>
           </div>
@@ -199,6 +183,20 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               🏠 Maison
             </button>
           </div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Target className="w-4 h-4 text-primary" />
+            <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Objectif actuel</h2>
+          </div>
+          <button onClick={() => setIsObjectiveModalOpen(true)} className="w-full p-6 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <span className="text-4xl">{currentProgram.emoji}</span>
+              <span className="font-headline text-2xl text-white uppercase">{currentProgram.name}</span>
+            </div>
+            <span className="text-primary font-bold text-xs uppercase tracking-widest">Changer</span>
+          </button>
         </section>
 
         <section className="space-y-4">
