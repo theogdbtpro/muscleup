@@ -9,6 +9,7 @@ export type UserProfile = {
   objective: string;
   level: string;
   frequency: string;
+  location: 'salle' | 'maison';
   onboarded: boolean;
 };
 

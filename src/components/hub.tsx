@@ -153,70 +153,6 @@ function ExerciseAnimation({ muscle }: { muscle: string }) {
   );
 }
 
-function ExerciseDiagram({ muscle }: { muscle: string }) {
-  const m = muscle.toLowerCase();
-  const isBackView = m.includes('dos') || m.includes('trapèze') || m.includes('ischio') || m.includes('fessier') || m.includes('triceps') || m.includes('mollet');
-
-  return (
-    <div className="flex flex-col items-center justify-center p-4 bg-[#0F0F0F] rounded-2xl border border-zinc-800/50 mb-6 mx-auto w-fit">
-      <svg width="120" height="180" viewBox="0 0 200 300" className="mx-auto">
-        <g stroke="#2A2A2A" strokeWidth="2" fill="none">
-          <circle cx="100" cy="40" r="15" />
-          <path d="M95 55 L105 55" />
-          <path d="M70 65 L130 65 L120 160 L80 160 Z" />
-          <path d="M70 65 L50 140" />
-          <path d="M130 65 L150 140" />
-          <path d="M85 160 L75 280" />
-          <path d="M115 160 L125 280" />
-        </g>
-        <g fill="#E24B4A" opacity="0.8">
-          {m.includes('pectoro') && !isBackView && <path d="M75 75 Q100 70 125 75 L120 105 Q100 110 80 105 Z" />}
-          {(m.includes('bicep') || m.includes('avant-bras')) && !isBackView && (
-            <>
-              <ellipse cx="60" cy="100" rx="8" ry="15" transform="rotate(-15 60 100)" />
-              <ellipse cx="140" cy="100" rx="8" ry="15" transform="rotate(15 140 100)" />
-            </>
-          )}
-          {(m.includes('abdo') || m.includes('oblique') || m.includes('transverse')) && !isBackView && <rect x="85" y="115" width="30" height="40" rx="5" />}
-          {m.includes('quadri') && !isBackView && (
-            <>
-              <path d="M85 170 L78 230 L95 230 L100 170 Z" />
-              <path d="M115 170 L122 230 L105 230 L100 170 Z" />
-            </>
-          )}
-          {m.includes('épaule') && (
-            <>
-              <circle cx="70" cy="70" r="10" />
-              <circle cx="130" cy="70" r="10" />
-            </>
-          )}
-          {(m.includes('dos') || m.includes('trapèze')) && isBackView && <path d="M75 70 L125 70 L120 155 L80 155 Z" />}
-          {m.includes('tricep') && isBackView && (
-            <>
-              <ellipse cx="60" cy="100" rx="7" ry="14" transform="rotate(-15 60 100)" />
-              <ellipse cx="140" cy="100" rx="7" ry="14" transform="rotate(15 140 100)" />
-            </>
-          )}
-          {(m.includes('ischio') || m.includes('fessier')) && isBackView && (
-            <>
-              <path d="M80 160 L120 160 L115 190 L85 190 Z" />
-              <path d="M85 195 L78 245 L95 245 L98 195 Z" />
-              <path d="M115 195 L122 245 L105 245 L102 195 Z" />
-            </>
-          )}
-          {m.includes('mollet') && (
-            <>
-              <ellipse cx="78" cy="255" rx="6" ry="12" />
-              <ellipse cx="122" cy="255" rx="6" ry="12" />
-            </>
-          )}
-        </g>
-      </svg>
-      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-2">Vue {isBackView ? 'Postérieure' : 'Antérieure'}</span>
-    </div>
-  );
-}
-
 export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const { toast } = useToast();
   const [history, setHistory] = useState<any[]>([]);
@@ -346,7 +282,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
         <div className="flex items-center gap-2">
           <span className="text-base">{program.emoji}</span>
           <span className="text-[12px] font-bold text-zinc-300 uppercase tracking-tight">
-            {program.name} · {profile.level} · {profile.frequency}/sem
+            {program.name} · {profile.level} · {profile.frequency}/sem · {profile.location === 'maison' ? '🏠' : '🏋️'}
           </span>
         </div>
         <div className="bg-[#E24B4A] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter flex items-center gap-1">
@@ -386,7 +322,8 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           )}
         </div>
       </Card>
-
+      {/* ... reste de hub.tsx inchangé ... */}
+      
       <Dialog open={isSessionPickerOpen} onOpenChange={setIsSessionPickerOpen}>
         <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
           <DialogHeader>
@@ -496,7 +433,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
               </div>
             </div>
             <div className="space-y-3 mb-6">
-              {selectedPreviewSession.session.exercises.map((ex, i) => (
+              {(profile.location === 'maison' && selectedPreviewSession.session.homeExercises ? selectedPreviewSession.session.homeExercises : selectedPreviewSession.session.exercises).map((ex, i) => (
                 <div key={i} onClick={() => setSelectedExercise(ex)} className="bg-[#0F0F0F] p-4 rounded-xl border border-[#2A2A2A] flex items-center gap-4 cursor-pointer hover:border-[#E24B4A]/50 transition-all group">
                   <div className="w-8 h-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center font-headline text-xl text-[#E24B4A] flex-shrink-0 group-hover:bg-[#E24B4A] group-hover:text-white transition-colors">
                     {i + 1}
@@ -540,7 +477,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-8" />
             
             <ExerciseAnimation muscle={selectedExercise.muscle} />
-            <ExerciseDiagram muscle={selectedExercise.muscle} />
 
             <header className="mb-8 text-center">
               <h2 className="text-4xl font-headline text-primary uppercase leading-none mb-3">{selectedExercise.name}</h2>

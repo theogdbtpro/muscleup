@@ -5,7 +5,7 @@ import { UserProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronLeft, Target, Award, Calendar, Repeat, ArrowRightLeft, CheckCircle, AlertTriangle, Sparkles } from "lucide-react";
+import { ChevronLeft, Target, Award, Calendar, Repeat, ArrowRightLeft, CheckCircle, AlertTriangle, Sparkles, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -180,6 +180,25 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
             </div>
             <span className="text-primary font-bold text-xs uppercase tracking-widest">Changer</span>
           </button>
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <MapPin className="w-4 h-4 text-primary" />
+            <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Lieu d'entraînement</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => handleUpdateBaseInfo({ location: 'salle' })}
+              className={cn("p-4 rounded-xl border-2 transition-all flex justify-center items-center text-[10px] font-bold uppercase gap-2",
+                tempProfile.location === 'salle' ? "bg-primary/10 border-primary text-white" : "bg-[#1A1A1A] border-transparent text-zinc-600")}>
+              🏋️ Salle
+            </button>
+            <button onClick={() => handleUpdateBaseInfo({ location: 'maison' })}
+              className={cn("p-4 rounded-xl border-2 transition-all flex justify-center items-center text-[10px] font-bold uppercase gap-2",
+                tempProfile.location === 'maison' ? "bg-primary/10 border-primary text-white" : "bg-[#1A1A1A] border-transparent text-zinc-600")}>
+              🏠 Maison
+            </button>
+          </div>
         </section>
 
         <section className="space-y-4">
