@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { UserProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronLeft, Target, Award, Calendar, Repeat, CheckCircle, AlertTriangle, Sparkles, MapPin, GripVertical } from "lucide-react";
+import { ChevronLeft, Target, Award, Calendar, Repeat, CheckCircle, AlertTriangle, Sparkles, MapPin, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,8 +20,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   const { toast } = useToast();
   const [tempProfile, setTempProfile] = useState<UserProfile>({ ...profile });
   const [isObjectiveModalOpen, setIsObjectiveModalOpen] = useState(false);
-  const [draggedDay, setDraggedDay] = useState<string | null>(null);
-  const [touchTargetDay, setTouchTargetDay] = useState<string | null>(null);
   const [moveMessage, setMoveMessage] = useState<string | null>(null);
   
   const dayNamesFull = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -84,58 +82,22 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     setTimeout(() => onBack(), 1000);
   };
 
-  const executeSwap = (source: string, target: string) => {
-    if (source === target) return;
+  const moveSession = (day: string, direction: 'up' | 'down') => {
+    const index = dayNamesFull.indexOf(day);
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= dayNamesFull.length) return;
+
+    const targetDay = dayNamesFull[targetIndex];
     const newSchedule = { ...schedule };
-    const sourceSession = newSchedule[source];
-    const targetSession = newSchedule[target];
-    newSchedule[target] = sourceSession;
-    newSchedule[source] = targetSession;
+    const currentSession = newSchedule[day];
+    const targetSession = newSchedule[targetDay];
+
+    newSchedule[targetDay] = currentSession;
+    newSchedule[day] = targetSession;
 
     setSchedule(newSchedule);
-    setMoveMessage(`Séance déplacée le ${target} ✓`);
-    setTimeout(() => setMoveMessage(null), 3000);
-  };
-
-  // --- Handlers Drag & Drop (Mouse) ---
-  const onDragStart = (day: string) => {
-    setDraggedDay(day);
-  };
-
-  const onDragOver = (e: React.DragEvent, day: string) => {
-    e.preventDefault();
-    setTouchTargetDay(day);
-  };
-
-  const onDrop = (day: string) => {
-    if (draggedDay) {
-      executeSwap(draggedDay, day);
-    }
-    setDraggedDay(null);
-    setTouchTargetDay(null);
-  };
-
-  // --- Handlers Touch (Mobile) ---
-  const handleTouchStart = (day: string) => {
-    setDraggedDay(day);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    const element = document.elementFromPoint(touch.clientX, touch.clientY);
-    const dayElement = element?.closest('[data-day]');
-    if (dayElement) {
-      const day = dayElement.getAttribute('data-day');
-      setTouchTargetDay(day);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (draggedDay && touchTargetDay && draggedDay !== touchTargetDay) {
-      executeSwap(draggedDay, touchTargetDay);
-    }
-    setDraggedDay(null);
-    setTouchTargetDay(null);
+    setMoveMessage(`Séance déplacée le ${targetDay} ✓`);
+    setTimeout(() => setMoveMessage(null), 2000);
   };
 
   const optimizationWarnings = useMemo(() => {
@@ -239,7 +201,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               </div>
             )}
           </div>
-          <p className="text-[10px] text-zinc-600 uppercase font-bold tracking-widest mb-4">Glisse les séances pour réorganiser</p>
 
           {!isHighFrequency && (
             <button 
@@ -259,29 +220,13 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               const prevDay = dayNamesFull[(idx + 6) % 7];
               const nextDay = dayNamesFull[(idx + 1) % 7];
               const hasAdjacencyIssue = !isHighFrequency && !!sessionId && (!!schedule[prevDay] || !!schedule[nextDay]);
-              const isDragging = draggedDay === day;
-              const isTouchTarget = touchTargetDay === day;
 
               return (
                 <div 
                   key={day}
-                  data-day={day}
-                  draggable={true}
-                  onDragStart={() => onDragStart(day)}
-                  onDragOver={(e) => onDragOver(e, day)}
-                  onDragEnd={() => setDraggedDay(null)}
-                  onDrop={() => onDrop(day)}
-                  onTouchStart={() => handleTouchStart(day)}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                  className={cn(
-                    "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-200 cursor-grab active:cursor-grabbing touch-none",
-                    isDragging ? "opacity-30 border-primary bg-primary/5" : "opacity-100",
-                    isTouchTarget && !isDragging ? "bg-primary/10 border-l-4 border-l-primary" : ""
-                  )}
+                  className="p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-200"
                 >
                   <div className="flex items-center gap-4">
-                    <GripVertical className="w-4 h-4 text-zinc-700 shrink-0" />
                     <span className="text-xs font-bold w-12 text-zinc-600">{day}</span>
                     <div className="flex items-center gap-2">
                       <span className={cn("text-sm font-bold uppercase tracking-tight", session ? "text-white" : "text-zinc-700")}>
@@ -294,6 +239,25 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
                       )}
                     </div>
                   </div>
+
+                  {sessionId && (
+                    <div className="flex gap-1">
+                      <button
+                        disabled={idx === 0}
+                        onClick={() => moveSession(day, 'up')}
+                        className="w-7 h-7 flex items-center justify-center rounded-md bg-[#2A2A2A] text-zinc-500 hover:bg-primary hover:text-white disabled:opacity-30 disabled:hover:bg-[#2A2A2A] disabled:hover:text-zinc-500 transition-colors"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        disabled={idx === 6}
+                        onClick={() => moveSession(day, 'down')}
+                        className="w-7 h-7 flex items-center justify-center rounded-md bg-[#2A2A2A] text-zinc-500 hover:bg-primary hover:text-white disabled:opacity-30 disabled:hover:bg-[#2A2A2A] disabled:hover:text-zinc-500 transition-colors"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
