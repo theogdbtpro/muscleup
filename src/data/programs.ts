@@ -47,7 +47,7 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'gb-1',
-        name: 'Séance Biceps',
+        name: 'Biceps Blast',
         day: 'Lundi',
         duration: '45 min',
         isRestDay: false,
@@ -66,7 +66,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'gb-2',
-        name: 'Séance Triceps',
+        name: 'Triceps Crush',
         day: 'Mercredi',
         duration: '45 min',
         isRestDay: false,
@@ -85,7 +85,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'gb-3',
-        name: 'Bras Complets',
+        name: 'Armageddon (Total Bras)',
         day: 'Vendredi',
         duration: '50 min',
         isRestDay: false,
@@ -97,7 +97,7 @@ export const PROGRAMS: Program[] = [
         ],
         homeExercises: [
           { name: 'Curl Élastique', sets: '3', reps: '15', technique: 'Tension constante sur tout le mouvement.', muscle: 'Biceps', rest: '45s', position: 'Debout sur l\'élastique. Monter les mains vers les épaules en gardant les coudes fixes.' },
-          { name: 'Dips sur Chaise', sets: '3', reps: 'Max', technique: 'Amplitude maximale.', muscle: 'Triceps', rest: '60s', position: 'Mains sur le bord d\'une chaise derrière soi. Descendre les fesses vers le sol.' },
+          { name: 'Dips sur Chaise', sets: '3', reps: 'Max', technique: 'Amplitude maximale.', muscle: 'Triceps', rest: '60s', position: 'Mains on the edge of a chair behind you. Descendre les fesses vers le sol.' },
           { name: 'Curl Bouteilles Inversé', sets: '3', reps: '15', technique: 'Poignet en pronation, mouvement lent.', muscle: 'Avant-bras', rest: '45s', position: 'Bouteilles tenues paume vers le bas. Monter comme un curl en gardant le poignet neutre.' },
           { name: 'Pompes Prise Large', sets: '3', reps: 'Max', technique: 'Mains larges, poitrine vers le sol.', muscle: 'Pectoraux/Triceps', rest: '60s', position: 'Mains plus larges que les épaules. Corps en planche. Descendre la poitrine au sol.' }
         ]
@@ -121,7 +121,7 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'pec-1',
-        name: 'Séance Force',
+        name: 'Iron Chest (Force)',
         day: 'Lundi',
         duration: '55 min',
         isRestDay: false,
@@ -140,7 +140,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'pec-2',
-        name: 'Séance Volume',
+        name: 'Sculpt & Pump (Volume)',
         day: 'Jeudi',
         duration: '50 min',
         isRestDay: false,
@@ -176,7 +176,7 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'dos-1',
-        name: 'Tirage Vertical',
+        name: 'Ailes de l\'Aigle (Vertical)',
         day: 'Lundi',
         duration: '60 min',
         isRestDay: false,
@@ -195,7 +195,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'dos-2',
-        name: 'Tirage Horizontal',
+        name: 'Titan Back (Horizontal)',
         day: 'Jeudi',
         duration: '55 min',
         isRestDay: false,
@@ -231,7 +231,7 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'fb-1',
-        name: 'Séance Corps Entier A',
+        name: 'Total Body Alpha',
         day: 'Lundi',
         duration: '65 min',
         isRestDay: false,
@@ -250,7 +250,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'fb-2',
-        name: 'Séance Corps Entier B',
+        name: 'Total Body Beta',
         day: 'Mercredi',
         duration: '65 min',
         isRestDay: false,
@@ -269,7 +269,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'fb-3',
-        name: 'Séance Corps Entier C',
+        name: 'Total Body Gamma',
         day: 'Vendredi',
         duration: '60 min',
         isRestDay: false,
@@ -305,7 +305,7 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'jam-1',
-        name: 'Quadriceps et Fessiers',
+        name: 'Quads & Glutes Hell',
         day: 'Lundi',
         duration: '60 min',
         isRestDay: false,
@@ -324,7 +324,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'jam-2',
-        name: 'Ischio-jambiers et Mollets',
+        name: 'Posterior Chain Power',
         day: 'Jeudi',
         duration: '55 min',
         isRestDay: false,
@@ -337,7 +337,7 @@ export const PROGRAMS: Program[] = [
         homeExercises: [
           { name: 'Good Morning', sets: '4', reps: '15', technique: 'Dos plat, bascule depuis les hanches.', muscle: 'Ischio-jambiers', rest: '60s', position: 'Debout, mains derrière la tête. Incliner le buste en avant en gardant le dos droit. Sentir l\'étirement.' },
           { name: 'Nordic Curl', sets: '3', reps: '8', technique: 'Descendre lentement, revenir en poussant.', muscle: 'Ischio-jambiers', rest: '90s', position: 'À genoux, pieds bloqués sous un meuble. Descendre le buste vers le sol lentement en résistant.' },
-          { name: 'Mollets Debout', sets: '4', reps: '25', technique: 'Sur une marche, amplitude totale.', muscle: 'Mollets', rest: '45s', position: 'Debout sur le bord d\'une marche. Monter sur la pointe des pieds. Descendre en dessous du niveau.' },
+          { name: 'Mollets Debout', sets: '4', reps: '25', technique: 'Sur une marche, amplitude totale.', muscle: 'Mollets', rest: '45s', position: 'Debout sur le bord d\'une marche. Monter sur la pointe des pieds. Descendre sous le niveau.' },
           { name: 'Pont Fessier', sets: '4', reps: '20', technique: 'Tenir 2 secondes en haut, descente lente.', muscle: 'Fessiers', rest: '45s', position: 'Allongé sur le dos, pieds au sol. Pousser les hanches vers le haut. Tenir 2 secondes.' }
         ]
       }
@@ -360,7 +360,7 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'abd-1',
-        name: 'Abdominaux Force',
+        name: 'Core Shred (Force)',
         day: 'Lundi',
         duration: '35 min',
         isRestDay: false,
@@ -379,7 +379,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'abd-2',
-        name: 'Gainage et Stabilité',
+        name: 'Iron Shield (Stabilité)',
         day: 'Jeudi',
         duration: '30 min',
         isRestDay: false,
