@@ -47,7 +47,7 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'gb-1',
-        name: 'Biceps Blast',
+        name: 'Explosion Biceps',
         day: 'Lundi',
         duration: '45 min',
         isRestDay: false,
@@ -66,7 +66,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'gb-2',
-        name: 'Triceps Crush',
+        name: 'Triceps d\'Acier',
         day: 'Mercredi',
         duration: '45 min',
         isRestDay: false,
@@ -85,7 +85,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'gb-3',
-        name: 'Armageddon (Total Bras)',
+        name: 'Bras de Titan',
         day: 'Vendredi',
         duration: '50 min',
         isRestDay: false,
@@ -96,7 +96,7 @@ export const PROGRAMS: Program[] = [
           { name: 'Pompes Diamant', sets: '3', reps: 'Max', technique: 'Mains en triangle, coudes serrés.', muscle: 'Triceps', rest: '60s', position: 'Position de pompes avec les mains qui forment un triangle sous la poitrine.' }
         ],
         homeExercises: [
-          { name: 'Curl Élastique', sets: '3', reps: '15', technique: 'Tension constante sur tout le mouvement.', muscle: 'Biceps', rest: '45s', position: 'Debout sur l\'élastique. Monter les mains vers les épaules en gardant les coudes fixes.' },
+          { name: 'Curl Élastique', sets: '3', reps: '15', technique: 'Tension constante sur tout le mouvement.', muscle: 'Biceps', rest: '45s', position: 'Debout on the elastic. Monter les mains vers les épaules en gardant les coudes fixes.' },
           { name: 'Dips sur Chaise', sets: '3', reps: 'Max', technique: 'Amplitude maximale.', muscle: 'Triceps', rest: '60s', position: 'Mains on the edge of a chair behind you. Descendre les fesses vers le sol.' },
           { name: 'Curl Bouteilles Inversé', sets: '3', reps: '15', technique: 'Poignet en pronation, mouvement lent.', muscle: 'Avant-bras', rest: '45s', position: 'Bouteilles tenues paume vers le bas. Monter comme un curl en gardant le poignet neutre.' },
           { name: 'Pompes Prise Large', sets: '3', reps: 'Max', technique: 'Mains larges, poitrine vers le sol.', muscle: 'Pectoraux/Triceps', rest: '60s', position: 'Mains plus larges que les épaules. Corps en planche. Descendre la poitrine au sol.' }
@@ -121,7 +121,7 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'pec-1',
-        name: 'Iron Chest (Force)',
+        name: 'Pectoraux de Titan (Force)',
         day: 'Lundi',
         duration: '55 min',
         isRestDay: false,
@@ -140,7 +140,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'pec-2',
-        name: 'Sculpt & Pump (Volume)',
+        name: 'Congestion & Volume',
         day: 'Jeudi',
         duration: '50 min',
         isRestDay: false,
@@ -176,7 +176,7 @@ export const PROGRAMS: Program[] = [
     sessions: [
       {
         id: 'dos-1',
-        name: 'Ailes de l\'Aigle (Vertical)',
+        name: 'L\'Aigle (Largeur Dos)',
         day: 'Lundi',
         duration: '60 min',
         isRestDay: false,
@@ -195,7 +195,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'dos-2',
-        name: 'Titan Back (Horizontal)',
+        name: 'Dos de Titan (Épaisseur)',
         day: 'Jeudi',
         duration: '55 min',
         isRestDay: false,
@@ -226,12 +226,12 @@ export const PROGRAMS: Program[] = [
   },
   {
     id: 'full-body',
-    name: 'Programme Full Body',
+    name: 'Programme Corps d\'Acier',
     emoji: '⚡',
     sessions: [
       {
         id: 'fb-1',
-        name: 'Total Body Alpha',
+        name: 'Corps d\'Acier Alpha',
         day: 'Lundi',
         duration: '65 min',
         isRestDay: false,
@@ -245,12 +245,12 @@ export const PROGRAMS: Program[] = [
           { name: 'Squat Sauté', sets: '4', reps: '15', technique: 'Sauter en explosif, atterrir en douceur.', muscle: 'Jambes', rest: '90s', position: 'Descendre en squat puis sauter vers le haut en tendant les bras. Atterrir en amortissant avec les genoux fléchis.' },
           { name: 'Pompes', sets: '4', reps: 'Max', technique: 'Corps en planche, descendre la poitrine.', muscle: 'Pectoraux', rest: '60s', position: 'Mains légèrement plus larges que les épaules. Corps aligné. Descendre la poitrine jusqu\'à 2cm du sol.' },
           { name: 'Rowing sur Table', sets: '3', reps: '12', technique: 'Tirer avec les coudes vers les hanches.', muscle: 'Dos', rest: '60s', position: 'Allongé sous une table solide. Mains sur le bord de la table. Tirer le corps vers le haut.' },
-          { name: 'Gainage Planche', sets: '3', reps: '45s', technique: 'Corps aligné, ne pas laisser les hanches tomber.', muscle: 'Abdominaux', rest: '45s', position: 'Appui sur les avant-bras. Corps en ligne droite. Maintenir la position.' }
+          { name: 'Gainage Planche', sets: '3', reps: '45s', technique: 'Corps aligné, ne pas laisser les hanches tomber.', muscle: 'Abdominaux', rest: '45s', position: 'Appui on the forearms. Corps en ligne droite. Maintenir la position.' }
         ]
       },
       {
         id: 'fb-2',
-        name: 'Total Body Beta',
+        name: 'Corps d\'Acier Bêta',
         day: 'Mercredi',
         duration: '65 min',
         isRestDay: false,
@@ -269,7 +269,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'fb-3',
-        name: 'Total Body Gamma',
+        name: 'Corps d\'Acier Gamma',
         day: 'Vendredi',
         duration: '60 min',
         isRestDay: false,
@@ -300,12 +300,12 @@ export const PROGRAMS: Program[] = [
   },
   {
     id: 'jambes',
-    name: 'Programme Jambes',
+    name: 'Programme Jambes d\'Acier',
     emoji: '🍗',
     sessions: [
       {
         id: 'jam-1',
-        name: 'Quads & Glutes Hell',
+        name: 'Enfer des Cuisses',
         day: 'Lundi',
         duration: '60 min',
         isRestDay: false,
@@ -324,7 +324,7 @@ export const PROGRAMS: Program[] = [
       },
       {
         id: 'jam-2',
-        name: 'Posterior Chain Power',
+        name: 'Puissance Postérieure',
         day: 'Jeudi',
         duration: '55 min',
         isRestDay: false,
@@ -355,12 +355,12 @@ export const PROGRAMS: Program[] = [
   },
   {
     id: 'abdos',
-    name: 'Programme Abdos',
+    name: 'Programme Sangle d\'Acier',
     emoji: '🛡️',
     sessions: [
       {
         id: 'abd-1',
-        name: 'Core Shred (Force)',
+        name: 'Sangle d\'Acier (Force)',
         day: 'Lundi',
         duration: '35 min',
         isRestDay: false,
@@ -374,12 +374,12 @@ export const PROGRAMS: Program[] = [
           { name: 'Crunch Classique', sets: '4', reps: '25', technique: 'Expirer en montant, ne pas tirer sur le cou.', muscle: 'Grand droit', rest: '45s', position: 'Allongé sur le dos, pieds au sol. Mains derrière la tête. Enrouler le buste vers les genoux.' },
           { name: 'Relevé de Jambes Sol', sets: '4', reps: '15', technique: 'Jambes quasi-tendues, descendre lentement.', muscle: 'Bas abdominaux', rest: '45s', position: 'Allongé sur le dos, mains sous les fesses. Monter les jambes à 90° puis descendre sans toucher le sol.' },
           { name: 'Torsion Russe', sets: '3', reps: '20', technique: 'Pieds levés pour plus de difficulté.', muscle: 'Obliques', rest: '45s', position: 'Assis, pieds levés du sol. Pencher légèrement le buste en arrière. Tourner d\'un côté à l\'autre.' },
-          { name: 'Planche', sets: '3', reps: '1min', technique: 'Corps aligné, ne pas laisser les hanches monter.', muscle: 'Abdominaux', rest: '60s', position: 'Appui sur les avant-bras et les orteils. Corps parfaitement aligné. Contracter les abdos.' }
+          { name: 'Planche', sets: '3', reps: '1min', technique: 'Corps aligné, ne pas laisser les hanches monter.', muscle: 'Abdominaux', rest: '60s', position: 'Appui on the forearms and toes. Corps parfaitement aligné. Contracter les abdos.' }
         ]
       },
       {
         id: 'abd-2',
-        name: 'Iron Shield (Stabilité)',
+        name: 'Bouclier de Fer (Stabilité)',
         day: 'Jeudi',
         duration: '30 min',
         isRestDay: false,
