@@ -149,18 +149,20 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
     return () => clearTimeout(t);
   }, [isResting, restTime, phase]);
 
+  const [justFinishedExercise, setJustFinishedExercise] = useState(false);
   const handleSetDone = () => {
     if (currentSet < totalSets) {
       setCurrentSet(s => s + 1);
       setIsResting(true);
+      setJustFinishedExercise(false);
       setRestTime(parseInt(currentExercise.rest) || 60);
     } else {
-      // Exercice terminé
       setDoneExercises(prev => [...prev, currentExIdx]);
       if (currentExIdx < currentExercises.length - 1) {
         setCurrentExIdx(i => i + 1);
         setCurrentSet(1);
         setIsResting(true);
+        setJustFinishedExercise(true);
         setRestTime(parseInt(currentExercise.rest) || 60);
       } else {
         handleFinish();
@@ -334,14 +336,12 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
         // ── REPOS ────────────────────────────────────────────────────────
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-2">
-            {currentSet <= totalSets ? `Série ${currentSet - 1} terminée` : "Exercice terminé"}
+            {justFinishedExercise ? "Exercice terminé ✓" : `Série ${currentSet - 1} / ${totalSets} terminée`}
           </p>
           <p className="text-white font-headline text-xl uppercase mb-10">
-            {currentSet <= totalSets
-              ? `Prochain : Série ${currentSet} / ${totalSets}`
-              : currentExIdx < currentExercises.length - 1
-                ? `Prochain exercice : ${currentExercises[currentExIdx + 1]?.name}`
-                : "Dernier exercice terminé !"}
+            {justFinishedExercise
+              ? `Prochain : ${currentExercises[currentExIdx]?.name}`
+              : `Prochain : Série ${currentSet} / ${totalSets}`}
           </p>
 
           <div className="relative w-52 h-52 flex items-center justify-center mb-10">
