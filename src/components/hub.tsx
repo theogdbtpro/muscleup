@@ -511,7 +511,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           )}
 
           <div
-            className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden"
+            className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden select-none"         
             onTouchMove={handleTouchMoveDrag}
             onTouchEnd={handleTouchEndDrag}
             style={{ touchAction: longPressActive ? 'none' : 'pan-y' }}
