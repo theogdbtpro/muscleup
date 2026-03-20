@@ -358,6 +358,8 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   };
   const handleTouchMoveDrag = (e: React.TouchEvent) => {
     if (!touchDragDay.current) return;
+    e.preventDefault();
+    e.stopPropagation();
     const touch = e.touches[0];
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
     const row = el?.closest('[data-day]') as HTMLElement | null;
@@ -512,6 +514,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden"
             onTouchMove={handleTouchMoveDrag}
             onTouchEnd={handleTouchEndDrag}
+            style={{ touchAction: longPressActive ? 'none' : 'pan-y' }}
           >
             {dayNamesFull.map((dayName, idx) => {
               const sessionId = schedule[dayName];
@@ -543,6 +546,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                     !longPressActive && !isRest ? "cursor-pointer hover:bg-white/5" : "",                    !isRest ? "cursor-grab active:cursor-grabbing" : "",
                     isDragging ? "opacity-40" : "",
                     isDropTarget ? "bg-[#E24B4A]/10 border-[#E24B4A]/40" : "",
+                    longPressActive && draggedDay === dayName ? "touch-none" : "",
                   )}>
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     {/* Poignée de drag */}
