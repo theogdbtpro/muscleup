@@ -43,7 +43,7 @@ export type Program = {
 export const PROGRAMS: Program[] = [
   {
     id: 'gros-bras',
-    name: 'Programme Gros Bras',
+    name: 'Programme Bras',
     emoji: '💪',
     sessions: [
       {
@@ -117,7 +117,7 @@ export const PROGRAMS: Program[] = [
   },
   {
     id: 'pectoraux',
-    name: 'Programme Pectoraux',
+    name: 'Programme Poitrine',
     emoji: '🦍',
     sessions: [
       {
@@ -172,8 +172,8 @@ export const PROGRAMS: Program[] = [
   },
   {
     id: 'dos-large',
-    name: 'Programme Dos Large',
-    emoji: '🦅',
+    name: 'Programme Dos',
+    emoji: '🦬',
     sessions: [
       {
         id: 'dos-1',
@@ -227,8 +227,8 @@ export const PROGRAMS: Program[] = [
   },
   {
     id: 'full-body',
-    name: 'Programme Corps d\'Acier',
-    emoji: '⚡',
+    name: 'Programme Full Body',
+    emoji: '💯',
     sessions: [
       {
         id: 'fb-1',
@@ -301,8 +301,8 @@ export const PROGRAMS: Program[] = [
   },
   {
     id: 'jambes',
-    name: 'Programme Jambes d\'Acier',
-    emoji: '🍗',
+    name: 'Programme Jambes',
+    emoji: '🦵',
     sessions: [
       {
         id: 'jam-1',
@@ -356,8 +356,8 @@ export const PROGRAMS: Program[] = [
   },
   {
     id: 'abdos',
-    name: 'Programme Sangle d\'Acier',
-    emoji: '🛡️',
+    name: 'Programme Abdos',
+    emoji: '🔥',
     sessions: [
       {
         id: 'abd-1',

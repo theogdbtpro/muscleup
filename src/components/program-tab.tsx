@@ -4,9 +4,60 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { UserProfile } from "@/app/page";
 import { PROGRAMS, Exercise } from "@/data/programs";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Check, Timer, Info, Zap, Play, Activity, Clock, X } from "lucide-react";
+import { ChevronLeft, Check, Timer, Info, Zap, Play, Activity, Clock, X, Weight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
+
+// ── Calcul du poids conseillé ─────────────────────────────────────────────
+function getSuggestedWeight(exercise: Exercise, profile: UserProfile): string | null {
+  const bodyWeight = profile.bodyProfile?.poids;
+  if (!bodyWeight) return null;
+
+  const level = profile.level?.toLowerCase() || 'débutant';
+  const objective = profile.objective?.toLowerCase() || '';
+
+  // Multiplicateur niveau
+  const levelMulti = level.includes('avancé') ? 2.0 : level.includes('inter') ? 1.5 : 1.0;
+
+  // Multiplicateur objectif
+  const objMulti = objective.includes('force') ? 1.3
+    : objective.includes('masse') || objective.includes('bras') || objective.includes('pectoral') || objective.includes('jambe') || objective.includes('dos') ? 1.1
+    : objective.includes('sèche') || objective.includes('abdos') ? 0.85
+    : 1.0;
+
+  // Ratio de base selon le muscle
+  const muscle = exercise.muscle.toLowerCase();
+  const name = exercise.name.toLowerCase();
+
+  let ratio = 0;
+
+  if (name.includes('squat') || name.includes('presse') || name.includes('leg press')) ratio = 0.8;
+  else if (name.includes('soulevé') || name.includes('deadlift') || name.includes('roumain')) ratio = 0.7;
+  else if (name.includes('hip thrust')) ratio = 0.6;
+  else if (name.includes('développé couché') || name.includes('bench press')) ratio = 0.4;
+  else if (name.includes('développé incliné') || name.includes('incline press')) ratio = 0.35;
+  else if (name.includes('développé militaire') || name.includes('overhead press')) ratio = 0.25;
+  else if (name.includes('rowing barre') || name.includes('bent over row')) ratio = 0.4;
+  else if (name.includes('rowing haltère') || name.includes('dumbbell row')) ratio = 0.25;
+  else if (name.includes('tirage') || name.includes('pulldown') || name.includes('traction')) ratio = 0.35;
+  else if (name.includes('curl barre') || name.includes('ez bar curl')) ratio = 0.15;
+  else if (name.includes('curl') || muscle.includes('bicep')) ratio = 0.12;
+  else if (name.includes('extension') || name.includes('skull') || muscle.includes('tricep')) ratio = 0.10;
+  else if (name.includes('écarté') || name.includes('fly')) ratio = 0.15;
+  else if (name.includes('mollet') || name.includes('calf')) ratio = 0.5;
+  else if (name.includes('curl jambes') || name.includes('leg curl')) ratio = 0.25;
+  else if (name.includes('extension jambes') || name.includes('leg extension')) ratio = 0.35;
+  else if (muscle.includes('abdo') || muscle.includes('transverse') || muscle.includes('oblique')) return null;
+  else if (name.includes('planche') || name.includes('plank') || name.includes('gainage')) return null;
+  else ratio = 0.15;
+
+  if (ratio === 0) return null;
+
+  const raw = bodyWeight * ratio * levelMulti * objMulti;
+  // Arrondi au 2.5 kg le plus proche
+  const rounded = Math.round(raw / 2.5) * 2.5;
+  return `~${rounded} kg`;
+}
 
 function ExerciseAnimation({ muscle }: { muscle: string }) {
   const m = muscle.toLowerCase();
@@ -40,9 +91,10 @@ function ExerciseAnimation({ muscle }: { muscle: string }) {
   );
 }
 
-function ExerciseDetailModal({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
+function ExerciseDetailModal({ exercise, onClose, profile }: { exercise: Exercise; onClose: () => void; profile: UserProfile }) {
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [loadingGif, setLoadingGif] = useState(true);
+  const suggestedWeight = getSuggestedWeight(exercise, profile);
 
   useEffect(() => {
     const fetchGif = async () => {
@@ -52,7 +104,6 @@ function ExerciseDetailModal({ exercise, onClose }: { exercise: Exercise; onClos
         const query = (exercise as any).nameEn || exercise.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
         const res = await fetch(`/api/exercise-gif?query=${encodeURIComponent(query)}`);
         const text = await res.text();
-        console.log('status:', res.status, 'body:', text.substring(0, 200));
         const data = JSON.parse(text);
         if (data.gifUrl) setGifUrl(data.gifUrl);
       } catch (e) {
@@ -92,7 +143,23 @@ function ExerciseDetailModal({ exercise, onClose }: { exercise: Exercise; onClos
           <span className="px-3 py-1 bg-[#EE3BAA]/10 text-[#EE3BAA] text-[11px] font-bold uppercase rounded-md border border-[#EE3BAA]/20">{exercise.muscle}</span>
           <span className="px-3 py-1 bg-zinc-800 text-zinc-300 text-[11px] font-bold uppercase rounded-md">{exercise.sets} × {exercise.reps}</span>
           <span className="px-3 py-1 bg-zinc-800 text-zinc-300 text-[11px] font-bold uppercase rounded-md flex items-center gap-1"><Timer className="w-3 h-3"/> {exercise.rest}</span>
+          {suggestedWeight && (
+            <span className="px-3 py-1 bg-amber-500/10 text-amber-400 text-[11px] font-bold uppercase rounded-md border border-amber-500/20 flex items-center gap-1">
+              🏋️ {suggestedWeight}
+            </span>
+          )}
         </div>
+
+        {suggestedWeight && (
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 mb-5 flex items-center gap-3">
+            <span className="text-xl">🏋️</span>
+            <div>
+              <p className="text-[11px] font-bold text-amber-400 uppercase tracking-widest">Poids conseillé</p>
+              <p className="text-sm text-zinc-300">{suggestedWeight} · basé sur ton profil ({profile.level}, {profile.bodyProfile?.poids}kg)</p>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4 mb-5">
           <div>
             <div className="flex items-center gap-2 mb-2"><Zap className="w-4 h-4 text-[#E24B4A]"/><span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Position & Mouvement</span></div>
@@ -293,17 +360,20 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
             Appuie sur un exercice pour voir les détails
           </p>
           <div className="space-y-3 flex-1 overflow-y-auto pb-4">
-            {currentExercises.map((ex, i) => (
-              <button key={i} onClick={() => setSelectedExercise(ex)}
-                className="w-full bg-[#1A1A1A] rounded-xl p-3 flex items-center gap-3 border border-[#2A2A2A] hover:border-[#E24B4A]/40 transition-all text-left active:scale-[0.98]">
-                <div className="w-7 h-7 rounded-full bg-[#E24B4A]/10 flex items-center justify-center text-[#E24B4A] font-headline text-sm flex-shrink-0">{i+1}</div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-white uppercase">{ex.name}</p>
-                  <p className="text-[10px] text-zinc-500">{ex.sets} × {ex.reps} • {ex.rest} repos</p>
-                </div>
-                <span className="text-[10px] font-bold text-[#EE3BAA] bg-[#EE3BAA]/10 px-2 py-0.5 rounded-md shrink-0">{ex.muscle}</span>
-              </button>
-            ))}
+            {currentExercises.map((ex, i) => {
+              const suggested = getSuggestedWeight(ex, profile);
+              return (
+                <button key={i} onClick={() => setSelectedExercise(ex)}
+                  className="w-full bg-[#1A1A1A] rounded-xl p-3 flex items-center gap-3 border border-[#2A2A2A] hover:border-[#E24B4A]/40 transition-all text-left active:scale-[0.98]">
+                  <div className="w-7 h-7 rounded-full bg-[#E24B4A]/10 flex items-center justify-center text-[#E24B4A] font-headline text-sm flex-shrink-0">{i+1}</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-white uppercase">{ex.name}</p>
+                    <p className="text-[10px] text-zinc-500">{ex.sets} × {ex.reps} • {ex.rest} repos{suggested ? ` • 🏋️ ${suggested}` : ''}</p>
+                  </div>
+                  <span className="text-[10px] font-bold text-[#EE3BAA] bg-[#EE3BAA]/10 px-2 py-0.5 rounded-md shrink-0">{ex.muscle}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
         <Button
@@ -312,7 +382,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
           <Play className="w-6 h-6" />
           LANCER LA SÉANCE
         </Button>
-        {selectedExercise && <ExerciseDetailModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} />}
+        {selectedExercise && <ExerciseDetailModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} profile={profile} />}
       </div>
     );
   }
@@ -342,6 +412,8 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
       </div>
     );
   }
+
+  const suggestedWeightCurrent = currentExercise ? getSuggestedWeight(currentExercise, profile) : null;
 
   return (
     <div className="fixed inset-0 z-[100] bg-[#0F0F0F] flex flex-col animate-in slide-in-from-bottom duration-300">
@@ -392,10 +464,21 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
             <h1 className="text-4xl font-headline text-white mb-2 leading-tight uppercase text-center">
               {currentExercise?.name}
             </h1>
-            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-8 text-center">
-              {currentExercise?.muscle}
-            </p>
-            <div className="flex justify-center gap-4 mb-8">
+            <div className="flex justify-center mb-6">
+              <span className="px-3 py-1 bg-[#EE3BAA]/10 text-[#EE3BAA] text-[11px] font-bold uppercase rounded-md border border-[#EE3BAA]/20">
+                {currentExercise?.muscle}
+              </span>
+            </div>
+
+            {/* Poids conseillé pendant la séance */}
+            {suggestedWeightCurrent && (
+              <div className="mx-auto mb-6 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2">
+                <span className="text-base">🏋️</span>
+                <span className="text-sm font-bold text-amber-400">Poids conseillé : {suggestedWeightCurrent}</span>
+              </div>
+            )}
+
+            <div className="flex justify-center gap-4 mb-6">
               <div className="bg-[#1A1A1A] border border-[#2A2A2A] px-8 py-5 rounded-2xl text-center">
                 <span className="text-5xl font-headline text-white block">{currentSet}</span>
                 <span className="text-[10px] font-bold text-zinc-500 uppercase">Série</span>
@@ -406,13 +489,20 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
                 <span className="text-[10px] font-bold text-zinc-500 uppercase">Reps</span>
               </div>
             </div>
-            <p className="text-zinc-400 italic text-sm text-center max-w-xs mx-auto mb-6">
+
+            <div className="flex justify-center mb-4">
+              <ExerciseAnimation muscle={currentExercise?.muscle || ''} />
+            </div>
+            <p className="text-zinc-400 italic text-sm text-center max-w-xs mx-auto mb-4">
               "{currentExercise?.technique}"
             </p>
-            <button onClick={() => setSelectedExercise(currentExercise)}
-              className="mx-auto flex items-center gap-2 text-[10px] font-bold text-zinc-600 uppercase tracking-widest hover:text-zinc-400 transition-colors border border-zinc-800 px-4 py-2 rounded-lg">
-              <Info className="w-3 h-3" /> Voir le mouvement
-            </button>
+            <div className="bg-[#0F0F0F] border border-zinc-800 rounded-xl p-4 mx-auto max-w-xs mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-3 h-3 text-[#E24B4A]"/>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Position & Mouvement</span>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">{currentExercise?.position}</p>
+            </div>
           </div>
           <div className="pb-6 space-y-3">
             <div className="flex justify-center gap-2 mb-2">
@@ -430,7 +520,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
         </div>
       )}
 
-      {selectedExercise && <ExerciseDetailModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} />}
+      {selectedExercise && <ExerciseDetailModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} profile={profile} />}
     </div>
   );
 }
