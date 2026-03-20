@@ -1,4 +1,3 @@
-
 "use client";
 
 import { UserProfile } from "@/app/page";
@@ -7,8 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, ChevronLeft, Clock, Timer, Zap, Info, Dumbbell, Home as HomeIcon, BarChart } from "lucide-react";
-import { useMemo, useEffect, useState } from "react";
+import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, ChevronLeft, Clock, Timer, Zap, Info, Dumbbell, Home as HomeIcon, BarChart, Pencil, Check, X, RotateCcw } from "lucide-react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -92,6 +91,70 @@ function ExerciseAnimation({ muscle }: { muscle: string }) {
   );
 }
 
+function EditableSessionName({
+  sessionId, defaultName, currentName, onSave, onReset, className = "", onEditingChange,
+}: {
+  sessionId: string; defaultName: string; currentName: string;
+  onSave: (id: string, name: string) => void;
+  onReset: (id: string) => void;
+  className?: string;
+  onEditingChange?: (editing: boolean) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const startEditing = () => { setIsEditing(true); onEditingChange?.(true); };
+  const stopEditing = () => { setIsEditing(false); onEditingChange?.(false); };
+  const [value, setValue] = useState(currentName);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const isCustomized = currentName !== defaultName;
+
+  useEffect(() => {
+    if (isEditing) {
+      setValue(currentName);
+      setTimeout(() => { inputRef.current?.focus(); inputRef.current?.select(); }, 50);
+    }
+  }, [isEditing, currentName]);
+
+  const handleSave = () => {
+    const trimmed = value.trim();
+    if (trimmed) onSave(sessionId, trimmed);
+    stopEditing();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleSave();
+    if (e.key === "Escape") stopEditing();
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-2 flex-1" onClick={e => e.stopPropagation()}>
+        <input ref={inputRef} value={value} onChange={e => setValue(e.target.value)}
+          onKeyDown={handleKeyDown} maxLength={40}
+          className={`bg-transparent border-b border-white/40 focus:border-white outline-none font-bold text-white flex-1 min-w-0 ${className}`} />
+        <button onClick={handleSave} className="text-green-400 hover:text-green-300 shrink-0"><Check size={15} /></button>
+        <button onClick={stopEditing} className="text-red-400 hover:text-red-300 shrink-0"><X size={15} /></button>
+        {isCustomized && (
+          <button onClick={() => { onReset(sessionId); setIsEditing(false); }}
+            className="text-zinc-500 hover:text-zinc-300 shrink-0" title="Remettre le nom d'origine">
+            <RotateCcw size={13} />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 group/name flex-1 min-w-0">
+      <span className={`font-bold truncate ${className}`}>{currentName}</span>
+      <button onClick={e => { e.stopPropagation(); startEditing(); }}
+        className="opacity-30 hover:opacity-100 text-white transition-opacity shrink-0"
+        title="Renommer la séance">
+        <Pencil size={12} />
+      </button>
+    </div>
+  );
+}
+
 export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const { toast } = useToast();
   const [history, setHistory] = useState<any[]>([]);
@@ -101,12 +164,19 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
-
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
   const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   const currentDayIdx = (new Date().getDay() + 6) % 7;
   const todayName = dayNamesFull[currentDayIdx];
-
+  useEffect(() => {
+    if (selectedPreviewSession) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [selectedPreviewSession]);
   useEffect(() => {
     const savedHistory = localStorage.getItem("muscleup_history");
     if (savedHistory) setHistory(JSON.parse(savedHistory));
@@ -115,6 +185,23 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     const savedNames = localStorage.getItem("muscleup_session_names");
     if (savedNames) setCustomNames(JSON.parse(savedNames));
   }, []);
+
+  const saveCustomName = (sessionId: string, name: string) => {
+    const updated = { ...customNames, [sessionId]: name };
+    setCustomNames(updated);
+    localStorage.setItem("muscleup_session_names", JSON.stringify(updated));
+    toast({ title: "Nom mis à jour ✓", description: `La séance s'appelle maintenant "${name}".` });
+  };
+
+  const resetCustomName = (sessionId: string) => {
+    const updated = { ...customNames };
+    delete updated[sessionId];
+    setCustomNames(updated);
+    localStorage.setItem("muscleup_session_names", JSON.stringify(updated));
+    toast({ title: "Nom réinitialisé", description: "Le nom d'origine a été restauré." });
+  };
+
+  const getSessionName = (session: Session) => customNames[session.id] || session.name;
 
   const finishedToday = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -150,13 +237,11 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     return mapping;
   }, [program]);
 
-  const schedule = useMemo(() => {
-    return getRotatedSchedule(baseSchedule, weekOffset, program);
-  }, [baseSchedule, weekOffset, program]);
+  const schedule = useMemo(() => getRotatedSchedule(baseSchedule, weekOffset, program), [baseSchedule, weekOffset, program]);
 
   const todaySessionId = schedule[todayName];
   const todaySession = program.sessions.find(s => s.id === todaySessionId);
-  const todaySessionDisplayName = todaySession ? (customNames[todaySession.id] || todaySession.name) : "Repos aujourd'hui";
+  const todaySessionDisplayName = todaySession ? getSessionName(todaySession) : "Repos aujourd'hui";
 
   const weekDates = useMemo(() => {
     const now = new Date();
@@ -173,9 +258,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const weekLabel = useMemo(() => {
     const first = weekDates[0];
     const last = weekDates[6];
-    if (first.getMonth() === last.getMonth()) {
-      return `${first.getDate()} – ${last.getDate()} ${MONTHS[first.getMonth()]}`;
-    }
+    if (first.getMonth() === last.getMonth()) return `${first.getDate()} – ${last.getDate()} ${MONTHS[first.getMonth()]}`;
     return `${first.getDate()} ${MONTHS[first.getMonth()]} – ${last.getDate()} ${MONTHS[last.getMonth()]}`;
   }, [weekDates]);
 
@@ -212,8 +295,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       if (!baseSchedule[dayNamesFull[i]]) { nextAvailableDayIdx = i; break; }
     }
     if (nextAvailableDayIdx !== -1) {
-      const nextDayName = dayNamesFull[nextAvailableDayIdx];
-      toast({ title: `Séance reportée au ${nextDayName} ✓`, description: "Ton planning a été mis à jour." });
+      toast({ title: `Séance reportée au ${dayNamesFull[nextAvailableDayIdx]} ✓`, description: "Ton planning a été mis à jour." });
     } else {
       toast({ title: "Impossible de reporter", description: "Aucun jour de repos disponible cette semaine.", variant: "destructive" });
     }
@@ -312,7 +394,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
               <button key={s.id} onClick={() => { onStartSession(s.id); setIsSessionPickerOpen(false); }}
                 className="w-full p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl text-left hover:border-[#E24B4A] transition-all flex justify-between items-center group">
                 <div>
-                  <div className="font-headline text-xl uppercase">{customNames[s.id] || s.name}</div>
+                  <div className="font-headline text-xl uppercase">{getSessionName(s)}</div>
                   <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{s.exercises.length} exercices • {s.duration}</div>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-[#E24B4A]/10 flex items-center justify-center group-hover:bg-[#E24B4A] transition-colors">
@@ -324,7 +406,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Planning avec rotation */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -350,9 +431,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
 
         {weekOffset !== 0 && (
           <div className="bg-[#1A1A1A] border border-[#E24B4A]/20 rounded-xl p-3 flex items-center justify-between">
-            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
-              Semaine {weekNumber}
-            </p>
+            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Semaine {weekNumber}</p>
             <button onClick={() => setWeekOffset(0)} className="text-[10px] font-bold text-white bg-[#E24B4A] px-3 py-1.5 rounded-lg uppercase tracking-widest flex items-center gap-1">
               📅 Aujourd'hui
             </button>
@@ -368,33 +447,47 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             const isToday = weekOffset === 0 && idx === currentDayIdx;
             const isRest = !session || session.isRestDay;
             const dateLabel = `${date.getDate()} ${MONTHS[date.getMonth()]}`;
-            const sessionName = session ? (customNames[session.id] || session.name) : "Repos";
 
             return (
-              <div key={dayName}
-                onClick={() => !isRest && setSelectedPreviewSession({ session: session!, day: dayName, date })}
-                className={cn(
-                  "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-colors",
-                  isToday ? "bg-[#E24B4A]/5" : "",
-                  !isRest ? "cursor-pointer hover:bg-white/5" : ""
-                )}
-              >
-                <div className="flex items-center gap-4">
+              <div key={dayName} className={cn(
+                "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-colors",
+                isToday ? "bg-[#E24B4A]/5" : "",
+                !isRest ? "cursor-pointer hover:bg-white/5" : ""
+              )}>
+                <div className="flex items-center gap-4 flex-1 min-w-0">
                   <div className="w-20 flex-shrink-0">
                     <span className={cn("text-xs font-bold block", isToday ? "text-[#E24B4A]" : "text-zinc-500")}>{dayName}</span>
                     <span className="text-[10px] text-zinc-700 font-bold">{dateLabel}</span>
                   </div>
-                  <span className={cn("text-sm font-bold uppercase tracking-tight",
-                    isToday ? "text-white" : isRest ? "text-zinc-700" : "text-zinc-400")}>
-                    {sessionName}
-                  </span>
+                  {!isRest && session ? (
+                    <EditableSessionName
+                    sessionId={session.id}
+                    defaultName={session.name}
+                    currentName={getSessionName(session)}
+                    onSave={saveCustomName}
+                    onReset={resetCustomName}
+                    onEditingChange={(editing) => setEditingSessionId(editing ? session.id : null)}
+                    className={cn("text-sm uppercase tracking-tight", isToday ? "text-white" : "text-zinc-400")}
+                    />
+                  ) : (
+                    <span className="text-sm font-bold uppercase tracking-tight text-zinc-700">REPOS</span>
+                  )}
                 </div>
-                {isDone
-                  ? <CheckCircle2 className="w-4 h-4 text-[#4CAF50]" />
-                  : isToday && !isRest
-                    ? <Circle className="w-4 h-4 text-[#E24B4A]" />
-                    : <Circle className="w-4 h-4 text-zinc-800" />
-                }
+                <div className="flex items-center gap-2 ml-2 shrink-0">
+                 {!isRest && editingSessionId !== session?.id && (
+                    <button onClick={() => setSelectedPreviewSession({ session: session!, day: dayName, date })}
+                      className="text-zinc-600 hover:text-zinc-300 transition-colors">
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  )}
+                  {editingSessionId !== session?.id && (
+                    isDone
+                      ? <CheckCircle2 className="w-4 h-4 text-[#4CAF50]" />
+                      : isToday && !isRest
+                        ? <Circle className="w-4 h-4 text-[#E24B4A]" />
+                        : <Circle className="w-4 h-4 text-zinc-800" />
+                  )}
+                </div>
               </div>
             );
           })}
@@ -465,8 +558,15 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-6" />
             <div className="flex justify-between items-start mb-4">
-              <div>
-                <h2 className="text-3xl font-headline text-[#E24B4A] uppercase leading-none">{customNames[selectedPreviewSession.session.id] || selectedPreviewSession.session.name}</h2>
+              <div className="flex-1 min-w-0 mr-4">
+                <EditableSessionName
+                  sessionId={selectedPreviewSession.session.id}
+                  defaultName={selectedPreviewSession.session.name}
+                  currentName={getSessionName(selectedPreviewSession.session)}
+                  onSave={saveCustomName}
+                  onReset={resetCustomName}
+                  className="text-3xl text-[#E24B4A] uppercase leading-none"
+                />
                 <div className="flex items-center gap-3 mt-2 text-zinc-500 font-bold uppercase text-[10px] tracking-widest">
                   <span>{selectedPreviewSession.day} {selectedPreviewSession.date.getDate()} {MONTHS[selectedPreviewSession.date.getMonth()]}</span>
                   <span>•</span>
