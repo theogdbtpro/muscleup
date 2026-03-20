@@ -1,11 +1,10 @@
-
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { UserProfile } from "@/app/page";
 import { PROGRAMS, Exercise } from "@/data/programs";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Check, Timer, Info, Zap, Play, Activity, Clock } from "lucide-react";
+import { ChevronLeft, Check, Timer, Info, Zap, Play, Activity, Clock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
@@ -41,6 +40,40 @@ function ExerciseAnimation({ muscle }: { muscle: string }) {
   );
 }
 
+function ExerciseDetailModal({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/80" onClick={onClose}>
+      <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+        onTouchStart={e => { e.currentTarget.dataset.touchY = String(e.touches[0].clientY); }}
+        onTouchEnd={e => {
+          const delta = e.changedTouches[0].clientY - Number(e.currentTarget.dataset.touchY);
+          if (delta > 80) onClose();
+        }}>
+        <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-5" />
+        <ExerciseAnimation muscle={exercise.muscle} />
+        <h2 className="text-3xl font-headline text-[#E24B4A] uppercase text-center mb-3">{exercise.name}</h2>
+        <div className="flex flex-wrap gap-2 justify-center mb-5">
+          <span className="px-3 py-1 bg-[#EE3BAA]/10 text-[#EE3BAA] text-[11px] font-bold uppercase rounded-md border border-[#EE3BAA]/20">{exercise.muscle}</span>
+          <span className="px-3 py-1 bg-zinc-800 text-zinc-300 text-[11px] font-bold uppercase rounded-md">{exercise.sets} × {exercise.reps}</span>
+          <span className="px-3 py-1 bg-zinc-800 text-zinc-300 text-[11px] font-bold uppercase rounded-md flex items-center gap-1"><Timer className="w-3 h-3"/> {exercise.rest}</span>
+        </div>
+        <div className="space-y-4 mb-5">
+          <div>
+            <div className="flex items-center gap-2 mb-2"><Zap className="w-4 h-4 text-[#E24B4A]"/><span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Position & Mouvement</span></div>
+            <p className="text-sm text-zinc-200 leading-relaxed bg-[#0F0F0F] p-4 rounded-xl border border-zinc-800">{exercise.position}</p>
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-2"><Info className="w-4 h-4 text-[#EE3BAA]"/><span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Conseil technique</span></div>
+            <p className="text-sm text-zinc-300 italic border-l-2 border-[#EE3BAA] pl-4 leading-relaxed">"{exercise.technique}"</p>
+          </div>
+        </div>
+        <Button onClick={onClose} className="w-full h-12 bg-zinc-800 hover:bg-zinc-700 text-white font-headline text-lg rounded-xl">FERMER</Button>
+      </div>
+    </div>
+  );
+}
+
 type ProgramTabProps = {
   profile: UserProfile;
   onBack: () => void;
@@ -50,10 +83,18 @@ type ProgramTabProps = {
 
 export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSessionId }: ProgramTabProps) {
   const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
-
   const [internalSessionId, setInternalSessionId] = useState<string | null>(manualSessionId || null);
-  const [phase, setPhase] = useState<"select" | "intro" | "workout">(manualSessionId ? "intro" : "select");
+  const [phase, setPhase] = useState<"select" | "intro" | "countdown" | "workout">(manualSessionId ? "intro" : "select");
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+
+  // Workout state
+  const [currentExIdx, setCurrentExIdx] = useState(0);
+  const [currentSet, setCurrentSet] = useState(1);
+  const [isResting, setIsResting] = useState(false);
+  const [restTime, setRestTime] = useState(60);
+  const [countdown, setCountdown] = useState(10);
+  const [doneExercises, setDoneExercises] = useState<number[]>([]);
 
   useEffect(() => {
     const savedNames = localStorage.getItem("muscleup_session_names");
@@ -79,43 +120,51 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
   const currentSessionDisplayName = customNames[currentSession.id] || currentSession.name;
 
   const currentExercises = useMemo(() => {
-    if (profile.location === 'maison' && currentSession.homeExercises) {
-      return currentSession.homeExercises;
-    }
+    if (profile.location === 'maison' && currentSession.homeExercises) return currentSession.homeExercises;
     return currentSession.exercises;
   }, [profile.location, currentSession]);
 
-  const [checkedExercises, setCheckedExercises] = useState<number[]>([]);
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
-  const [isResting, setIsResting] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(60);
-  const [readyMessage, setReadyMessage] = useState(false);
+  const currentExercise = currentExercises[currentExIdx];
+  const totalSets = parseInt(currentExercise?.sets || "1");
+  const progress = ((doneExercises.length + (currentSet - 1) / totalSets) / currentExercises.length) * 100;
 
-  const progress = (checkedExercises.length / currentExercises.length) * 100;
-  const allDone = checkedExercises.length === currentExercises.length;
-
+  // Countdown timer
   useEffect(() => {
-    if (phase !== "workout") return;
-    let timer: NodeJS.Timeout;
-    if (isResting && timeLeft > 0) {
-      timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-    } else if (isResting && timeLeft === 0) {
-      setIsResting(false);
-      setTimeLeft(60);
-      try { navigator.vibrate?.(200); } catch {}
-      setReadyMessage(true);
-      setTimeout(() => setReadyMessage(false), 1500);
-    }
-    return () => clearInterval(timer);
-  }, [isResting, timeLeft, phase]);
+    if (phase !== "countdown") return;
+    if (countdown <= 0) { setPhase("workout"); return; }
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [phase, countdown]);
 
-  const toggleExercise = (idx: number) => {
-    if (checkedExercises.includes(idx)) {
-      setCheckedExercises(checkedExercises.filter(i => i !== idx));
-    } else {
-      setCheckedExercises([...checkedExercises, idx]);
+  // Rest timer
+  useEffect(() => {
+    if (!isResting || phase !== "workout") return;
+    if (restTime <= 0) {
+      setIsResting(false);
+      setRestTime(60);
+      try { navigator.vibrate?.(200); } catch {}
+      return;
+    }
+    const t = setTimeout(() => setRestTime(r => r - 1), 1000);
+    return () => clearTimeout(t);
+  }, [isResting, restTime, phase]);
+
+  const handleSetDone = () => {
+    if (currentSet < totalSets) {
+      setCurrentSet(s => s + 1);
       setIsResting(true);
-      setTimeLeft(60);
+      setRestTime(parseInt(currentExercise.rest) || 60);
+    } else {
+      // Exercice terminé
+      setDoneExercises(prev => [...prev, currentExIdx]);
+      if (currentExIdx < currentExercises.length - 1) {
+        setCurrentExIdx(i => i + 1);
+        setCurrentSet(1);
+        setIsResting(true);
+        setRestTime(parseInt(currentExercise.rest) || 60);
+      } else {
+        handleFinish();
+      }
     }
   };
 
@@ -130,7 +179,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
     onBack();
   };
 
-  // PHASE SELECT
+  // ── PHASE SELECT ───────────────────────────────────────────────────────
   if (phase === "select") {
     const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
     const currentDayIdx = (new Date().getDay() + 6) % 7;
@@ -145,41 +194,24 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
           </button>
           <h1 className="text-3xl font-headline text-white tracking-tight uppercase">Choisir une séance</h1>
         </header>
-
-        <div className="space-y-4 flex-1 overflow-y-auto no-scrollbar pb-10">
+        <div className="space-y-4 flex-1 overflow-y-auto pb-10">
           {program.sessions.filter(s => !s.isRestDay).map((s) => {
             const isToday = s.id === todaySessionId;
             const sessionDisplayName = customNames[s.id] || s.name;
             const scheduledDays = schedule
-              ? Object.entries(schedule)
-                  .filter(([_, id]) => id === s.id)
-                  .map(([day]) => day)
-                  .join(' · ')
+              ? Object.entries(schedule).filter(([_, id]) => id === s.id).map(([day]) => day).join(' · ')
               : null;
-
             return (
-              <button
-                key={s.id}
+              <button key={s.id}
                 onClick={() => { setInternalSessionId(s.id); setPhase("intro"); }}
-                className={cn(
-                  "w-full p-6 bg-[#1A1A1A] border rounded-2xl text-left transition-all hover:border-primary/50 group",
-                  isToday ? "border-primary/40 bg-primary/5 shadow-2xl shadow-primary/5" : "border-[#2A2A2A]"
-                )}
-              >
+                className={cn("w-full p-6 bg-[#1A1A1A] border rounded-2xl text-left transition-all hover:border-primary/50 group",
+                  isToday ? "border-primary/40 bg-primary/5 shadow-2xl shadow-primary/5" : "border-[#2A2A2A]")}>
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex flex-col">
                     <div className="font-headline text-2xl text-white uppercase group-hover:text-primary transition-colors leading-none">{sessionDisplayName}</div>
-                    {scheduledDays && (
-                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">
-                        Prévu le {scheduledDays}
-                      </span>
-                    )}
+                    {scheduledDays && <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Prévu le {scheduledDays}</span>}
                   </div>
-                  {isToday && (
-                    <span className="bg-primary text-white text-[9px] font-black px-2 py-1 rounded-sm uppercase tracking-tighter shrink-0">
-                      AUJOURD'HUI
-                    </span>
-                  )}
+                  {isToday && <span className="bg-primary text-white text-[9px] font-black px-2 py-1 rounded-sm uppercase tracking-tighter shrink-0">AUJOURD'HUI</span>}
                 </div>
                 <div className="flex items-center gap-4 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
                   <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {s.duration}</span>
@@ -196,22 +228,22 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
     );
   }
 
-  // PHASE INTRO
+  // ── PHASE INTRO ────────────────────────────────────────────────────────
   if (phase === "intro") {
     return (
       <div className="min-h-full bg-[#0F0F0F] flex flex-col p-6 animate-in fade-in duration-300">
         <button onClick={() => setPhase("select")} className="p-2 -ml-2 text-zinc-400 hover:text-white mb-8 w-fit">
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <div className="flex-1 flex flex-col justify-center">
-          <div className="text-center mb-12">
-            <div className="text-6xl mb-6">{program.emoji}</div>
+        <div className="flex-1 flex flex-col">
+          <div className="text-center mb-8">
+            <div className="text-6xl mb-4">{program.emoji}</div>
             <h1 className="text-4xl font-headline text-white uppercase leading-tight mb-2">{currentSessionDisplayName}</h1>
             <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">
               Mode {profile.location === 'maison' ? '🏠 Maison' : '🏋️ Salle'} • {currentSession.duration}
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-3 mb-12">
+          <div className="grid grid-cols-3 gap-3 mb-8">
             <div className="bg-[#1A1A1A] rounded-xl p-4 text-center border border-[#2A2A2A]">
               <div className="text-2xl font-headline text-[#E24B4A]">{currentExercises.length}</div>
               <div className="text-[10px] font-bold text-zinc-500 uppercase mt-1">Exercices</div>
@@ -225,141 +257,166 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
               <div className="text-[10px] font-bold text-zinc-500 uppercase mt-1">Repos</div>
             </div>
           </div>
-          <div className="space-y-3">
+
+          <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-3">
+            Appuie sur un exercice pour voir les détails
+          </p>
+
+          <div className="space-y-3 flex-1 overflow-y-auto pb-4">
             {currentExercises.map((ex, i) => (
-              <div key={i} className="bg-[#1A1A1A] rounded-xl p-3 flex items-center gap-3 border border-[#2A2A2A]">
+              <button key={i} onClick={() => setSelectedExercise(ex)}
+                className="w-full bg-[#1A1A1A] rounded-xl p-3 flex items-center gap-3 border border-[#2A2A2A] hover:border-[#E24B4A]/40 transition-all text-left active:scale-[0.98]">
                 <div className="w-7 h-7 rounded-full bg-[#E24B4A]/10 flex items-center justify-center text-[#E24B4A] font-headline text-sm flex-shrink-0">{i+1}</div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-white uppercase">{ex.name}</p>
-                  <p className="text-[10px] text-zinc-500">{ex.sets} × {ex.reps}</p>
+                  <p className="text-[10px] text-zinc-500">{ex.sets} × {ex.reps} • {ex.rest} repos</p>
                 </div>
-                <span className="text-[10px] font-bold text-[#EE3BAA] bg-[#EE3BAA]/10 px-2 py-0.5 rounded-md">{ex.muscle}</span>
-              </div>
+                <span className="text-[10px] font-bold text-[#EE3BAA] bg-[#EE3BAA]/10 px-2 py-0.5 rounded-md shrink-0">{ex.muscle}</span>
+              </button>
             ))}
           </div>
         </div>
+
         <Button
-          onClick={() => setPhase("workout")}
-          className="w-full h-16 bg-[#E24B4A] text-white font-headline text-2xl rounded-xl mt-6 flex items-center justify-center gap-3"
-        >
+          onClick={() => { setCountdown(10); setCurrentExIdx(0); setCurrentSet(1); setDoneExercises([]); setIsResting(false); setPhase("countdown"); }}
+          className="w-full h-16 bg-[#E24B4A] text-white font-headline text-2xl rounded-xl mt-6 flex items-center justify-center gap-3">
           <Play className="w-6 h-6" />
           LANCER LA SÉANCE
         </Button>
+
+        {selectedExercise && <ExerciseDetailModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} />}
       </div>
     );
   }
 
-  // PHASE WORKOUT
-  return (
-    <div className="min-h-full bg-[#0F0F0F] flex flex-col p-5 animate-in fade-in duration-300">
-      <header className="flex items-center justify-between mb-5">
-        <button onClick={() => setPhase("intro")} className="p-2 -ml-2 text-zinc-400 hover:text-white">
-          <ChevronLeft className="w-6 h-6" />
+  // ── PHASE COUNTDOWN ────────────────────────────────────────────────────
+  if (phase === "countdown") {
+    return (
+      <div className="fixed inset-0 z-[100] bg-[#0F0F0F] flex flex-col items-center justify-center animate-in fade-in duration-300">
+        <button onClick={() => setPhase("intro")} className="absolute top-6 right-6 text-zinc-500 p-2">
+          <X className="w-6 h-6" />
         </button>
-        <div className="text-right">
-          <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest block">Progression</span>
-          <span className="text-2xl font-headline text-white">{checkedExercises.length}/{currentExercises.length}</span>
+        <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-6">La séance commence dans</p>
+        <div className="relative w-48 h-48 flex items-center justify-center mb-8">
+          <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="45" stroke="#1A1A1A" strokeWidth="6" fill="transparent"/>
+            <circle cx="50" cy="50" r="45" stroke="#E24B4A" strokeWidth="6" fill="transparent"
+              strokeDasharray={283} strokeDashoffset={283 * (1 - countdown / 10)}
+              className="transition-all duration-1000"/>
+          </svg>
+          <span className="text-8xl font-headline text-white">{countdown}</span>
         </div>
-      </header>
+        <h2 className="text-2xl font-headline text-white uppercase">{currentSessionDisplayName}</h2>
+        <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-2">{currentExercises.length} exercices</p>
+        <button onClick={() => setPhase("workout")}
+          className="mt-10 text-[10px] font-bold text-zinc-600 uppercase tracking-widest hover:text-white transition-colors">
+          Démarrer maintenant →
+        </button>
+      </div>
+    );
+  }
 
-      <div className="w-full h-2 bg-[#1A1A1A] rounded-full mb-5 overflow-hidden">
-        <div className="h-full bg-[#E24B4A] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+  // ── PHASE WORKOUT ──────────────────────────────────────────────────────
+  return (
+    <div className="fixed inset-0 z-[100] bg-[#0F0F0F] flex flex-col animate-in slide-in-from-bottom duration-300">
+      {/* Header */}
+      <div className="p-5 flex items-center gap-4">
+        <button onClick={() => setPhase("intro")} className="text-zinc-500 p-1">
+          <X className="w-6 h-6" />
+        </button>
+        <div className="flex-1 h-2 bg-[#1A1A1A] rounded-full overflow-hidden">
+          <div className="h-full bg-[#E24B4A] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+        </div>
+        <span className="text-xs font-bold text-zinc-500 shrink-0">{currentExIdx + 1}/{currentExercises.length}</span>
       </div>
 
-      <h2 className="text-2xl font-headline text-white mb-1 uppercase">{currentSessionDisplayName}</h2>
-      <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mb-5">Clique sur un exercice pour voir le mouvement</p>
+      {isResting ? (
+        // ── REPOS ────────────────────────────────────────────────────────
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-2">
+            {currentSet <= totalSets ? `Série ${currentSet - 1} terminée` : "Exercice terminé"}
+          </p>
+          <p className="text-white font-headline text-xl uppercase mb-10">
+            {currentSet <= totalSets
+              ? `Prochain : Série ${currentSet} / ${totalSets}`
+              : currentExIdx < currentExercises.length - 1
+                ? `Prochain exercice : ${currentExercises[currentExIdx + 1]?.name}`
+                : "Dernier exercice terminé !"}
+          </p>
 
-      {readyMessage && (
-        <div className="mb-4 p-4 bg-[#4CAF50]/10 border border-[#4CAF50]/30 rounded-2xl text-center">
-          <p className="text-[#4CAF50] font-headline text-xl">C'EST REPARTI ! 💪</p>
-        </div>
-      )}
-
-      {isResting && !readyMessage && (
-        <div className="mb-4 p-4 bg-[#1A1A1A] rounded-2xl border border-[#E24B4A]/30 flex items-center gap-4">
-          <div className="relative w-14 h-14 flex items-center justify-center flex-shrink-0">
-            <svg className="absolute inset-0 w-full h-full -rotate-90">
-              <circle cx="28" cy="28" r="24" stroke="#2A2A2A" strokeWidth="3" fill="transparent"/>
-              <circle cx="28" cy="28" r="24" stroke="#E24B4A" strokeWidth="3" fill="transparent" strokeDasharray={150} strokeDashoffset={150*(1-timeLeft/60)}/>
+          <div className="relative w-52 h-52 flex items-center justify-center mb-10">
+            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="44" stroke="#1A1A1A" strokeWidth="5" fill="transparent"/>
+              <circle cx="50" cy="50" r="44" stroke="#E24B4A" strokeWidth="5" fill="transparent"
+                strokeDasharray={276} strokeDashoffset={276 * (1 - restTime / 60)}
+                className="transition-all duration-1000"/>
             </svg>
-            <span className="text-lg font-headline text-white">{timeLeft}s</span>
+            <div className="flex flex-col items-center">
+              <Timer className="w-8 h-8 text-[#E24B4A] mb-1" />
+              <span className="text-7xl font-headline text-white leading-none">{restTime}</span>
+              <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Repos</span>
+            </div>
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-white">Repos en cours</p>
-            <p className="text-xs text-zinc-500 mt-0.5">Récupère avant la prochaine série</p>
-          </div>
-          <button onClick={() => setIsResting(false)} className="text-[10px] font-bold text-[#E24B4A] uppercase border border-[#E24B4A]/40 px-3 py-2 rounded-lg">
-            Ignorer
+
+          <button onClick={() => { setIsResting(false); setRestTime(60); }}
+            className="text-zinc-400 font-bold text-sm uppercase tracking-widest border border-zinc-700 px-6 py-3 rounded-xl hover:text-white hover:border-zinc-500 transition-all">
+            Passer le repos
           </button>
         </div>
-      )}
+      ) : (
+        // ── EXERCICE ──────────────────────────────────────────────────────
+        <div className="flex-1 flex flex-col p-6">
+          <div className="flex-1 flex flex-col justify-center">
+            <span className="text-[#E24B4A] font-bold text-xs uppercase tracking-widest mb-2 text-center">
+              Exercice {currentExIdx + 1} / {currentExercises.length}
+            </span>
+            <h1 className="text-4xl font-headline text-white mb-2 leading-tight uppercase text-center">
+              {currentExercise?.name}
+            </h1>
+            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-8 text-center">
+              {currentExercise?.muscle}
+            </p>
 
-      <div className="space-y-3 flex-1 pb-6 overflow-y-auto no-scrollbar">
-        {currentExercises.map((ex, idx) => {
-          const isChecked = checkedExercises.includes(idx);
-          return (
-            <div key={idx}
-              className={cn("rounded-2xl border transition-all cursor-pointer active:scale-[0.98]",
-                isChecked ? "bg-[#E24B4A]/8 border-[#E24B4A]/40" : "bg-[#1A1A1A] border-[#2A2A2A] hover:border-[#E24B4A]/30")}
-              onClick={() => setSelectedExercise(ex)}
-            >
-              <div className="p-4 flex items-center gap-4">
-                <button onClick={e => { e.stopPropagation(); toggleExercise(idx); }}
-                  className={cn("w-11 h-11 rounded-full flex items-center justify-center border-2 transition-all flex-shrink-0",
-                    isChecked ? "bg-[#E24B4A] border-[#E24B4A] text-white" : "border-[#444] text-zinc-400 bg-[#0F0F0F]")}>
-                  {isChecked ? <Check className="w-5 h-5"/> : <span className="font-headline text-base">{idx+1}</span>}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <h3 className={cn("font-bold text-base uppercase tracking-tight", isChecked ? "text-zinc-500 line-through" : "text-white")}>{ex.name}</h3>
-                  <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                    <span className="text-[11px] font-bold text-zinc-400 bg-[#0F0F0F] px-2 py-0.5 rounded-md">{ex.sets} × {ex.reps}</span>
-                    <span className="text-[11px] font-bold text-zinc-500 flex items-center gap-1"><Timer className="w-3 h-3"/>{ex.rest}</span>
-                    <span className="text-[11px] font-bold text-[#EE3BAA] bg-[#EE3BAA]/10 px-2 py-0.5 rounded-md">{ex.muscle}</span>
-                  </div>
-                </div>
-                <div className={cn("text-xs font-bold flex-shrink-0", isChecked ? "text-[#E24B4A]" : "text-zinc-600")}>
-                  {isChecked ? "✓" : "›"}
-                </div>
+            <div className="flex justify-center gap-4 mb-8">
+              <div className="bg-[#1A1A1A] border border-[#2A2A2A] px-8 py-5 rounded-2xl text-center">
+                <span className="text-5xl font-headline text-white block">{currentSet}</span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase">Série</span>
+                <span className="text-[10px] font-bold text-zinc-700 block">/ {totalSets}</span>
+              </div>
+              <div className="bg-[#1A1A1A] border border-[#2A2A2A] px-8 py-5 rounded-2xl text-center">
+                <span className="text-5xl font-headline text-white block">{currentExercise?.reps}</span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase">Reps</span>
               </div>
             </div>
-          );
-        })}
-      </div>
 
-      <div className="pb-6">
-        <Button onClick={handleFinish} disabled={checkedExercises.length === 0}
-          className={cn("w-full h-14 rounded-xl text-xl font-headline transition-all duration-300",
-            allDone ? "bg-[#4CAF50] hover:bg-[#43A047] text-white shadow-xl"
-              : "bg-[#E24B4A] hover:bg-[#D43F3F] text-white shadow-xl disabled:opacity-30")}>
-          {allDone ? "VALIDER LA SÉANCE ✓" : checkedExercises.length === 0 ? "COCHE TES EXERCICES" : `TERMINER (${checkedExercises.length}/${currentExercises.length})`}
-        </Button>
-      </div>
+            <p className="text-zinc-400 italic text-sm text-center max-w-xs mx-auto mb-6">
+              "{currentExercise?.technique}"
+            </p>
 
-      {selectedExercise && (
-        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/80" onClick={() => setSelectedExercise(null)}>
-          <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-5" />
-            <ExerciseAnimation muscle={selectedExercise.muscle} />
-            <h2 className="text-3xl font-headline text-[#E24B4A] uppercase text-center mb-3">{selectedExercise.name}</h2>
-            <div className="flex flex-wrap gap-2 justify-center mb-5">
-              <span className="px-3 py-1 bg-[#EE3BAA]/10 text-[#EE3BAA] text-[11px] font-bold uppercase rounded-md border border-[#EE3BAA]/20">{selectedExercise.muscle}</span>
-              <span className="px-3 py-1 bg-zinc-800 text-zinc-300 text-[11px] font-bold uppercase rounded-md">{selectedExercise.sets} × {selectedExercise.reps}</span>
-              <span className="px-3 py-1 bg-zinc-800 text-zinc-300 text-[11px] font-bold uppercase rounded-md flex items-center gap-1"><Timer className="w-3 h-3"/> {selectedExercise.rest}</span>
+            <button onClick={() => setSelectedExercise(currentExercise)}
+              className="mx-auto flex items-center gap-2 text-[10px] font-bold text-zinc-600 uppercase tracking-widest hover:text-zinc-400 transition-colors border border-zinc-800 px-4 py-2 rounded-lg">
+              <Info className="w-3 h-3" /> Voir le mouvement
+            </button>
+          </div>
+
+          <div className="pb-6 space-y-3">
+            {/* Indicateurs de séries */}
+            <div className="flex justify-center gap-2 mb-2">
+              {Array.from({ length: totalSets }).map((_, i) => (
+                <div key={i} className={cn("w-2 h-2 rounded-full transition-all",
+                  i < currentSet - 1 ? "bg-[#E24B4A]" : i === currentSet - 1 ? "bg-white" : "bg-zinc-700"
+                )} />
+              ))}
             </div>
-            <div className="space-y-4 mb-5">
-              <div>
-                <div className="flex items-center gap-2 mb-2"><Zap className="w-4 h-4 text-[#E24B4A]"/><span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Position & Mouvement</span></div>
-                <p className="text-sm text-zinc-200 leading-relaxed bg-[#0F0F0F] p-4 rounded-xl border border-zinc-800">{selectedExercise.position}</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-2"><Info className="w-4 h-4 text-[#EE3BAA]"/><span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Conseil technique</span></div>
-                <p className="text-sm text-zinc-300 italic border-l-2 border-[#EE3BAA] pl-4 leading-relaxed">"{selectedExercise.technique}"</p>
-              </div>
-            </div>
-            <Button onClick={() => setSelectedExercise(null)} className="w-full h-12 bg-zinc-800 hover:bg-zinc-700 text-white font-headline text-lg rounded-xl">FERMER</Button>
+            <Button onClick={handleSetDone}
+              className="w-full h-20 rounded-3xl text-2xl font-headline bg-[#E24B4A] text-white shadow-2xl">
+              SÉRIE {currentSet} TERMINÉE ✓
+            </Button>
           </div>
         </div>
       )}
+
+      {selectedExercise && <ExerciseDetailModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} />}
     </div>
   );
 }
