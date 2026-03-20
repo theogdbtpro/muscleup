@@ -541,7 +541,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                     "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-150",
                     isToday ? "bg-[#E24B4A]/5" : "",
                     !longPressActive && !isRest ? "cursor-pointer hover:bg-white/5" : "",                    !isRest ? "cursor-grab active:cursor-grabbing" : "",
-                    isDragging ? "bg-[#E24B4A]/20 border-l-4 border-l-[#E24B4A] pl-3" : "",
+                    isDragging ? "!bg-[#E24B4A]/20" : "",
                     isDropTarget ? "bg-[#E24B4A]/10 border-[#E24B4A]/40" : "",
                     longPressActive && draggedDay === dayName ? "touch-none" : "",
                   )}>
