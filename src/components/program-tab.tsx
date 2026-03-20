@@ -51,24 +51,22 @@ function ExerciseDetailModal({ exercise, onClose }: { exercise: Exercise; onClos
       try {
         const query = exercise.nameEn || exercise.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
         const res = await fetch(
-          `https://exercisedb.p.rapidapi.com/exercises/name/${encodeURIComponent(query)}?limit=1`,
+          `https://exercisedb.p.rapidapi.com/exercises/name/${encodeURIComponent(query)}`,
           {
+            method: 'GET',
             headers: {
-              'X-RapidAPI-Key': process.env.NEXT_PUBLIC_RAPIDAPI_KEY || '',
-              'X-RapidAPI-Host': 'exercisedb.p.rapidapi.com',
+              'x-rapidapi-key': '821e4079a7msh88ea47b98223342p1ba81ejsn10d461dc350f',
+              'x-rapidapi-host': 'exercisedb.p.rapidapi.com',
             },
           }
         );
-        const data = await res.json();
-        console.log('data complet:', JSON.stringify(data));
-const exercises = data.exercises || data.data || (Array.isArray(data) ? data : []);
-if (exercises.length > 0 && exercises[0].gifUrl) {
-  setGifUrl(exercises[0].gifUrl);
-        } else {
-          setGifUrl(null);
-        }
-      } catch {
-        setGifUrl(null);
+        const text = await res.text();
+        console.log('status:', res.status, 'body:', text.substring(0, 200));
+        const data = JSON.parse(text);
+        const list = Array.isArray(data) ? data : [];
+        if (list.length > 0 && list[0].gifUrl) setGifUrl(list[0].gifUrl);
+      } catch (e) {
+        console.error('fetch error:', e);
       } finally {
         setLoadingGif(false);
       }
