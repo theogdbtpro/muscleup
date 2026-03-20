@@ -529,6 +529,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                   key={dayName}
                   data-day={dayName}
                   ref={el => { dayRefs.current[dayName] = el; }}
+                  style={isDragging ? { backgroundColor: '#3A3A3A', opacity: 0.5, border: '2px dashed #E24B4A' } : isDropTarget ? { backgroundColor: 'rgba(226,75,74,0.2)', borderLeft: '4px solid #E24B4A' } : {}}
                   draggable={!isRest}
                   onDragStart={!isRest ? () => handleDragStart(dayName) : undefined}
                   onDragOver={(e) => handleDragOver(e, dayName)}
