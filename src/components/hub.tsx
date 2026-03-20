@@ -165,9 +165,10 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const [planningLocked, setPlanningLocked] = useState(true);
   const [draggedDay, setDraggedDay] = useState<string | null>(null);
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
+  const [longPressActive, setLongPressActive] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [manualSchedule, setManualSchedule] = useState<Record<string, string | null> | null>(null);
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -344,9 +345,16 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   // ── Drag & Drop (touch / mobile) ──────────────────────────────────────
   const touchDragDay = useRef<string | null>(null);
   const handleTouchStartDrag = (e: React.TouchEvent, dayName: string) => {
-    if (planningLocked) return;
-    touchDragDay.current = dayName;
-    setDraggedDay(dayName);
+    longPressTimer.current = setTimeout(() => {
+      try { navigator.vibrate?.(50); } catch {}
+      setLongPressActive(true);
+      touchDragDay.current = dayName;
+      setDraggedDay(dayName);
+    }, 500);
+  };
+
+  const handleTouchCancelDrag = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
   };
   const handleTouchMoveDrag = (e: React.TouchEvent) => {
     if (!touchDragDay.current) return;
@@ -356,12 +364,14 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     if (row) setDragOverDay(row.dataset.day || null);
   };
   const handleTouchEndDrag = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
     if (touchDragDay.current && dragOverDay && touchDragDay.current !== dragOverDay) {
       swapDays(touchDragDay.current, dragOverDay);
     }
     touchDragDay.current = null;
     setDraggedDay(null);
     setDragOverDay(null);
+    setLongPressActive(false);
   };
 
   return (
@@ -477,11 +487,10 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             </div>
           </div>
 
-          {/* Bannière déverrouillé */}
-          {!planningLocked && (
+          {longPressActive && (
             <div className="bg-[#E24B4A]/10 border border-[#E24B4A]/30 rounded-xl p-3 flex items-center justify-between">
               <p className="text-[10px] font-bold text-[#E24B4A] uppercase tracking-widest">
-                🔓 Glisse les séances pour les déplacer
+                ↕️ Glisse la séance vers un autre jour
               </p>
               {manualSchedule && (
                 <button onClick={resetToOptimal} className="text-[10px] font-bold text-white bg-[#E24B4A] px-3 py-1.5 rounded-lg uppercase tracking-widest">
@@ -490,7 +499,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
               )}
             </div>
           )}
-
           {weekOffset !== 0 && (
             <div className="bg-[#1A1A1A] border border-[#E24B4A]/20 rounded-xl p-3 flex items-center justify-between">
               <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Semaine {weekNumber}</p>
@@ -502,8 +510,8 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
 
           <div
             className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden"
-            onTouchMove={!planningLocked ? handleTouchMoveDrag : undefined}
-            onTouchEnd={!planningLocked ? handleTouchEndDrag : undefined}
+            onTouchMove={handleTouchMoveDrag}
+            onTouchEnd={handleTouchEndDrag}
           >
             {dayNamesFull.map((dayName, idx) => {
               const sessionId = schedule[dayName];
@@ -521,24 +529,24 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                   key={dayName}
                   data-day={dayName}
                   ref={el => { dayRefs.current[dayName] = el; }}
-                  draggable={!planningLocked && !isRest}
-                  onDragStart={!planningLocked && !isRest ? () => handleDragStart(dayName) : undefined}
-                  onDragOver={!planningLocked ? (e) => handleDragOver(e, dayName) : undefined}
-                  onDrop={!planningLocked ? () => handleDrop(dayName) : undefined}
+                  draggable={!isRest}
+                  onDragStart={!isRest ? () => handleDragStart(dayName) : undefined}
+                  onDragOver={(e) => handleDragOver(e, dayName)}
+                  onDrop={() => handleDrop(dayName)}
                   onDragEnd={() => { setDraggedDay(null); setDragOverDay(null); }}
-                  onTouchStart={!planningLocked && !isRest ? (e) => handleTouchStartDrag(e, dayName) : undefined}
-                  onClick={() => planningLocked && !isRest && session && setSelectedPreviewSession({ session, day: dayName, date })}
+                  onTouchStart={!isRest ? (e) => handleTouchStartDrag(e, dayName) : undefined}
+                  onTouchCancel={handleTouchCancelDrag}
+                  onClick={() => !longPressActive && !isRest && session && setSelectedPreviewSession({ session, day: dayName, date })}
                   className={cn(
                     "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all",
                     isToday ? "bg-[#E24B4A]/5" : "",
-                    planningLocked && !isRest ? "cursor-pointer hover:bg-white/5" : "",
-                    !planningLocked && !isRest ? "cursor-grab active:cursor-grabbing" : "",
+                    !longPressActive && !isRest ? "cursor-pointer hover:bg-white/5" : "",                    !isRest ? "cursor-grab active:cursor-grabbing" : "",
                     isDragging ? "opacity-40" : "",
                     isDropTarget ? "bg-[#E24B4A]/10 border-[#E24B4A]/40" : "",
                   )}>
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     {/* Poignée de drag */}
-                    {!planningLocked && !isRest && (
+                    {!isRest && draggedDay === dayName && (
                       <GripVertical className="w-4 h-4 text-zinc-600 shrink-0" />
                     )}
                     <div className="w-20 flex-shrink-0">
@@ -560,7 +568,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                     )}
                   </div>
                   <div className="flex items-center gap-2 ml-2 shrink-0">
-                    {planningLocked && !isRest && editingSessionId !== session?.id && (
+                  {!longPressActive && !isRest && editingSessionId !== session?.id && (
                       <button onClick={(e) => { e.stopPropagation(); setSelectedPreviewSession({ session: session!, day: dayName, date }); }}
                         className="text-zinc-600 hover:text-zinc-300 transition-colors">
                         <ChevronRight className="w-4 h-4" />
