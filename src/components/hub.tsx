@@ -525,7 +525,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             onTouchEnd={handleTouchEndDrag}
             style={{ touchAction: longPressActive ? 'none' : 'pan-y', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as React.CSSProperties}
           >
-            {dayNamesFull.map((dayName, idx) => {
+            {dayNamesFull.map((dayName: string, idx: number) => {
               const sessionId = schedule[dayName];
               const session = program.sessions.find(s => s.id === sessionId);
               const isDone = dayStatuses[idx] === "done";
@@ -550,10 +550,10 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                   onTouchCancel={handleTouchCancelDrag}
                   onClick={() => !longPressActive && !isRest && session && setSelectedPreviewSession({ session, day: dayName, date })}
                   className={cn(
-                    "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all",
+                    "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-150",
                     isToday ? "bg-[#E24B4A]/5" : "",
                     !longPressActive && !isRest ? "cursor-pointer hover:bg-white/5" : "",                    !isRest ? "cursor-grab active:cursor-grabbing" : "",
-                    isDragging ? "bg-[#E24B4A]/10 border-l-2 border-l-[#E24B4A]" : "",
+                    isDragging ? "bg-[#E24B4A]/15 border-y border-[#E24B4A]/50" : "",
                     isDropTarget ? "bg-[#E24B4A]/10 border-[#E24B4A]/40" : "",
                     longPressActive && draggedDay === dayName ? "touch-none" : "",
                   )}>
