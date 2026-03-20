@@ -463,25 +463,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {/* Bouton verrou */}
-              <button
-                onClick={() => {
-                  const newLocked = !planningLocked;
-                  setPlanningLocked(newLocked);
-                  if (!newLocked) {
-                    toast({ title: "Planning déverrouillé 🔓", description: "Glisse les séances pour les réorganiser." });
-                  }
-                }}
-                className={cn(
-                  "w-8 h-8 rounded-full border flex items-center justify-center transition-all",
-                  planningLocked
-                    ? "bg-[#1A1A1A] border-[#2A2A2A] text-zinc-500 hover:text-white hover:border-zinc-500"
-                    : "bg-[#E24B4A]/10 border-[#E24B4A]/40 text-[#E24B4A]"
-                )}
-                title={planningLocked ? "Déverrouiller le planning" : "Verrouiller le planning"}
-              >
-                {planningLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-              </button>
               <button onClick={() => setWeekOffset(w => w - 1)} disabled={weekOffset <= -4}
                 className="w-8 h-8 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#E24B4A] disabled:opacity-30 transition-all">
                 <ChevronLeft className="w-4 h-4" />
