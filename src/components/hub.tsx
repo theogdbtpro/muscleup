@@ -497,18 +497,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             </div>
           </div>
 
-          {longPressActive && (
-            <div className="bg-[#E24B4A]/10 border border-[#E24B4A]/30 rounded-xl p-3 flex items-center justify-between">
-              <p className="text-[10px] font-bold text-[#E24B4A] uppercase tracking-widest">
-                ↕️ Glisse la séance vers un autre jour
-              </p>
-              {manualSchedule && (
-                <button onClick={resetToOptimal} className="text-[10px] font-bold text-white bg-[#E24B4A] px-3 py-1.5 rounded-lg uppercase tracking-widest">
-                  Réinitialiser
-                </button>
-              )}
-            </div>
-          )}
           {weekOffset !== 0 && (
             <div className="bg-[#1A1A1A] border border-[#E24B4A]/20 rounded-xl p-3 flex items-center justify-between">
               <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Semaine {weekNumber}</p>
@@ -553,7 +541,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                     "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-150",
                     isToday ? "bg-[#E24B4A]/5" : "",
                     !longPressActive && !isRest ? "cursor-pointer hover:bg-white/5" : "",                    !isRest ? "cursor-grab active:cursor-grabbing" : "",
-                    isDragging ? "bg-[#E24B4A]/15 border-y border-[#E24B4A]/50" : "",
+                    isDragging ? "bg-[#E24B4A]/20 border-l-4 border-l-[#E24B4A] pl-3" : "",
                     isDropTarget ? "bg-[#E24B4A]/10 border-[#E24B4A]/40" : "",
                     longPressActive && draggedDay === dayName ? "touch-none" : "",
                   )}>
