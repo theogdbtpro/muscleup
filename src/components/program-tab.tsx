@@ -41,6 +41,41 @@ function ExerciseAnimation({ muscle }: { muscle: string }) {
 }
 
 function ExerciseDetailModal({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
+  const [gifUrl, setGifUrl] = useState<string | null>(null);
+  const [loadingGif, setLoadingGif] = useState(true);
+
+  useEffect(() => {
+    const fetchGif = async () => {
+      setLoadingGif(true);
+      setGifUrl(null);
+      try {
+        const query = exercise.nameEn || exercise.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+        const res = await fetch(
+          `https://exercisedb.p.rapidapi.com/exercises/name/${encodeURIComponent(query)}?limit=1`,
+          {
+            headers: {
+              'X-RapidAPI-Key': process.env.NEXT_PUBLIC_RAPIDAPI_KEY || '',
+              'X-RapidAPI-Host': 'exercisedb.p.rapidapi.com',
+            },
+          }
+        );
+        const data = await res.json();
+        console.log('data complet:', JSON.stringify(data));
+const exercises = data.exercises || data.data || (Array.isArray(data) ? data : []);
+if (exercises.length > 0 && exercises[0].gifUrl) {
+  setGifUrl(exercises[0].gifUrl);
+        } else {
+          setGifUrl(null);
+        }
+      } catch {
+        setGifUrl(null);
+      } finally {
+        setLoadingGif(false);
+      }
+    };
+    fetchGif();
+  }, [exercise.name]);
+
   return (
     <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/80" onClick={onClose}>
       <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[90vh] overflow-y-auto"
@@ -51,7 +86,19 @@ function ExerciseDetailModal({ exercise, onClose }: { exercise: Exercise; onClos
           if (delta > 80) onClose();
         }}>
         <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-5" />
-        <ExerciseAnimation muscle={exercise.muscle} />
+
+        {loadingGif ? (
+          <div className="w-[180px] h-[180px] mx-auto mb-4 bg-[#0F0F0F] rounded-xl border border-zinc-800 flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-[#E24B4A] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : gifUrl ? (
+          <div className="mx-auto mb-4 w-[180px] h-[180px] rounded-xl overflow-hidden border border-zinc-800">
+            <img src={gifUrl} alt={exercise.name} className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <ExerciseAnimation muscle={exercise.muscle} />
+        )}
+
         <h2 className="text-3xl font-headline text-[#E24B4A] uppercase text-center mb-3">{exercise.name}</h2>
         <div className="flex flex-wrap gap-2 justify-center mb-5">
           <span className="px-3 py-1 bg-[#EE3BAA]/10 text-[#EE3BAA] text-[11px] font-bold uppercase rounded-md border border-[#EE3BAA]/20">{exercise.muscle}</span>
@@ -88,13 +135,13 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
 
-  // Workout state
   const [currentExIdx, setCurrentExIdx] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
   const [isResting, setIsResting] = useState(false);
   const [restTime, setRestTime] = useState(60);
   const [countdown, setCountdown] = useState(10);
   const [doneExercises, setDoneExercises] = useState<number[]>([]);
+  const [justFinishedExercise, setJustFinishedExercise] = useState(false);
 
   useEffect(() => {
     const savedNames = localStorage.getItem("muscleup_session_names");
@@ -128,7 +175,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
   const totalSets = parseInt(currentExercise?.sets || "1");
   const progress = ((doneExercises.length + (currentSet - 1) / totalSets) / currentExercises.length) * 100;
 
-  // Countdown timer
   useEffect(() => {
     if (phase !== "countdown") return;
     if (countdown <= 0) { setPhase("workout"); return; }
@@ -136,7 +182,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
     return () => clearTimeout(t);
   }, [phase, countdown]);
 
-  // Rest timer
   useEffect(() => {
     if (!isResting || phase !== "workout") return;
     if (restTime <= 0) {
@@ -149,7 +194,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
     return () => clearTimeout(t);
   }, [isResting, restTime, phase]);
 
-  const [justFinishedExercise, setJustFinishedExercise] = useState(false);
   const handleSetDone = () => {
     if (currentSet < totalSets) {
       setCurrentSet(s => s + 1);
@@ -181,7 +225,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
     onBack();
   };
 
-  // ── PHASE SELECT ───────────────────────────────────────────────────────
   if (phase === "select") {
     const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
     const currentDayIdx = (new Date().getDay() + 6) % 7;
@@ -230,7 +273,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
     );
   }
 
-  // ── PHASE INTRO ────────────────────────────────────────────────────────
   if (phase === "intro") {
     return (
       <div className="min-h-full bg-[#0F0F0F] flex flex-col p-6 animate-in fade-in duration-300">
@@ -259,11 +301,9 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
               <div className="text-[10px] font-bold text-zinc-500 uppercase mt-1">Repos</div>
             </div>
           </div>
-
           <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-3">
             Appuie sur un exercice pour voir les détails
           </p>
-
           <div className="space-y-3 flex-1 overflow-y-auto pb-4">
             {currentExercises.map((ex, i) => (
               <button key={i} onClick={() => setSelectedExercise(ex)}
@@ -278,20 +318,17 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
             ))}
           </div>
         </div>
-
         <Button
           onClick={() => { setCountdown(10); setCurrentExIdx(0); setCurrentSet(1); setDoneExercises([]); setIsResting(false); setPhase("countdown"); }}
           className="w-full h-16 bg-[#E24B4A] text-white font-headline text-2xl rounded-xl mt-6 flex items-center justify-center gap-3">
           <Play className="w-6 h-6" />
           LANCER LA SÉANCE
         </Button>
-
         {selectedExercise && <ExerciseDetailModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} />}
       </div>
     );
   }
 
-  // ── PHASE COUNTDOWN ────────────────────────────────────────────────────
   if (phase === "countdown") {
     return (
       <div className="fixed inset-0 z-[100] bg-[#0F0F0F] flex flex-col items-center justify-center animate-in fade-in duration-300">
@@ -318,10 +355,8 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
     );
   }
 
-  // ── PHASE WORKOUT ──────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-[100] bg-[#0F0F0F] flex flex-col animate-in slide-in-from-bottom duration-300">
-      {/* Header */}
       <div className="p-5 flex items-center gap-4">
         <button onClick={() => setPhase("intro")} className="text-zinc-500 p-1">
           <X className="w-6 h-6" />
@@ -333,7 +368,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
       </div>
 
       {isResting ? (
-        // ── REPOS ────────────────────────────────────────────────────────
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-2">
             {justFinishedExercise ? "Exercice terminé ✓" : `Série ${currentSet - 1} / ${totalSets} terminée`}
@@ -343,7 +377,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
               ? `Prochain : ${currentExercises[currentExIdx]?.name}`
               : `Prochain : Série ${currentSet} / ${totalSets}`}
           </p>
-
           <div className="relative w-52 h-52 flex items-center justify-center mb-10">
             <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
               <circle cx="50" cy="50" r="44" stroke="#1A1A1A" strokeWidth="5" fill="transparent"/>
@@ -357,14 +390,12 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
               <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Repos</span>
             </div>
           </div>
-
           <button onClick={() => { setIsResting(false); setRestTime(60); }}
             className="text-zinc-400 font-bold text-sm uppercase tracking-widest border border-zinc-700 px-6 py-3 rounded-xl hover:text-white hover:border-zinc-500 transition-all">
             Passer le repos
           </button>
         </div>
       ) : (
-        // ── EXERCICE ──────────────────────────────────────────────────────
         <div className="flex-1 flex flex-col p-6">
           <div className="flex-1 flex flex-col justify-center">
             <span className="text-[#E24B4A] font-bold text-xs uppercase tracking-widest mb-2 text-center">
@@ -376,7 +407,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
             <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-8 text-center">
               {currentExercise?.muscle}
             </p>
-
             <div className="flex justify-center gap-4 mb-8">
               <div className="bg-[#1A1A1A] border border-[#2A2A2A] px-8 py-5 rounded-2xl text-center">
                 <span className="text-5xl font-headline text-white block">{currentSet}</span>
@@ -388,19 +418,15 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
                 <span className="text-[10px] font-bold text-zinc-500 uppercase">Reps</span>
               </div>
             </div>
-
             <p className="text-zinc-400 italic text-sm text-center max-w-xs mx-auto mb-6">
               "{currentExercise?.technique}"
             </p>
-
             <button onClick={() => setSelectedExercise(currentExercise)}
               className="mx-auto flex items-center gap-2 text-[10px] font-bold text-zinc-600 uppercase tracking-widest hover:text-zinc-400 transition-colors border border-zinc-800 px-4 py-2 rounded-lg">
               <Info className="w-3 h-3" /> Voir le mouvement
             </button>
           </div>
-
           <div className="pb-6 space-y-3">
-            {/* Indicateurs de séries */}
             <div className="flex justify-center gap-2 mb-2">
               {Array.from({ length: totalSets }).map((_, i) => (
                 <div key={i} className={cn("w-2 h-2 rounded-full transition-all",
