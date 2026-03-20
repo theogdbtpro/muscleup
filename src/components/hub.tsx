@@ -521,7 +521,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
               const isToday = weekOffset === 0 && idx === currentDayIdx;
               const isRest = !session || session.isRestDay;
               const dateLabel = `${date.getDate()} ${MONTHS[date.getMonth()]}`;
-              const isDragging = draggedDay === dayName;
+              const isDragging = draggedDay === dayName && longPressActive;
               const isDropTarget = dragOverDay === dayName && draggedDay !== dayName;
 
               return (
