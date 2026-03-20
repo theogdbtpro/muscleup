@@ -134,7 +134,7 @@ function EditableSessionName({
         <button onClick={handleSave} className="text-green-400 hover:text-green-300 shrink-0"><Check size={15} /></button>
         <button onClick={stopEditing} className="text-red-400 hover:text-red-300 shrink-0"><X size={15} /></button>
         {isCustomized && (
-          <button onClick={() => { onReset(sessionId); setIsEditing(false); }}
+          <button onClick={() => { onReset(sessionId); stopEditing(); }}
             className="text-zinc-500 hover:text-zinc-300 shrink-0" title="Remettre le nom d'origine">
             <RotateCcw size={13} />
           </button>
@@ -165,18 +165,12 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+
   const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
   const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   const currentDayIdx = (new Date().getDay() + 6) % 7;
   const todayName = dayNamesFull[currentDayIdx];
-  useEffect(() => {
-    if (selectedPreviewSession) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [selectedPreviewSession]);
+
   useEffect(() => {
     const savedHistory = localStorage.getItem("muscleup_history");
     if (savedHistory) setHistory(JSON.parse(savedHistory));
@@ -311,251 +305,256 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   }, [profile.bodyProfile]);
 
   return (
-    <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-20">
+    <>
+      <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-20">
 
-      <header className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-headline text-white leading-none">
-            {profile.name ? `Bonjour ${profile.name} !` : "Bonjour !"}
-          </h1>
-          <div className="flex items-center gap-2 mt-2">
-            <div className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-tighter",
-              isHome ? "bg-amber-500/10 border-amber-500/20 text-amber-500" : "bg-blue-500/10 border-blue-500/20 text-blue-500"
-            )}>
-              {isHome ? <HomeIcon className="w-3 h-3" /> : <Dumbbell className="w-3 h-3" />}
-              {isHome ? "Mode Maison" : "Mode Salle"}
-            </div>
-          </div>
-        </div>
-        <div className="bg-[#E24B4A]/10 px-4 py-2 rounded-full flex items-center gap-2 border border-[#E24B4A]/20">
-          <Flame className="w-4 h-4 text-[#E24B4A] fill-[#E24B4A]" />
-          <span className="text-sm font-bold text-white tracking-tighter">{streak} JOURS</span>
-        </div>
-      </header>
-
-      <button onClick={() => setView("settings")} className="w-full bg-[#1A1A1A] p-[10px_14px] rounded-[10px] flex items-center justify-between border border-transparent hover:border-[#2A2A2A] transition-all">
-        <div className="flex items-center gap-3">
-          <span className="text-xl">{program.emoji}</span>
-          <div className="text-left">
-            <span className="text-[12px] font-bold text-white uppercase block leading-tight">{program.name}</span>
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight">
-              {profile.level} · {profile.frequency}/sem · {isHome ? 'Équipement réduit' : 'Full équipement'}
-            </span>
-          </div>
-        </div>
-        <div className="bg-[#E24B4A] text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-tighter flex items-center gap-1 shrink-0">
-          Modifier <ChevronRight className="w-3 h-3" />
-        </div>
-      </button>
-
-      {weekOffset === 0 && (
-        <Card className={cn("p-8 rounded-2xl border-none relative overflow-hidden shadow-2xl transition-all", finishedToday ? "bg-[#1A4A2A]" : "bg-[#E24B4A]")}>
-          <div className="relative z-10 space-y-6">
-            <div>
-              <h3 className={cn("text-[10px] font-bold uppercase tracking-widest mb-2", finishedToday ? "text-green-400" : "text-white/70")}>
-                {finishedToday ? "Bravo !" : "Séance du jour"}
-              </h3>
-              <h4 className="text-4xl font-headline text-white leading-tight uppercase">
-                {finishedToday ? "SÉANCE TERMINÉE ✓" : todaySessionDisplayName}
-              </h4>
-              <p className={cn("font-medium text-sm", finishedToday ? "text-green-200" : "text-white/80")}>
-                {finishedToday ? "Ton corps te remercie. Repose-toi bien !" : (todaySession ? `Durée estimée : ${todaySession.duration}` : "Profite pour bien récupérer.")}
-              </p>
-            </div>
-            {!finishedToday && todaySession && (
-              <Button onClick={() => onStartSession(todaySessionId || undefined)} className="w-full h-14 bg-white text-[#E24B4A] rounded-xl text-lg font-headline hover:bg-white/90 shadow-xl">
-                C'EST PARTI !
-              </Button>
-            )}
-            {!finishedToday && (
-              <div className="flex flex-col gap-3 mt-4">
-                <button onClick={() => setIsSessionPickerOpen(true)} className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors">
-                  Choisir une autre séance →
-                </button>
-                {todaySession && (
-                  <button onClick={handlePostpone} className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors">
-                    Reporter à demain →
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      <Dialog open={isSessionPickerOpen} onOpenChange={setIsSessionPickerOpen}>
-        <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
-          <DialogHeader>
-            <DialogTitle className="font-headline text-2xl">CHOISIR UNE SÉANCE</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 mt-4">
-            {program.sessions.filter(s => !s.isRestDay).map((s) => (
-              <button key={s.id} onClick={() => { onStartSession(s.id); setIsSessionPickerOpen(false); }}
-                className="w-full p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl text-left hover:border-[#E24B4A] transition-all flex justify-between items-center group">
-                <div>
-                  <div className="font-headline text-xl uppercase">{getSessionName(s)}</div>
-                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{s.exercises.length} exercices • {s.duration}</div>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-[#E24B4A]/10 flex items-center justify-center group-hover:bg-[#E24B4A] transition-colors">
-                  <Activity className="w-4 h-4 text-[#E24B4A] group-hover:text-white" />
-                </div>
-              </button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
+        <header className="flex justify-between items-start">
           <div>
-            <h2 className="text-xl font-headline text-white tracking-wide">PLANNING</h2>
-            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mt-0.5">
-              Semaine {weekNumber} · {weekLabel}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setWeekOffset(w => w - 1)} disabled={weekOffset <= -4}
-              className="w-8 h-8 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#E24B4A] disabled:opacity-30 transition-all">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="text-[10px] font-bold text-zinc-500 uppercase min-w-[70px] text-center">
-              {weekOffset === 0 ? "Cette sem." : weekOffset > 0 ? `+${weekOffset} sem.` : `${weekOffset} sem.`}
-            </span>
-            <button onClick={() => setWeekOffset(w => w + 1)} disabled={weekOffset >= 8}
-              className="w-8 h-8 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#E24B4A] disabled:opacity-30 transition-all">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {weekOffset !== 0 && (
-          <div className="bg-[#1A1A1A] border border-[#E24B4A]/20 rounded-xl p-3 flex items-center justify-between">
-            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Semaine {weekNumber}</p>
-            <button onClick={() => setWeekOffset(0)} className="text-[10px] font-bold text-white bg-[#E24B4A] px-3 py-1.5 rounded-lg uppercase tracking-widest flex items-center gap-1">
-              📅 Aujourd'hui
-            </button>
-          </div>
-        )}
-
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
-          {dayNamesFull.map((dayName, idx) => {
-            const sessionId = schedule[dayName];
-            const session = program.sessions.find(s => s.id === sessionId);
-            const isDone = dayStatuses[idx] === "done";
-            const date = weekDates[idx];
-            const isToday = weekOffset === 0 && idx === currentDayIdx;
-            const isRest = !session || session.isRestDay;
-            const dateLabel = `${date.getDate()} ${MONTHS[date.getMonth()]}`;
-
-            return (
-              <div key={dayName} onClick={() => !isRest && session && setSelectedPreviewSession({ session, day: dayName, date })}
-              className={cn(
-                "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-colors",
-                isToday ? "bg-[#E24B4A]/5" : "",
-                !isRest ? "cursor-pointer hover:bg-white/5" : ""
+            <h1 className="text-3xl font-headline text-white leading-none">
+              {profile.name ? `Bonjour ${profile.name} !` : "Bonjour !"}
+            </h1>
+            <div className="flex items-center gap-2 mt-2">
+              <div className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-tighter",
+                isHome ? "bg-amber-500/10 border-amber-500/20 text-amber-500" : "bg-blue-500/10 border-blue-500/20 text-blue-500"
               )}>
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className="w-20 flex-shrink-0">
-                    <span className={cn("text-xs font-bold block", isToday ? "text-[#E24B4A]" : "text-zinc-500")}>{dayName}</span>
-                    <span className="text-[10px] text-zinc-700 font-bold">{dateLabel}</span>
-                  </div>
-                  {!isRest && session ? (
-                    <EditableSessionName
-                    sessionId={session.id}
-                    defaultName={session.name}
-                    currentName={getSessionName(session)}
-                    onSave={saveCustomName}
-                    onReset={resetCustomName}
-                    onEditingChange={(editing) => setEditingSessionId(editing ? session.id : null)}
-                    className={cn("text-sm uppercase tracking-tight", isToday ? "text-white" : "text-zinc-400")}
-                    />
-                  ) : (
-                    <span className="text-sm font-bold uppercase tracking-tight text-zinc-700">REPOS</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 ml-2 shrink-0">
-                 {!isRest && editingSessionId !== session?.id && (
-                    <button onClick={() => setSelectedPreviewSession({ session: session!, day: dayName, date })}
-                      className="text-zinc-600 hover:text-zinc-300 transition-colors">
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  )}
-                  {editingSessionId !== session?.id && (
-                    isDone
-                      ? <CheckCircle2 className="w-4 h-4 text-[#4CAF50]" />
-                      : isToday && !isRest
-                        ? <Circle className="w-4 h-4 text-[#E24B4A]" />
-                        : <Circle className="w-4 h-4 text-zinc-800" />
-                  )}
-                </div>
+                {isHome ? <HomeIcon className="w-3 h-3" /> : <Dumbbell className="w-3 h-3" />}
+                {isHome ? "Mode Maison" : "Mode Salle"}
               </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <div className="grid grid-cols-3 gap-3">
-        <button onClick={() => setView("progres")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors">
-          <Activity className="w-6 h-6 text-[#EE3BAA]" />
-          <span className="text-[10px] font-bold uppercase text-zinc-400">Progrès</span>
-        </button>
-        <button onClick={() => setView("nutrition")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors">
-          <Utensils className="w-6 h-6 text-[#E24B4A]" />
-          <span className="text-[10px] font-bold uppercase text-zinc-400">Nutrition</span>
-        </button>
-        <button onClick={() => setView("coach")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors">
-          <MessageSquare className="w-6 h-6 text-green-500" />
-          <span className="text-[10px] font-bold uppercase text-zinc-400">Coach IA</span>
-        </button>
-      </div>
-
-      <section>
-        <button onClick={() => setView("body-profile")}
-          className="w-full bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-2xl flex items-center justify-between hover:bg-[#2A2A2A] transition-all group">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <BarChart className="w-6 h-6 text-primary" />
             </div>
+          </div>
+          <div className="bg-[#E24B4A]/10 px-4 py-2 rounded-full flex items-center gap-2 border border-[#E24B4A]/20">
+            <Flame className="w-4 h-4 text-[#E24B4A] fill-[#E24B4A]" />
+            <span className="text-sm font-bold text-white tracking-tighter">{streak} JOURS</span>
+          </div>
+        </header>
+
+        <button onClick={() => setView("settings")} className="w-full bg-[#1A1A1A] p-[10px_14px] rounded-[10px] flex items-center justify-between border border-transparent hover:border-[#2A2A2A] transition-all">
+          <div className="flex items-center gap-3">
+            <span className="text-xl">{program.emoji}</span>
             <div className="text-left">
-              <span className="text-[12px] font-bold text-white uppercase block leading-tight">Mon profil corporel 📊</span>
+              <span className="text-[12px] font-bold text-white uppercase block leading-tight">{program.name}</span>
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight">
-                {bodyStatsSummary || "Complète tes mesures"}
+                {profile.level} · {profile.frequency}/sem · {isHome ? 'Équipement réduit' : 'Full équipement'}
               </span>
             </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-primary transition-colors" />
+          <div className="bg-[#E24B4A] text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-tighter flex items-center gap-1 shrink-0">
+            Modifier <ChevronRight className="w-3 h-3" />
+          </div>
         </button>
-      </section>
 
-      <section className="space-y-4">
-        <h2 className="text-xl font-headline text-white tracking-wide">CONSEIL DU JOUR</h2>
-        <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-5 flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-            <Lightbulb className="w-5 h-5 text-amber-500" />
-          </div>
-          <p className="text-sm text-zinc-300 leading-relaxed italic">
-            "{OBJECTIVE_TIPS[profile.objective] || "Reste constant, les résultats viendront avec le temps."}"
-          </p>
-        </Card>
-      </section>
-
-      <section className="space-y-4 pb-10">
-        <h2 className="text-xl font-headline text-white tracking-wide">MA PROGRESSION</h2>
-        <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-6 space-y-4 shadow-xl">
-          <div className="flex justify-between items-end">
-            <div>
-              <span className="text-4xl font-headline text-white leading-none">{weeklySessionsDone} / {totalWeeklyGoal}</span>
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Séances cette semaine</p>
+        {weekOffset === 0 && (
+          <Card className={cn("p-8 rounded-2xl border-none relative overflow-hidden shadow-2xl transition-all", finishedToday ? "bg-[#1A4A2A]" : "bg-[#E24B4A]")}>
+            <div className="relative z-10 space-y-6">
+              <div>
+                <h3 className={cn("text-[10px] font-bold uppercase tracking-widest mb-2", finishedToday ? "text-green-400" : "text-white/70")}>
+                  {finishedToday ? "Bravo !" : "Séance du jour"}
+                </h3>
+                <h4 className="text-4xl font-headline text-white leading-tight uppercase">
+                  {finishedToday ? "SÉANCE TERMINÉE ✓" : todaySessionDisplayName}
+                </h4>
+                <p className={cn("font-medium text-sm", finishedToday ? "text-green-200" : "text-white/80")}>
+                  {finishedToday ? "Ton corps te remercie. Repose-toi bien !" : (todaySession ? `Durée estimée : ${todaySession.duration}` : "Profite pour bien récupérer.")}
+                </p>
+              </div>
+              {!finishedToday && todaySession && (
+                <Button onClick={() => onStartSession(todaySessionId || undefined)} className="w-full h-14 bg-white text-[#E24B4A] rounded-xl text-lg font-headline hover:bg-white/90 shadow-xl">
+                  C'EST PARTI !
+                </Button>
+              )}
+              {!finishedToday && (
+                <div className="flex flex-col gap-3 mt-4">
+                  <button onClick={() => setIsSessionPickerOpen(true)} className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors">
+                    Choisir une autre séance →
+                  </button>
+                  {todaySession && (
+                    <button onClick={handlePostpone} className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors">
+                      Reporter à demain →
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-            <span className="text-xl font-headline text-[#E24B4A]">{Math.round(weeklyProgressPercent)}%</span>
-          </div>
-          <Progress value={weeklyProgressPercent} className="h-3 bg-[#0F0F0F]" />
-        </Card>
-      </section>
+          </Card>
+        )}
 
+        <Dialog open={isSessionPickerOpen} onOpenChange={setIsSessionPickerOpen}>
+          <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
+            <DialogHeader>
+              <DialogTitle className="font-headline text-2xl">CHOISIR UNE SÉANCE</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 mt-4">
+              {program.sessions.filter(s => !s.isRestDay).map((s) => (
+                <button key={s.id} onClick={() => { onStartSession(s.id); setIsSessionPickerOpen(false); }}
+                  className="w-full p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl text-left hover:border-[#E24B4A] transition-all flex justify-between items-center group">
+                  <div>
+                    <div className="font-headline text-xl uppercase">{getSessionName(s)}</div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{s.exercises.length} exercices • {s.duration}</div>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-[#E24B4A]/10 flex items-center justify-center group-hover:bg-[#E24B4A] transition-colors">
+                    <Activity className="w-4 h-4 text-[#E24B4A] group-hover:text-white" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-headline text-white tracking-wide">PLANNING</h2>
+              <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mt-0.5">
+                Semaine {weekNumber} · {weekLabel}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setWeekOffset(w => w - 1)} disabled={weekOffset <= -4}
+                className="w-8 h-8 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#E24B4A] disabled:opacity-30 transition-all">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-[10px] font-bold text-zinc-500 uppercase min-w-[70px] text-center">
+                {weekOffset === 0 ? "Cette sem." : weekOffset > 0 ? `+${weekOffset} sem.` : `${weekOffset} sem.`}
+              </span>
+              <button onClick={() => setWeekOffset(w => w + 1)} disabled={weekOffset >= 8}
+                className="w-8 h-8 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#E24B4A] disabled:opacity-30 transition-all">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {weekOffset !== 0 && (
+            <div className="bg-[#1A1A1A] border border-[#E24B4A]/20 rounded-xl p-3 flex items-center justify-between">
+              <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Semaine {weekNumber}</p>
+              <button onClick={() => setWeekOffset(0)} className="text-[10px] font-bold text-white bg-[#E24B4A] px-3 py-1.5 rounded-lg uppercase tracking-widest flex items-center gap-1">
+                📅 Aujourd'hui
+              </button>
+            </div>
+          )}
+
+          <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
+            {dayNamesFull.map((dayName, idx) => {
+              const sessionId = schedule[dayName];
+              const session = program.sessions.find(s => s.id === sessionId);
+              const isDone = dayStatuses[idx] === "done";
+              const date = weekDates[idx];
+              const isToday = weekOffset === 0 && idx === currentDayIdx;
+              const isRest = !session || session.isRestDay;
+              const dateLabel = `${date.getDate()} ${MONTHS[date.getMonth()]}`;
+
+              return (
+                <div key={dayName}
+                  onClick={() => !isRest && session && setSelectedPreviewSession({ session, day: dayName, date })}
+                  className={cn(
+                    "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-colors",
+                    isToday ? "bg-[#E24B4A]/5" : "",
+                    !isRest ? "cursor-pointer hover:bg-white/5" : ""
+                  )}>
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-20 flex-shrink-0">
+                      <span className={cn("text-xs font-bold block", isToday ? "text-[#E24B4A]" : "text-zinc-500")}>{dayName}</span>
+                      <span className="text-[10px] text-zinc-700 font-bold">{dateLabel}</span>
+                    </div>
+                    {!isRest && session ? (
+                      <EditableSessionName
+                        sessionId={session.id}
+                        defaultName={session.name}
+                        currentName={getSessionName(session)}
+                        onSave={saveCustomName}
+                        onReset={resetCustomName}
+                        onEditingChange={(editing) => setEditingSessionId(editing ? session.id : null)}
+                        className={cn("text-sm uppercase tracking-tight", isToday ? "text-white" : "text-zinc-400")}
+                      />
+                    ) : (
+                      <span className="text-sm font-bold uppercase tracking-tight text-zinc-700">REPOS</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 ml-2 shrink-0">
+                    {!isRest && editingSessionId !== session?.id && (
+                      <button onClick={() => setSelectedPreviewSession({ session: session!, day: dayName, date })}
+                        className="text-zinc-600 hover:text-zinc-300 transition-colors">
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    )}
+                    {editingSessionId !== session?.id && (
+                      isDone
+                        ? <CheckCircle2 className="w-4 h-4 text-[#4CAF50]" />
+                        : isToday && !isRest
+                          ? <Circle className="w-4 h-4 text-[#E24B4A]" />
+                          : <Circle className="w-4 h-4 text-zinc-800" />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="grid grid-cols-3 gap-3">
+          <button onClick={() => setView("progres")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors">
+            <Activity className="w-6 h-6 text-[#EE3BAA]" />
+            <span className="text-[10px] font-bold uppercase text-zinc-400">Progrès</span>
+          </button>
+          <button onClick={() => setView("nutrition")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors">
+            <Utensils className="w-6 h-6 text-[#E24B4A]" />
+            <span className="text-[10px] font-bold uppercase text-zinc-400">Nutrition</span>
+          </button>
+          <button onClick={() => setView("coach")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors">
+            <MessageSquare className="w-6 h-6 text-green-500" />
+            <span className="text-[10px] font-bold uppercase text-zinc-400">Coach IA</span>
+          </button>
+        </div>
+
+        <section>
+          <button onClick={() => setView("body-profile")}
+            className="w-full bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-2xl flex items-center justify-between hover:bg-[#2A2A2A] transition-all group">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <BarChart className="w-6 h-6 text-primary" />
+              </div>
+              <div className="text-left">
+                <span className="text-[12px] font-bold text-white uppercase block leading-tight">Mon profil corporel 📊</span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight">
+                  {bodyStatsSummary || "Complète tes mesures"}
+                </span>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-primary transition-colors" />
+          </button>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-headline text-white tracking-wide">CONSEIL DU JOUR</h2>
+          <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-5 flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+              <Lightbulb className="w-5 h-5 text-amber-500" />
+            </div>
+            <p className="text-sm text-zinc-300 leading-relaxed italic">
+              "{OBJECTIVE_TIPS[profile.objective] || "Reste constant, les résultats viendront avec le temps."}"
+            </p>
+          </Card>
+        </section>
+
+        <section className="space-y-4 pb-10">
+          <h2 className="text-xl font-headline text-white tracking-wide">MA PROGRESSION</h2>
+          <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-6 space-y-4 shadow-xl">
+            <div className="flex justify-between items-end">
+              <div>
+                <span className="text-4xl font-headline text-white leading-none">{weeklySessionsDone} / {totalWeeklyGoal}</span>
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Séances cette semaine</p>
+              </div>
+              <span className="text-xl font-headline text-[#E24B4A]">{Math.round(weeklyProgressPercent)}%</span>
+            </div>
+            <Progress value={weeklyProgressPercent} className="h-3 bg-[#0F0F0F]" />
+          </Card>
+        </section>
+
+      </div>
+
+      {/* Modals EN DEHORS du div principal */}
       {selectedPreviewSession && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={() => setSelectedPreviewSession(null)}>
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70" onClick={() => setSelectedPreviewSession(null)}>
           <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-6" />
             <div className="flex justify-between items-start mb-4">
@@ -611,7 +610,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       )}
 
       {selectedExercise && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/80" onClick={() => setSelectedExercise(null)}>
+        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/80" onClick={() => setSelectedExercise(null)}>
           <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-[30px] p-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-8" />
             <ExerciseAnimation muscle={selectedExercise.muscle} />
@@ -637,6 +636,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
