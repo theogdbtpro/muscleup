@@ -6,8 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, ChevronLeft, Clock, Timer, Zap, Info, Dumbbell, Home as HomeIcon, BarChart, Pencil, Check, X, RotateCcw, Lock, Unlock, GripVertical } from "lucide-react";
-import { useMemo, useEffect, useState, useRef } from "react";
+import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, ChevronLeft, Clock, Timer, Zap, Info, Dumbbell, Home as HomeIcon, BarChart, Pencil, Check, X, RotateCcw, Lock, Unlock, GripVertical, CalendarDays } from "lucide-react";import { useMemo, useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -599,9 +598,9 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             <Utensils className="w-6 h-6 text-[#E24B4A]" />
             <span className="text-[10px] font-bold uppercase text-zinc-400">Nutrition</span>
           </button>
-          <button onClick={() => setView("coach")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors">
-            <MessageSquare className="w-6 h-6 text-green-500" />
-            <span className="text-[10px] font-bold uppercase text-zinc-400">Coach IA</span>
+          <button onClick={() => setView("planning-mensuel")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-xl flex flex-col items-center gap-3 hover:bg-[#2A2A2A] transition-colors">
+            <CalendarDays className="w-6 h-6 text-purple-400" />
+            <span className="text-[10px] font-bold uppercase text-zinc-400">Planning</span>
           </button>
         </div>
 

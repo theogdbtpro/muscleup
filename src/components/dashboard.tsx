@@ -10,8 +10,9 @@ import CoachTab from "./coach-tab";
 import SettingsTab from "./settings-tab";
 import BottomNav from "./bottom-nav";
 import BodyProfileView from "./body-profile";
+import MonthlyPlanning from "./monthly-planning";
 
-type View = "accueil" | "programme" | "progres" | "coach" | "nutrition" | "settings" | "body-profile";
+type View = "accueil" | "programme" | "progres" | "coach" | "nutrition" | "settings" | "body-profile" | "planning-mensuel";
 
 type DashboardProps = {
   profile: UserProfile;
@@ -47,15 +48,13 @@ export default function Dashboard({ profile, onUpdateProfile, onReset }: Dashboa
     handleSetView("accueil");
   };
 
-  const showNav = view !== "body-profile";
+  const showNav = view !== "body-profile" && view !== "planning-mensuel";
 
   return (
     <div className="flex-1 flex flex-col bg-[#0F0F0F] relative overflow-hidden">
-      <div
-        className={`flex-1 overflow-y-auto no-scrollbar pb-24 transition-all duration-200 ${
-          isTransitioning ? "opacity-0 scale-[0.98]" : "opacity-100 scale-100"
-        }`}
-      >
+      <div className={`flex-1 overflow-y-auto no-scrollbar pb-24 transition-all duration-200 ${
+        isTransitioning ? "opacity-0 scale-[0.98]" : "opacity-100 scale-100"
+      }`}>
         {view === "accueil" && (
           <Hub key={refreshKey} profile={profile} setView={handleSetView} onStartSession={handleStartSession} />
         )}
@@ -76,6 +75,9 @@ export default function Dashboard({ profile, onUpdateProfile, onReset }: Dashboa
         )}
         {view === "body-profile" && (
           <BodyProfileView initialData={profile.bodyProfile} onSave={handleSaveBodyProfile} onBack={() => handleSetView("accueil")} />
+        )}
+        {view === "planning-mensuel" && (
+          <MonthlyPlanning profile={profile} onBack={() => handleSetView("accueil")} onStartSession={(id) => { handleStartSession(id); }} />
         )}
       </div>
 
