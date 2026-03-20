@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { UserProfile } from "@/app/page";
 import { PROGRAMS, Exercise } from "@/data/programs";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Check, Timer, Info, Zap, Play } from "lucide-react";
+import { ChevronLeft, Check, Timer, Info, Zap, Play, Activity, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
@@ -39,14 +39,20 @@ function ExerciseAnimation({ muscle }: { muscle: string }) {
     </div>
   );
 }
+
 type ProgramTabProps = {
   profile: UserProfile;
   onBack: () => void;
   onUpdateProfile: (profile: UserProfile) => void;
   manualSessionId?: string | null;
 };
+
 export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSessionId }: ProgramTabProps) {
   const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
+  
+  const [internalSessionId, setInternalSessionId] = useState<string | null>(manualSessionId || null);
+  const [phase, setPhase] = useState<"select" | "intro" | "workout">(manualSessionId ? "intro" : "select");
+
   const schedule = useMemo(() => {
     const saved = localStorage.getItem("muscleup_schedule");
     if (saved) return JSON.parse(saved);
@@ -54,15 +60,16 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
   }, []);
 
   const currentSession = useMemo(() => {
-    if (manualSessionId) return program.sessions.find(s => s.id === manualSessionId) || program.sessions[0];
+    if (internalSessionId) return program.sessions.find(s => s.id === internalSessionId) || program.sessions[0];
+    
+    // Fallback based on schedule if no internalSessionId is set (only for initial detection)
     const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
     const currentDayIdx = (new Date().getDay() + 6) % 7;
     const todayName = dayNamesFull[currentDayIdx];
     if (schedule && schedule[todayName]) return program.sessions.find(s => s.id === schedule[todayName]) || program.sessions[0];
     return program.sessions.find(s => s.day === todayName) || program.sessions[0];
-  }, [program, manualSessionId, schedule]);
+  }, [program, internalSessionId, schedule]);
 
-  // Choisir les exercices selon le lieu (salle ou maison)
   const currentExercises = useMemo(() => {
     if (profile.location === 'maison' && currentSession.homeExercises) {
       return currentSession.homeExercises;
@@ -70,7 +77,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
     return currentSession.exercises;
   }, [profile.location, currentSession]);
 
-  const [phase, setPhase] = useState<"intro" | "workout">("intro");
   const [checkedExercises, setCheckedExercises] = useState<number[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [isResting, setIsResting] = useState(false);
@@ -116,11 +122,62 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
     onBack();
   };
 
+  // PHASE SELECT
+  if (phase === "select") {
+    const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+    const currentDayIdx = (new Date().getDay() + 6) % 7;
+    const todayName = dayNamesFull[currentDayIdx];
+    const todaySessionId = schedule ? schedule[todayName] : null;
+
+    return (
+      <div className="min-h-full bg-[#0F0F0F] flex flex-col p-6 animate-in fade-in duration-300">
+        <header className="flex items-center gap-4 mb-10">
+          <button onClick={onBack} className="p-2 -ml-2 text-zinc-500 hover:text-white">
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-3xl font-headline text-white tracking-tight uppercase">CHOISIR UNE SÉANCE</h1>
+        </header>
+
+        <div className="space-y-4 flex-1 overflow-y-auto no-scrollbar pb-10">
+          {program.sessions.filter(s => !s.isRestDay).map((s) => {
+            const isToday = s.id === todaySessionId;
+            return (
+              <button 
+                key={s.id} 
+                onClick={() => { setInternalSessionId(s.id); setPhase("intro"); }}
+                className={cn(
+                  "w-full p-6 bg-[#1A1A1A] border rounded-2xl text-left transition-all hover:border-primary/50 group",
+                  isToday ? "border-primary/40 bg-primary/5 shadow-2xl shadow-primary/5" : "border-[#2A2A2A]"
+                )}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div className="font-headline text-2xl text-white uppercase group-hover:text-primary transition-colors leading-none">{s.name}</div>
+                  {isToday && (
+                    <span className="bg-primary text-white text-[9px] font-black px-2 py-1 rounded-sm uppercase tracking-tighter">
+                      AUJOURD'HUI
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
+                  <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {s.duration}</span>
+                  <span className="w-1 h-1 rounded-full bg-zinc-800" />
+                  <span className="flex items-center gap-1"><Activity className="w-3.5 h-3.5" /> {s.exercises.length} EXERCICES</span>
+                  <span className="w-1 h-1 rounded-full bg-zinc-800" />
+                  <span className="text-[#EE3BAA]">{s.exercises[0]?.muscle}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   // PHASE INTRO
   if (phase === "intro") {
     return (
-      <div className="min-h-full bg-[#0F0F0F] flex flex-col p-6">
-        <button onClick={onBack} className="p-2 -ml-2 text-zinc-400 hover:text-white mb-8 w-fit">
+      <div className="min-h-full bg-[#0F0F0F] flex flex-col p-6 animate-in fade-in duration-300">
+        <button onClick={() => setPhase("select")} className="p-2 -ml-2 text-zinc-400 hover:text-white mb-8 w-fit">
           <ChevronLeft className="w-6 h-6" />
         </button>
         <div className="flex-1 flex flex-col justify-center">
@@ -171,9 +228,9 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
 
   // PHASE WORKOUT
   return (
-    <div className="min-h-full bg-[#0F0F0F] flex flex-col p-5">
+    <div className="min-h-full bg-[#0F0F0F] flex flex-col p-5 animate-in fade-in duration-300">
       <header className="flex items-center justify-between mb-5">
-        <button onClick={onBack} className="p-2 -ml-2 text-zinc-400 hover:text-white">
+        <button onClick={() => setPhase("intro")} className="p-2 -ml-2 text-zinc-400 hover:text-white">
           <ChevronLeft className="w-6 h-6" />
         </button>
         <div className="text-right">
@@ -214,7 +271,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
         </div>
       )}
 
-      <div className="space-y-3 flex-1 pb-6">
+      <div className="space-y-3 flex-1 pb-6 overflow-y-auto no-scrollbar">
         {currentExercises.map((ex, idx) => {
           const isChecked = checkedExercises.includes(idx);
           return (
