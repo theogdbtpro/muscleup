@@ -49,7 +49,7 @@ type ProgramTabProps = {
 
 export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSessionId }: ProgramTabProps) {
   const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
-  
+
   const [internalSessionId, setInternalSessionId] = useState<string | null>(manualSessionId || null);
   const [phase, setPhase] = useState<"select" | "intro" | "workout">(manualSessionId ? "intro" : "select");
 
@@ -62,7 +62,6 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
 
   const currentSession = useMemo(() => {
     if (internalSessionId) return program.sessions.find(s => s.id === internalSessionId) || program.sessions[0];
-    
     const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
     const currentDayIdx = (new Date().getDay() + 6) % 7;
     const todayName = dayNamesFull[currentDayIdx];
@@ -135,17 +134,22 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
           <button onClick={onBack} className="p-2 -ml-2 text-zinc-500 hover:text-white">
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-3xl font-headline text-white tracking-tight uppercase">CHOISIR UNE SÉANCE</h1>
+          <h1 className="text-3xl font-headline text-white tracking-tight uppercase">Choisir une séance</h1>
         </header>
 
         <div className="space-y-4 flex-1 overflow-y-auto no-scrollbar pb-10">
           {program.sessions.filter(s => !s.isRestDay).map((s) => {
             const isToday = s.id === todaySessionId;
-            const scheduledDay = schedule ? Object.keys(schedule).find(day => schedule[day] === s.id) : null;
+            const scheduledDays = schedule
+              ? Object.entries(schedule)
+                  .filter(([_, id]) => id === s.id)
+                  .map(([day]) => day)
+                  .join(' · ')
+              : null;
 
             return (
-              <button 
-                key={s.id} 
+              <button
+                key={s.id}
                 onClick={() => { setInternalSessionId(s.id); setPhase("intro"); }}
                 className={cn(
                   "w-full p-6 bg-[#1A1A1A] border rounded-2xl text-left transition-all hover:border-primary/50 group",
@@ -155,14 +159,14 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex flex-col">
                     <div className="font-headline text-2xl text-white uppercase group-hover:text-primary transition-colors leading-none">{s.name}</div>
-                    {scheduledDay && (
+                    {scheduledDays && (
                       <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">
-                        Prévu le {scheduledDay}
+                        Prévu le {scheduledDays}
                       </span>
                     )}
                   </div>
                   {isToday && (
-                    <span className="bg-primary text-white text-[9px] font-black px-2 py-1 rounded-sm uppercase tracking-tighter">
+                    <span className="bg-primary text-white text-[9px] font-black px-2 py-1 rounded-sm uppercase tracking-tighter shrink-0">
                       AUJOURD'HUI
                     </span>
                   )}
@@ -170,7 +174,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
                 <div className="flex items-center gap-4 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
                   <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {s.duration}</span>
                   <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                  <span className="flex items-center gap-1"><Activity className="w-3.5 h-3.5" /> {s.exercises.length} EXERCICES</span>
+                  <span className="flex items-center gap-1"><Activity className="w-3.5 h-3.5" /> {s.exercises.length} exercices</span>
                   <span className="w-1 h-1 rounded-full bg-zinc-800" />
                   <span className="text-[#EE3BAA]">{s.exercises[0]?.muscle}</span>
                 </div>

@@ -1,13 +1,12 @@
-
 "use client";
 
 import { UserProfile } from "@/app/page";
-import { PROGRAMS, Session, Exercise } from "@/data/programs";
+import { PROGRAMS, Session, Exercise, Program } from "@/data/programs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, Clock, Timer, Zap, Info, X, Dumbbell, Home as HomeIcon, BarChart } from "lucide-react";
+import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, ChevronLeft, Clock, Timer, Zap, Info, Dumbbell, Home as HomeIcon, BarChart } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -27,127 +26,65 @@ const OBJECTIVE_TIPS: Record<string, string> = {
   "abdos": "La sangle abdominale se forge aussi dans l'assiette, reste hydraté."
 };
 
+const MONTHS = ["jan","fév","mar","avr","mai","jun","jul","aoû","sep","oct","nov","déc"];
+
+function getWeekNumber(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+}
+
+function getRotatedSchedule(
+  baseSchedule: Record<string, string | null>,
+  weekOffset: number,
+  program: Program
+): Record<string, string | null> {
+  const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+  const sessions = program.sessions.filter(s => !s.isRestDay);
+  const trainingDays = dayNamesFull.filter(day => baseSchedule[day]);
+  if (trainingDays.length === 0 || sessions.length === 0) return baseSchedule;
+  const now = new Date();
+  const targetDate = new Date(now);
+  targetDate.setDate(now.getDate() + weekOffset * 7);
+  const weekNum = getWeekNumber(targetDate);
+  const rotation = weekNum % sessions.length;
+  const newSchedule: Record<string, string | null> = {};
+  dayNamesFull.forEach(day => { newSchedule[day] = null; });
+  trainingDays.forEach((day, idx) => {
+    const sessionIdx = (idx + rotation) % sessions.length;
+    newSchedule[day] = sessions[sessionIdx].id;
+  });
+  return newSchedule;
+}
+
 function ExerciseAnimation({ muscle }: { muscle: string }) {
   const m = muscle.toLowerCase();
-  
   return (
     <div className="flex flex-col items-center justify-center p-4 bg-[#1A1A1A] rounded-xl border border-zinc-800 mb-6 mx-auto w-[200px] h-[200px] relative overflow-hidden shadow-2xl">
       <svg width="160" height="160" viewBox="0 0 200 200" className="mx-auto">
-        <style>
-          {`
-            @keyframes curl {
-              0%, 100% { transform: rotate(0deg); }
-              50% { transform: rotate(-80deg); }
-            }
-            @keyframes extension {
-              0%, 100% { transform: rotate(0deg); }
-              50% { transform: rotate(110deg); }
-            }
-            @keyframes press {
-              0%, 100% { transform: translateY(0); }
-              50% { transform: translateY(-30px); }
-            }
-            @keyframes row {
-              0%, 100% { transform: translateX(0); }
-              50% { transform: translateX(-25px); }
-            }
-            @keyframes squat {
-              0%, 100% { transform: translateY(0); }
-              50% { transform: translateY(40px); }
-            }
-            @keyframes crunch {
-              0%, 100% { transform: rotate(0deg); }
-              50% { transform: rotate(15deg); }
-            }
-            @keyframes arrow {
-              0%, 100% { opacity: 0.2; transform: scale(0.9); }
-              50% { opacity: 1; transform: scale(1.1); }
-            }
-            .animate-curl { transform-origin: 70px 100px; animation: curl 2s ease-in-out infinite; }
-            .animate-extension { transform-origin: 100px 60px; animation: extension 2s ease-in-out infinite; }
-            .animate-press { animation: press 2s ease-in-out infinite; }
-            .animate-row { animation: row 2s ease-in-out infinite; }
-            .animate-squat { animation: squat 2s ease-in-out infinite; }
-            .animate-crunch { transform-origin: 100px 130px; animation: crunch 2s ease-in-out infinite; }
-            .animate-arrow { animation: arrow 2s ease-in-out infinite; }
-          `}
-        </style>
-
-        {(m.includes('bicep') || m.includes('avant-bras')) && (
-          <g>
-            <path d="M40 100 L70 100" stroke="#444" strokeWidth="8" strokeLinecap="round" />
-            <g className="animate-curl">
-              <path d="M70 100 L110 100" stroke="#E24B4A" strokeWidth="8" strokeLinecap="round" />
-              <circle cx="115" cy="100" r="10" fill="#E24B4A" />
-            </g>
-            <circle cx="40" cy="100" r="12" fill="#444" />
-            <path d="M140 70 L140 130 M140 70 L130 85 M140 70 L150 85" fill="none" stroke="#E24B4A" strokeWidth="3" className="animate-arrow" />
-          </g>
-        )}
-
-        {m.includes('tricep') && (
-          <g>
-            <path d="M100 20 L100 60" stroke="#444" strokeWidth="8" strokeLinecap="round" />
-            <g className="animate-extension">
-              <path d="M100 60 L100 110" stroke="#E24B4A" strokeWidth="8" strokeLinecap="round" />
-              <circle cx="100" cy="115" r="10" fill="#E24B4A" />
-            </g>
-            <circle cx="100" cy="20" r="12" fill="#444" />
-            <path d="M140 110 L140 50 M140 110 L130 95 M140 110 L150 95" fill="none" stroke="#E24B4A" strokeWidth="3" className="animate-arrow" />
-          </g>
-        )}
-
-        {(m.includes('pectoro') || m.includes('épaule')) && (
-          <g>
-            <rect x="50" y="140" width="100" height="10" fill="#444" rx="5" />
-            <g className="animate-press">
-              <path d="M60 140 L60 80 M140 140 L140 80" stroke="#444" strokeWidth="4" />
-              <path d="M50 80 L150 80" stroke="#E24B4A" strokeWidth="10" strokeLinecap="round" />
-            </g>
-            <path d="M100 40 L100 70 M90 55 L100 40 L110 55" fill="none" stroke="#E24B4A" strokeWidth="3" className="animate-arrow" />
-          </g>
-        )}
-
-        {(m.includes('dos') || m.includes('dorsal') || m.includes('trapèze')) && (
-          <g>
-            <rect x="50" y="40" width="100" height="10" fill="#444" rx="5" />
-            <g className="animate-press" style={{ animationDirection: 'reverse' }}>
-              <path d="M60 40 L60 100 M140 40 L140 100" stroke="#444" strokeWidth="4" />
-              <path d="M50 100 L150 100" stroke="#E24B4A" strokeWidth="10" strokeLinecap="round" />
-            </g>
-            <path d="M100 130 L100 160 M90 145 L100 160 L110 145" fill="none" stroke="#E24B4A" strokeWidth="3" className="animate-arrow" />
-          </g>
-        )}
-
-        {(m.includes('jambe') || m.includes('quadri') || m.includes('ischio') || m.includes('fessier')) && (
-          <g>
-            <rect x="40" y="170" width="120" height="10" fill="#444" rx="5" />
-            <g className="animate-squat">
-              <circle cx="100" cy="40" r="15" fill="#444" />
-              <path d="M100 55 L100 110" stroke="#444" strokeWidth="10" strokeLinecap="round" />
-              <path d="M100 110 L80 170 M100 110 L120 170" stroke="#E24B4A" strokeWidth="10" strokeLinecap="round" />
-            </g>
-            <path d="M150 150 L150 110 M140 125 L150 110 L160 125" fill="none" stroke="#E24B4A" strokeWidth="3" className="animate-arrow" />
-          </g>
-        )}
-
-        {m.includes('abdo') && (
-          <g>
-            <rect x="40" y="140" width="120" height="10" fill="#444" rx="5" />
-            <g className="animate-crunch">
-              <path d="M100 140 L100 80" stroke="#E24B4A" strokeWidth="12" strokeLinecap="round" />
-              <circle cx="100" cy="65" r="15" fill="#444" />
-            </g>
-            <path d="M60 80 Q80 60 100 80" fill="none" stroke="#E24B4A" strokeWidth="3" strokeDasharray="5,5" className="animate-arrow" />
-          </g>
-        )}
-
-        {!['bicep', 'avant-bras', 'tricep', 'pectoro', 'épaule', 'dos', 'dorsal', 'trapèze', 'jambe', 'quadri', 'ischio', 'fessier', 'abdo'].some(key => m.includes(key)) && (
-          <g opacity="0.5">
-            <circle cx="100" cy="60" r="20" fill="#444" />
-            <rect x="80" y="85" width="40" height="80" rx="10" fill="#444" />
-          </g>
-        )}
+        <style>{`
+          @keyframes curl{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-80deg)}}
+          @keyframes extension{0%,100%{transform:rotate(0deg)}50%{transform:rotate(110deg)}}
+          @keyframes press{0%,100%{transform:translateY(0)}50%{transform:translateY(-30px)}}
+          @keyframes squat{0%,100%{transform:translateY(0)}50%{transform:translateY(40px)}}
+          @keyframes crunch{0%,100%{transform:rotate(0deg)}50%{transform:rotate(15deg)}}
+          @keyframes arrow{0%,100%{opacity:0.2;transform:scale(0.9)}50%{opacity:1;transform:scale(1.1)}}
+          .animate-curl{transform-origin:70px 100px;animation:curl 2s ease-in-out infinite}
+          .animate-extension{transform-origin:100px 60px;animation:extension 2s ease-in-out infinite}
+          .animate-press{animation:press 2s ease-in-out infinite}
+          .animate-squat{animation:squat 2s ease-in-out infinite}
+          .animate-crunch{transform-origin:100px 130px;animation:crunch 2s ease-in-out infinite}
+          .animate-arrow{animation:arrow 2s ease-in-out infinite}
+        `}</style>
+        {(m.includes('bicep')||m.includes('avant-bras'))&&(<g><path d="M40 100 L70 100" stroke="#444" strokeWidth="8" strokeLinecap="round"/><g className="animate-curl"><path d="M70 100 L110 100" stroke="#E24B4A" strokeWidth="8" strokeLinecap="round"/><circle cx="115" cy="100" r="10" fill="#E24B4A"/></g><circle cx="40" cy="100" r="12" fill="#444"/><path d="M140 70 L140 130 M140 70 L130 85 M140 70 L150 85" fill="none" stroke="#E24B4A" strokeWidth="3" className="animate-arrow"/></g>)}
+        {m.includes('tricep')&&(<g><path d="M100 20 L100 60" stroke="#444" strokeWidth="8" strokeLinecap="round"/><g className="animate-extension"><path d="M100 60 L100 110" stroke="#E24B4A" strokeWidth="8" strokeLinecap="round"/><circle cx="100" cy="115" r="10" fill="#E24B4A"/></g><circle cx="100" cy="20" r="12" fill="#444"/><path d="M140 110 L140 50 M140 110 L130 95 M140 110 L150 95" fill="none" stroke="#E24B4A" strokeWidth="3" className="animate-arrow"/></g>)}
+        {(m.includes('pectoro')||m.includes('épaule'))&&(<g><rect x="50" y="140" width="100" height="10" fill="#444" rx="5"/><g className="animate-press"><path d="M60 140 L60 80 M140 140 L140 80" stroke="#444" strokeWidth="4"/><path d="M50 80 L150 80" stroke="#E24B4A" strokeWidth="10" strokeLinecap="round"/></g><path d="M100 40 L100 70 M90 55 L100 40 L110 55" fill="none" stroke="#E24B4A" strokeWidth="3" className="animate-arrow"/></g>)}
+        {(m.includes('dos')||m.includes('dorsal')||m.includes('trapèze'))&&(<g><rect x="50" y="40" width="100" height="10" fill="#444" rx="5"/><g className="animate-press" style={{animationDirection:'reverse'}}><path d="M60 40 L60 100 M140 40 L140 100" stroke="#444" strokeWidth="4"/><path d="M50 100 L150 100" stroke="#E24B4A" strokeWidth="10" strokeLinecap="round"/></g><path d="M100 130 L100 160 M90 145 L100 160 L110 145" fill="none" stroke="#E24B4A" strokeWidth="3" className="animate-arrow"/></g>)}
+        {(m.includes('jambe')||m.includes('quadri')||m.includes('ischio')||m.includes('fessier'))&&(<g><rect x="40" y="170" width="120" height="10" fill="#444" rx="5"/><g className="animate-squat"><circle cx="100" cy="40" r="15" fill="#444"/><path d="M100 55 L100 110" stroke="#444" strokeWidth="10" strokeLinecap="round"/><path d="M100 110 L80 170 M100 110 L120 170" stroke="#E24B4A" strokeWidth="10" strokeLinecap="round"/></g><path d="M150 150 L150 110 M140 125 L150 110 L160 125" fill="none" stroke="#E24B4A" strokeWidth="3" className="animate-arrow"/></g>)}
+        {m.includes('abdo')&&(<g><rect x="40" y="140" width="120" height="10" fill="#444" rx="5"/><g className="animate-crunch"><path d="M100 140 L100 80" stroke="#E24B4A" strokeWidth="12" strokeLinecap="round"/><circle cx="100" cy="65" r="15" fill="#444"/></g><path d="M60 80 Q80 60 100 80" fill="none" stroke="#E24B4A" strokeWidth="3" strokeDasharray="5,5" className="animate-arrow"/></g>)}
+        {!['bicep','avant-bras','tricep','pectoro','épaule','dos','dorsal','trapèze','jambe','quadri','ischio','fessier','abdo'].some(k=>m.includes(k))&&(<g opacity="0.5"><circle cx="100" cy="60" r="20" fill="#444"/><rect x="80" y="85" width="40" height="80" rx="10" fill="#444"/></g>)}
       </svg>
       <span className="absolute bottom-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Mouvement</span>
     </div>
@@ -159,13 +96,11 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const [history, setHistory] = useState<any[]>([]);
   const [completedDates, setCompletedDates] = useState<string[]>([]);
   const [isSessionPickerOpen, setIsSessionPickerOpen] = useState(false);
-  const [selectedPreviewSession, setSelectedPreviewSession] = useState<{session: Session, day: string} | null>(null);
+  const [selectedPreviewSession, setSelectedPreviewSession] = useState<{session: Session, day: string, date: Date} | null>(null);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [weekOffset, setWeekOffset] = useState(0);
 
-  const program = useMemo(() => {
-    return PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
-  }, [profile.objective]);
-
+  const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
   const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   const currentDayIdx = (new Date().getDay() + 6) % 7;
   const todayName = dayNamesFull[currentDayIdx];
@@ -199,7 +134,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     return count;
   }, [completedDates]);
 
-  const [schedule, setSchedule] = useState<Record<string, string | null>>(() => {
+  const baseSchedule = useMemo<Record<string, string | null>>(() => {
     const saved = localStorage.getItem("muscleup_schedule");
     if (saved) return JSON.parse(saved);
     const mapping: Record<string, string | null> = {};
@@ -208,35 +143,60 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       mapping[d] = s ? s.id : null;
     });
     return mapping;
-  });
+  }, []);
+
+  // Planning avec rotation selon la semaine
+  const schedule = useMemo(() => {
+    return getRotatedSchedule(baseSchedule, weekOffset, program);
+  }, [baseSchedule, weekOffset, program]);
 
   const todaySessionId = schedule[todayName];
   const todaySession = program.sessions.find(s => s.id === todaySessionId);
 
-  const dayStatuses = useMemo(() => {
-    const statuses = new Array(7).fill("upcoming");
+  // Dates de la semaine affichée
+  const weekDates = useMemo(() => {
     const now = new Date();
     const monday = new Date(now);
-    monday.setDate(now.getDate() - currentDayIdx);
-    monday.setHours(0,0,0,0);
-    history.forEach(h => {
-      if (!h.date) return;
-      const hDate = new Date(h.date);
-      if (hDate >= monday) {
-        const dayIdx = (hDate.getDay() + 6) % 7;
-        statuses[dayIdx] = "done";
-      }
+    monday.setDate(now.getDate() - currentDayIdx + weekOffset * 7);
+    monday.setHours(0, 0, 0, 0);
+    return dayNamesFull.map((_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d;
     });
-    return statuses;
-  }, [history, currentDayIdx]);
+  }, [weekOffset, currentDayIdx]);
+
+  const weekLabel = useMemo(() => {
+    const first = weekDates[0];
+    const last = weekDates[6];
+    if (first.getMonth() === last.getMonth()) {
+      return `${first.getDate()} – ${last.getDate()} ${MONTHS[first.getMonth()]}`;
+    }
+    return `${first.getDate()} ${MONTHS[first.getMonth()]} – ${last.getDate()} ${MONTHS[last.getMonth()]}`;
+  }, [weekDates]);
+
+  const weekNumber = useMemo(() => {
+    const now = new Date();
+    const target = new Date(now);
+    target.setDate(now.getDate() + weekOffset * 7);
+    return getWeekNumber(target);
+  }, [weekOffset]);
+
+  const dayStatuses = useMemo(() => {
+    return weekDates.map(date => {
+      const dateStr = date.toISOString().split('T')[0];
+      return completedDates.includes(dateStr) ? "done" : "upcoming";
+    });
+  }, [weekDates, completedDates]);
 
   const weeklySessionsDone = useMemo(() => {
+    if (weekOffset !== 0) return 0;
     const now = new Date();
     const monday = new Date(now);
     monday.setDate(now.getDate() - currentDayIdx);
     monday.setHours(0,0,0,0);
     return history.filter(h => h.date && new Date(h.date) >= monday).length;
-  }, [history, currentDayIdx]);
+  }, [history, currentDayIdx, weekOffset]);
 
   const totalWeeklyGoal = parseInt(profile.frequency) || 3;
   const weeklyProgressPercent = Math.min((weeklySessionsDone / totalWeeklyGoal) * 100, 100);
@@ -245,18 +205,10 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     if (!todaySession) return;
     let nextAvailableDayIdx = -1;
     for (let i = currentDayIdx + 1; i < 7; i++) {
-      if (!schedule[dayNamesFull[i]]) {
-        nextAvailableDayIdx = i;
-        break;
-      }
+      if (!baseSchedule[dayNamesFull[i]]) { nextAvailableDayIdx = i; break; }
     }
     if (nextAvailableDayIdx !== -1) {
       const nextDayName = dayNamesFull[nextAvailableDayIdx];
-      const newSchedule = { ...schedule };
-      newSchedule[nextDayName] = todaySessionId;
-      newSchedule[todayName] = null;
-      setSchedule(newSchedule);
-      localStorage.setItem("muscleup_schedule", JSON.stringify(newSchedule));
       toast({ title: `Séance reportée au ${nextDayName} ✓`, description: "Ton planning a été mis à jour." });
     } else {
       toast({ title: "Impossible de reporter", description: "Aucun jour de repos disponible cette semaine.", variant: "destructive" });
@@ -300,9 +252,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
         <div className="flex items-center gap-3">
           <span className="text-xl">{program.emoji}</span>
           <div className="text-left">
-            <span className="text-[12px] font-bold text-white uppercase block leading-tight">
-              {program.name}
-            </span>
+            <span className="text-[12px] font-bold text-white uppercase block leading-tight">{program.name}</span>
             <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight">
               {profile.level} · {profile.frequency}/sem · {isHome ? 'Équipement réduit' : 'Full équipement'}
             </span>
@@ -313,38 +263,40 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
         </div>
       </button>
 
-      <Card className={cn("p-8 rounded-2xl border-none relative overflow-hidden shadow-2xl transition-all", finishedToday ? "bg-[#1A4A2A]" : "bg-[#E24B4A]")}>
-        <div className="relative z-10 space-y-6">
-          <div>
-            <h3 className={cn("text-[10px] font-bold uppercase tracking-widest mb-2", finishedToday ? "text-green-400" : "text-white/70")}>
-              {finishedToday ? "Bravo !" : "Séance du jour"}
-            </h3>
-            <h4 className="text-4xl font-headline text-white leading-tight uppercase">
-              {finishedToday ? "SÉANCE TERMINÉE ✓" : (todaySession ? todaySession.name : "Repos aujourd'hui")}
-            </h4>
-            <p className={cn("font-medium text-sm", finishedToday ? "text-green-200" : "text-white/80")}>
-              {finishedToday ? "Ton corps te remercie. Repose-toi bien !" : (todaySession ? `Durée estimée : ${todaySession.duration}` : "Profite pour bien récupérer.")}
-            </p>
-          </div>
-          {!finishedToday && todaySession && (
-            <Button onClick={() => onStartSession()} className="w-full h-14 bg-white text-[#E24B4A] rounded-xl text-lg font-headline hover:bg-white/90 shadow-xl">
-              C'EST PARTI !
-            </Button>
-          )}
-          {!finishedToday && (
-            <div className="flex flex-col gap-3 mt-4">
-              <button onClick={() => setIsSessionPickerOpen(true)} className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors">
-                Choisir une autre séance →
-              </button>
-              {todaySession && (
-                <button onClick={handlePostpone} className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors">
-                  Reporter à demain →
-                </button>
-              )}
+      {weekOffset === 0 && (
+        <Card className={cn("p-8 rounded-2xl border-none relative overflow-hidden shadow-2xl transition-all", finishedToday ? "bg-[#1A4A2A]" : "bg-[#E24B4A]")}>
+          <div className="relative z-10 space-y-6">
+            <div>
+              <h3 className={cn("text-[10px] font-bold uppercase tracking-widest mb-2", finishedToday ? "text-green-400" : "text-white/70")}>
+                {finishedToday ? "Bravo !" : "Séance du jour"}
+              </h3>
+              <h4 className="text-4xl font-headline text-white leading-tight uppercase">
+                {finishedToday ? "SÉANCE TERMINÉE ✓" : (todaySession ? todaySession.name : "Repos aujourd'hui")}
+              </h4>
+              <p className={cn("font-medium text-sm", finishedToday ? "text-green-200" : "text-white/80")}>
+                {finishedToday ? "Ton corps te remercie. Repose-toi bien !" : (todaySession ? `Durée estimée : ${todaySession.duration}` : "Profite pour bien récupérer.")}
+              </p>
             </div>
-          )}
-        </div>
-      </Card>
+            {!finishedToday && todaySession && (
+              <Button onClick={() => onStartSession(todaySessionId || undefined)} className="w-full h-14 bg-white text-[#E24B4A] rounded-xl text-lg font-headline hover:bg-white/90 shadow-xl">
+                C'EST PARTI !
+              </Button>
+            )}
+            {!finishedToday && (
+              <div className="flex flex-col gap-3 mt-4">
+                <button onClick={() => setIsSessionPickerOpen(true)} className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors">
+                  Choisir une autre séance →
+                </button>
+                {todaySession && (
+                  <button onClick={handlePostpone} className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors">
+                    Reporter à demain →
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       <Dialog open={isSessionPickerOpen} onOpenChange={setIsSessionPickerOpen}>
         <DialogContent className="bg-[#1A1A1A] border-[#2A2A2A] text-white">
@@ -368,28 +320,76 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
         </DialogContent>
       </Dialog>
 
+      {/* Planning avec rotation */}
       <section className="space-y-4">
-        <h2 className="text-xl font-headline text-white tracking-wide">PROGRAMME DE LA SEMAINE</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-headline text-white tracking-wide">PLANNING</h2>
+            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mt-0.5">
+              Semaine {weekNumber} · {weekLabel}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setWeekOffset(w => w - 1)} disabled={weekOffset <= -4}
+              className="w-8 h-8 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#E24B4A] disabled:opacity-30 transition-all">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-[10px] font-bold text-zinc-500 uppercase min-w-[70px] text-center">
+              {weekOffset === 0 ? "Cette sem." : weekOffset > 0 ? `+${weekOffset} sem.` : `${weekOffset} sem.`}
+            </span>
+            <button onClick={() => setWeekOffset(w => w + 1)} disabled={weekOffset >= 8}
+              className="w-8 h-8 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#E24B4A] disabled:opacity-30 transition-all">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {weekOffset !== 0 && (
+          <div className="bg-[#1A1A1A] border border-[#E24B4A]/20 rounded-xl p-3 flex items-center justify-between">
+            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
+              Semaine {weekNumber}
+            </p>
+            <button onClick={() => setWeekOffset(0)} className="text-[10px] font-bold text-white bg-[#E24B4A] px-3 py-1.5 rounded-lg uppercase tracking-widest flex items-center gap-1">
+              📅 Aujourd'hui
+            </button>
+          </div>
+        )}
+
         <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
           {dayNamesFull.map((dayName, idx) => {
             const sessionId = schedule[dayName];
             const session = program.sessions.find(s => s.id === sessionId);
             const isDone = dayStatuses[idx] === "done";
-            const isToday = idx === currentDayIdx;
+            const date = weekDates[idx];
+            const isToday = weekOffset === 0 && idx === currentDayIdx;
             const isRest = !session || session.isRestDay;
+            const dateLabel = `${date.getDate()} ${MONTHS[date.getMonth()]}`;
+
             return (
               <div key={dayName}
-                onClick={() => !isRest && setSelectedPreviewSession({ session: session!, day: dayName })}
-                className={cn("p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-colors",
+                onClick={() => !isRest && setSelectedPreviewSession({ session: session!, day: dayName, date })}
+                className={cn(
+                  "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-colors",
                   isToday ? "bg-[#E24B4A]/5" : "",
-                  !isRest ? "cursor-pointer hover:bg-white/5" : "")}>
+                  !isRest ? "cursor-pointer hover:bg-white/5" : ""
+                )}
+              >
                 <div className="flex items-center gap-4">
-                  <span className={cn("text-xs font-bold w-20 flex-shrink-0", isToday ? "text-[#E24B4A]" : "text-zinc-600")}>{dayName}</span>
-                  <span className={cn("text-sm font-bold uppercase tracking-tight", isToday ? "text-white" : isRest ? "text-zinc-700" : "text-zinc-400")}>
+                  <div className="w-20 flex-shrink-0">
+                    <span className={cn("text-xs font-bold block", isToday ? "text-[#E24B4A]" : "text-zinc-500")}>{dayName}</span>
+                    <span className="text-[10px] text-zinc-700 font-bold">{dateLabel}</span>
+                  </div>
+                  <span className={cn("text-sm font-bold uppercase tracking-tight",
+                    isToday ? "text-white" : isRest ? "text-zinc-700" : "text-zinc-400")}>
                     {isRest ? "Repos" : session.name}
                   </span>
                 </div>
-                {isDone ? <CheckCircle2 className="w-4 h-4 text-[#4CAF50]" /> : isToday && !isRest ? <Circle className="w-4 h-4 text-[#E24B4A]" /> : <Circle className="w-4 h-4 text-zinc-800" />}
+                {isDone
+                  ? <CheckCircle2 className="w-4 h-4 text-[#4CAF50]" />
+                  : isToday && !isRest
+                    ? <Circle className="w-4 h-4 text-[#E24B4A]" />
+                    : <Circle className="w-4 h-4 text-zinc-800" />
+                }
               </div>
             );
           })}
@@ -410,13 +410,10 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           <span className="text-[10px] font-bold uppercase text-zinc-400">Coach IA</span>
         </button>
       </div>
-      
-      {/* Body Profile Summary Button */}
-      <section className="space-y-4">
-        <button 
-          onClick={() => setView("body-profile")}
-          className="w-full bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-2xl flex items-center justify-between hover:bg-[#2A2A2A] transition-all group"
-        >
+
+      <section>
+        <button onClick={() => setView("body-profile")}
+          className="w-full bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-2xl flex items-center justify-between hover:bg-[#2A2A2A] transition-all group">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
               <BarChart className="w-6 h-6 text-primary" />
@@ -466,7 +463,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
               <div>
                 <h2 className="text-3xl font-headline text-[#E24B4A] uppercase leading-none">{selectedPreviewSession.session.name}</h2>
                 <div className="flex items-center gap-3 mt-2 text-zinc-500 font-bold uppercase text-[10px] tracking-widest">
-                  <span>{selectedPreviewSession.day}</span>
+                  <span>{selectedPreviewSession.day} {selectedPreviewSession.date.getDate()} {MONTHS[selectedPreviewSession.date.getMonth()]}</span>
                   <span>•</span>
                   <div className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
@@ -476,11 +473,13 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
               </div>
             </div>
             <div className="space-y-3 mb-6">
-              {(profile.location === 'maison' && selectedPreviewSession.session.homeExercises ? selectedPreviewSession.session.homeExercises : selectedPreviewSession.session.exercises).map((ex, i) => (
-                <div key={i} onClick={() => setSelectedExercise(ex)} className="bg-[#0F0F0F] p-4 rounded-xl border border-[#2A2A2A] flex items-center gap-4 cursor-pointer hover:border-[#E24B4A]/50 transition-all group">
-                  <div className="w-8 h-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center font-headline text-xl text-[#E24B4A] flex-shrink-0 group-hover:bg-[#E24B4A] group-hover:text-white transition-colors">
-                    {i + 1}
-                  </div>
+              {(profile.location === 'maison' && selectedPreviewSession.session.homeExercises
+                ? selectedPreviewSession.session.homeExercises
+                : selectedPreviewSession.session.exercises
+              ).map((ex, i) => (
+                <div key={i} onClick={() => setSelectedExercise(ex)}
+                  className="bg-[#0F0F0F] p-4 rounded-xl border border-[#2A2A2A] flex items-center gap-4 cursor-pointer hover:border-[#E24B4A]/50 transition-all group">
+                  <div className="w-8 h-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center font-headline text-xl text-[#E24B4A] flex-shrink-0 group-hover:bg-[#E24B4A] group-hover:text-white transition-colors">{i + 1}</div>
                   <div className="flex-1">
                     <div className="font-bold text-sm text-white uppercase tracking-tight">{ex.name}</div>
                     <div className="flex items-center gap-3 mt-0.5">
@@ -492,21 +491,12 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
               ))}
             </div>
             <div className="space-y-3">
-              <Button
-                onClick={() => { onStartSession(selectedPreviewSession.session.id); setSelectedPreviewSession(null); }}
-                className="w-full h-14 bg-[#E24B4A] text-white font-headline text-xl rounded-xl shadow-xl"
-              >
-                {selectedPreviewSession.day === todayName ? "C'EST PARTI !" : "LANCER CETTE SÉANCE"}
+              <Button onClick={() => { onStartSession(selectedPreviewSession.session.id); setSelectedPreviewSession(null); }}
+                className="w-full h-14 bg-[#E24B4A] text-white font-headline text-xl rounded-xl shadow-xl">
+                {selectedPreviewSession.day === todayName && weekOffset === 0 ? "C'EST PARTI !" : "LANCER CETTE SÉANCE"}
               </Button>
-              {selectedPreviewSession.day !== todayName && (
-                <p className="text-center text-[10px] text-zinc-600 uppercase tracking-widest">
-                  Séance prévue le {selectedPreviewSession.day}
-                </p>
-              )}
-              <button
-                onClick={() => setSelectedPreviewSession(null)}
-                className="w-full text-center text-xs font-bold uppercase tracking-widest text-zinc-600 hover:text-zinc-400 py-3 transition-colors"
-              >
+              <button onClick={() => setSelectedPreviewSession(null)}
+                className="w-full text-center text-xs font-bold uppercase tracking-widest text-zinc-600 hover:text-zinc-400 py-3 transition-colors">
                 Fermer
               </button>
             </div>
@@ -515,12 +505,10 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       )}
 
       {selectedExercise && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/80 animate-in fade-in duration-300" onClick={() => setSelectedExercise(null)}>
-          <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-[30px] p-8 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/80" onClick={() => setSelectedExercise(null)}>
+          <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-[30px] p-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-8" />
-            
             <ExerciseAnimation muscle={selectedExercise.muscle} />
-
             <header className="mb-8 text-center">
               <h2 className="text-4xl font-headline text-primary uppercase leading-none mb-3">{selectedExercise.name}</h2>
               <div className="flex flex-wrap gap-2 justify-center">
@@ -529,7 +517,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                 <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-[10px] font-bold uppercase rounded-md flex items-center gap-1"><Timer className="w-3 h-3" /> {selectedExercise.rest}</span>
               </div>
             </header>
-
             <div className="space-y-8">
               <section className="space-y-3">
                 <div className="flex items-center gap-2"><Zap className="w-4 h-4 text-primary" /><h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Position & Mouvement</h3></div>
@@ -544,7 +531,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           </div>
         </div>
       )}
-
     </div>
   );
 }
