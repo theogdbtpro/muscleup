@@ -186,7 +186,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       document.body.style.overflow = '';
       document.body.style.height = '';
     };
-  }, [selectedPreviewSession, selectedExercise]);
+  }, [selectedPreviewSession, selectedExercise, longPressActive]);
 
   const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   const currentDayIdx = (new Date().getDay() + 6) % 7;
@@ -511,7 +511,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           )}
 
           <div
-            className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden select-none"
+            className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl select-none"
             onTouchMove={handleTouchMoveDrag}
             onTouchEnd={handleTouchEndDrag}
             style={{ touchAction: longPressActive ? 'none' : 'pan-y', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as React.CSSProperties}
@@ -544,7 +544,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                     "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all",
                     isToday ? "bg-[#E24B4A]/5" : "",
                     !longPressActive && !isRest ? "cursor-pointer hover:bg-white/5" : "",                    !isRest ? "cursor-grab active:cursor-grabbing" : "",
-                    isDragging ? "opacity-40 scale-[1.03] shadow-2xl shadow-black/50 bg-[#2A2A2A] border-[#E24B4A]/40 z-10 relative" : "",
+                    isDragging ? "bg-[#E24B4A]/10 border-l-2 border-l-[#E24B4A]" : "",
                     isDropTarget ? "bg-[#E24B4A]/10 border-[#E24B4A]/40" : "",
                     longPressActive && draggedDay === dayName ? "touch-none" : "",
                   )}>
