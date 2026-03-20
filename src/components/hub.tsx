@@ -568,11 +568,33 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       {/* Modals EN DEHORS du div principal */}
       {selectedPreviewSession && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70" onClick={() => setSelectedPreviewSession(null)}>
-          <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto"
-                  onClick={e => e.stopPropagation()}
-                  onTouchStart={e => { const y = e.touches[0].clientY; e.currentTarget.dataset.touchY = String(y); }}
-                  onTouchEnd={e => { const startY = Number(e.currentTarget.dataset.touchY); const endY = e.changedTouches[0].clientY; if (endY - startY > 80) setSelectedPreviewSession(null); }}
-          >
+          <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto transition-transform"
+  onClick={e => e.stopPropagation()}
+  onTouchStart={e => {
+    const el = e.currentTarget;
+    el.dataset.touchY = String(e.touches[0].clientY);
+    el.style.transition = 'none';
+  }}
+  onTouchMove={e => {
+    const el = e.currentTarget;
+    const startY = Number(el.dataset.touchY);
+    const delta = e.touches[0].clientY - startY;
+    if (delta > 0) el.style.transform = `translateY(${delta}px)`;
+  }}
+  onTouchEnd={e => {
+    const el = e.currentTarget;
+    const startY = Number(el.dataset.touchY);
+    const endY = e.changedTouches[0].clientY;
+    const delta = endY - startY;
+    el.style.transition = 'transform 0.3s ease';
+    if (delta > 100) {
+      el.style.transform = 'translateY(100%)';
+      setTimeout(() => setSelectedPreviewSession(null), 300);
+    } else {
+      el.style.transform = 'translateY(0)';
+    }
+  }}
+>
             <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-6" />
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1 min-w-0 mr-4">
