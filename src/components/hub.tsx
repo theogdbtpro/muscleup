@@ -175,7 +175,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
 
   useEffect(() => {
-    if (selectedPreviewSession || selectedExercise) {
+    if (selectedPreviewSession || selectedExercise || longPressActive) {
       document.body.style.overflow = 'hidden';
       document.body.style.height = '100%';
     } else {
@@ -544,7 +544,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                     "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all",
                     isToday ? "bg-[#E24B4A]/5" : "",
                     !longPressActive && !isRest ? "cursor-pointer hover:bg-white/5" : "",                    !isRest ? "cursor-grab active:cursor-grabbing" : "",
-                    isDragging ? "opacity-40" : "",
+                    isDragging ? "opacity-40 scale-[1.03] shadow-2xl shadow-black/50 bg-[#2A2A2A] border-[#E24B4A]/40 z-10 relative" : "",
                     isDropTarget ? "bg-[#E24B4A]/10 border-[#E24B4A]/40" : "",
                     longPressActive && draggedDay === dayName ? "touch-none" : "",
                   )}>
