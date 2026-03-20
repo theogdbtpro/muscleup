@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, ChevronLeft, Clock, Timer, Zap, Info, Dumbbell, Home as HomeIcon, BarChart, Pencil, Check, X, RotateCcw } from "lucide-react";
+import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, ChevronLeft, Clock, Timer, Zap, Info, Dumbbell, Home as HomeIcon, BarChart, Pencil, Check, X, RotateCcw, Lock, Unlock, GripVertical } from "lucide-react";
 import { useMemo, useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -165,8 +165,14 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [planningLocked, setPlanningLocked] = useState(true);
+  const [draggedDay, setDraggedDay] = useState<string | null>(null);
+  const [dragOverDay, setDragOverDay] = useState<string | null>(null);
+  const [manualSchedule, setManualSchedule] = useState<Record<string, string | null> | null>(null);
+  const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
+
   useEffect(() => {
     if (selectedPreviewSession || selectedExercise) {
       document.body.style.overflow = 'hidden';
@@ -180,6 +186,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       document.body.style.height = '';
     };
   }, [selectedPreviewSession, selectedExercise]);
+
   const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   const currentDayIdx = (new Date().getDay() + 6) % 7;
   const todayName = dayNamesFull[currentDayIdx];
@@ -191,6 +198,8 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     if (savedDates) setCompletedDates(JSON.parse(savedDates));
     const savedNames = localStorage.getItem("muscleup_session_names");
     if (savedNames) setCustomNames(JSON.parse(savedNames));
+    const savedManual = localStorage.getItem("muscleup_manual_schedule");
+    if (savedManual) setManualSchedule(JSON.parse(savedManual));
   }, []);
 
   const saveCustomName = (sessionId: string, name: string) => {
@@ -244,7 +253,23 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     return mapping;
   }, [program]);
 
-  const schedule = useMemo(() => getRotatedSchedule(baseSchedule, weekOffset, program), [baseSchedule, weekOffset, program]);
+  const rotatedSchedule = useMemo(() => getRotatedSchedule(baseSchedule, weekOffset, program), [baseSchedule, weekOffset, program]);
+  const schedule = manualSchedule || rotatedSchedule;
+
+  const swapDays = (dayA: string, dayB: string) => {
+    const base = { ...schedule };
+    const tmp = base[dayA];
+    base[dayA] = base[dayB];
+    base[dayB] = tmp;
+    setManualSchedule(base);
+    localStorage.setItem("muscleup_manual_schedule", JSON.stringify(base));
+  };
+
+  const resetToOptimal = () => {
+    setManualSchedule(null);
+    localStorage.removeItem("muscleup_manual_schedule");
+    toast({ title: "Planning réinitialisé ✓", description: "Le planning optimal a été restauré." });
+  };
 
   const todaySessionId = schedule[todayName];
   const todaySession = program.sessions.find(s => s.id === todaySessionId);
@@ -295,19 +320,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const totalWeeklyGoal = parseInt(profile.frequency) || 3;
   const weeklyProgressPercent = Math.min((weeklySessionsDone / totalWeeklyGoal) * 100, 100);
 
-  const handlePostpone = () => {
-    if (!todaySession) return;
-    let nextAvailableDayIdx = -1;
-    for (let i = currentDayIdx + 1; i < 7; i++) {
-      if (!baseSchedule[dayNamesFull[i]]) { nextAvailableDayIdx = i; break; }
-    }
-    if (nextAvailableDayIdx !== -1) {
-      toast({ title: `Séance reportée au ${dayNamesFull[nextAvailableDayIdx]} ✓`, description: "Ton planning a été mis à jour." });
-    } else {
-      toast({ title: "Impossible de reporter", description: "Aucun jour de repos disponible cette semaine.", variant: "destructive" });
-    }
-  };
-
   const isHome = profile.location === 'maison';
 
   const bodyStatsSummary = useMemo(() => {
@@ -316,6 +328,41 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     const imc = (poids / ((taille / 100) ** 2)).toFixed(1);
     return `${poids}kg · ${taille}cm · IMC ${imc}`;
   }, [profile.bodyProfile]);
+
+  // ── Drag & Drop (desktop) ──────────────────────────────────────────────
+  const handleDragStart = (dayName: string) => setDraggedDay(dayName);
+  const handleDragOver = (e: React.DragEvent, dayName: string) => {
+    e.preventDefault();
+    setDragOverDay(dayName);
+  };
+  const handleDrop = (dayName: string) => {
+    if (draggedDay && draggedDay !== dayName) swapDays(draggedDay, dayName);
+    setDraggedDay(null);
+    setDragOverDay(null);
+  };
+
+  // ── Drag & Drop (touch / mobile) ──────────────────────────────────────
+  const touchDragDay = useRef<string | null>(null);
+  const handleTouchStartDrag = (e: React.TouchEvent, dayName: string) => {
+    if (planningLocked) return;
+    touchDragDay.current = dayName;
+    setDraggedDay(dayName);
+  };
+  const handleTouchMoveDrag = (e: React.TouchEvent) => {
+    if (!touchDragDay.current) return;
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const row = el?.closest('[data-day]') as HTMLElement | null;
+    if (row) setDragOverDay(row.dataset.day || null);
+  };
+  const handleTouchEndDrag = () => {
+    if (touchDragDay.current && dragOverDay && touchDragDay.current !== dragOverDay) {
+      swapDays(touchDragDay.current, dragOverDay);
+    }
+    touchDragDay.current = null;
+    setDraggedDay(null);
+    setDragOverDay(null);
+  };
 
   return (
     <>
@@ -358,13 +405,13 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
         </button>
 
         {weekOffset === 0 && (
-          <Card className={cn("p-8 rounded-2xl border-none relative overflow-hidden shadow-2xl transition-all", finishedToday ? "bg-[#1A4A2A]" : "bg-[#E24B4A]")}>
-            <div className="relative z-10 space-y-6">
+          <Card className={cn("p-5 rounded-2xl border-none relative overflow-hidden shadow-2xl transition-all", finishedToday ? "bg-[#1A4A2A]" : "bg-[#E24B4A]")}>
+            <div className="relative z-10 space-y-4">
               <div>
                 <h3 className={cn("text-[10px] font-bold uppercase tracking-widest mb-2", finishedToday ? "text-green-400" : "text-white/70")}>
                   {finishedToday ? "Bravo !" : "Séance du jour"}
                 </h3>
-                <h4 className="text-4xl font-headline text-white leading-tight uppercase">
+                <h4 className="text-2xl font-headline text-white leading-tight uppercase">
                   {finishedToday ? "SÉANCE TERMINÉE ✓" : todaySessionDisplayName}
                 </h4>
                 <p className={cn("font-medium text-sm", finishedToday ? "text-green-200" : "text-white/80")}>
@@ -372,21 +419,14 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                 </p>
               </div>
               {!finishedToday && todaySession && (
-                <Button onClick={() => onStartSession(todaySessionId || undefined)} className="w-full h-14 bg-white text-[#E24B4A] rounded-xl text-lg font-headline hover:bg-white/90 shadow-xl">
+                <Button onClick={() => onStartSession(todaySessionId || undefined)} className="w-full h-11 bg-white text-[#E24B4A] rounded-xl text-base font-headline hover:bg-white/90 shadow-xl">
                   C'EST PARTI !
                 </Button>
               )}
               {!finishedToday && (
-                <div className="flex flex-col gap-3 mt-4">
-                  <button onClick={() => setIsSessionPickerOpen(true)} className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors">
-                    Choisir une autre séance →
-                  </button>
-                  {todaySession && (
-                    <button onClick={handlePostpone} className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors">
-                      Reporter à demain →
-                    </button>
-                  )}
-                </div>
+                <button onClick={() => setIsSessionPickerOpen(true)} className="w-full text-center text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors">
+                  Choisir une autre séance →
+                </button>
               )}
             </div>
           </Card>
@@ -423,6 +463,25 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {/* Bouton verrou */}
+              <button
+                onClick={() => {
+                  const newLocked = !planningLocked;
+                  setPlanningLocked(newLocked);
+                  if (!newLocked) {
+                    toast({ title: "Planning déverrouillé 🔓", description: "Glisse les séances pour les réorganiser." });
+                  }
+                }}
+                className={cn(
+                  "w-8 h-8 rounded-full border flex items-center justify-center transition-all",
+                  planningLocked
+                    ? "bg-[#1A1A1A] border-[#2A2A2A] text-zinc-500 hover:text-white hover:border-zinc-500"
+                    : "bg-[#E24B4A]/10 border-[#E24B4A]/40 text-[#E24B4A]"
+                )}
+                title={planningLocked ? "Déverrouiller le planning" : "Verrouiller le planning"}
+              >
+                {planningLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+              </button>
               <button onClick={() => setWeekOffset(w => w - 1)} disabled={weekOffset <= -4}
                 className="w-8 h-8 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#E24B4A] disabled:opacity-30 transition-all">
                 <ChevronLeft className="w-4 h-4" />
@@ -437,6 +496,20 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             </div>
           </div>
 
+          {/* Bannière déverrouillé */}
+          {!planningLocked && (
+            <div className="bg-[#E24B4A]/10 border border-[#E24B4A]/30 rounded-xl p-3 flex items-center justify-between">
+              <p className="text-[10px] font-bold text-[#E24B4A] uppercase tracking-widest">
+                🔓 Glisse les séances pour les déplacer
+              </p>
+              {manualSchedule && (
+                <button onClick={resetToOptimal} className="text-[10px] font-bold text-white bg-[#E24B4A] px-3 py-1.5 rounded-lg uppercase tracking-widest">
+                  Réinitialiser
+                </button>
+              )}
+            </div>
+          )}
+
           {weekOffset !== 0 && (
             <div className="bg-[#1A1A1A] border border-[#E24B4A]/20 rounded-xl p-3 flex items-center justify-between">
               <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Semaine {weekNumber}</p>
@@ -446,7 +519,11 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             </div>
           )}
 
-          <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
+          <div
+            className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden"
+            onTouchMove={!planningLocked ? handleTouchMoveDrag : undefined}
+            onTouchEnd={!planningLocked ? handleTouchEndDrag : undefined}
+          >
             {dayNamesFull.map((dayName, idx) => {
               const sessionId = schedule[dayName];
               const session = program.sessions.find(s => s.id === sessionId);
@@ -455,16 +532,34 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
               const isToday = weekOffset === 0 && idx === currentDayIdx;
               const isRest = !session || session.isRestDay;
               const dateLabel = `${date.getDate()} ${MONTHS[date.getMonth()]}`;
+              const isDragging = draggedDay === dayName;
+              const isDropTarget = dragOverDay === dayName && draggedDay !== dayName;
 
               return (
-                <div key={dayName}
-                  onClick={() => !isRest && session && setSelectedPreviewSession({ session, day: dayName, date })}
+                <div
+                  key={dayName}
+                  data-day={dayName}
+                  ref={el => { dayRefs.current[dayName] = el; }}
+                  draggable={!planningLocked && !isRest}
+                  onDragStart={!planningLocked && !isRest ? () => handleDragStart(dayName) : undefined}
+                  onDragOver={!planningLocked ? (e) => handleDragOver(e, dayName) : undefined}
+                  onDrop={!planningLocked ? () => handleDrop(dayName) : undefined}
+                  onDragEnd={() => { setDraggedDay(null); setDragOverDay(null); }}
+                  onTouchStart={!planningLocked && !isRest ? (e) => handleTouchStartDrag(e, dayName) : undefined}
+                  onClick={() => planningLocked && !isRest && session && setSelectedPreviewSession({ session, day: dayName, date })}
                   className={cn(
-                    "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-colors",
+                    "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all",
                     isToday ? "bg-[#E24B4A]/5" : "",
-                    !isRest ? "cursor-pointer hover:bg-white/5" : ""
+                    planningLocked && !isRest ? "cursor-pointer hover:bg-white/5" : "",
+                    !planningLocked && !isRest ? "cursor-grab active:cursor-grabbing" : "",
+                    isDragging ? "opacity-40" : "",
+                    isDropTarget ? "bg-[#E24B4A]/10 border-[#E24B4A]/40" : "",
                   )}>
                   <div className="flex items-center gap-4 flex-1 min-w-0">
+                    {/* Poignée de drag */}
+                    {!planningLocked && !isRest && (
+                      <GripVertical className="w-4 h-4 text-zinc-600 shrink-0" />
+                    )}
                     <div className="w-20 flex-shrink-0">
                       <span className={cn("text-xs font-bold block", isToday ? "text-[#E24B4A]" : "text-zinc-500")}>{dayName}</span>
                       <span className="text-[10px] text-zinc-700 font-bold">{dateLabel}</span>
@@ -484,8 +579,8 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                     )}
                   </div>
                   <div className="flex items-center gap-2 ml-2 shrink-0">
-                    {!isRest && editingSessionId !== session?.id && (
-                      <button onClick={() => setSelectedPreviewSession({ session: session!, day: dayName, date })}
+                    {planningLocked && !isRest && editingSessionId !== session?.id && (
+                      <button onClick={(e) => { e.stopPropagation(); setSelectedPreviewSession({ session: session!, day: dayName, date }); }}
                         className="text-zinc-600 hover:text-zinc-300 transition-colors">
                         <ChevronRight className="w-4 h-4" />
                       </button>
@@ -565,36 +660,35 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
 
       </div>
 
-      {/* Modals EN DEHORS du div principal */}
       {selectedPreviewSession && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70" onClick={() => setSelectedPreviewSession(null)}>
           <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto transition-transform"
-  onClick={e => e.stopPropagation()}
-  onTouchStart={e => {
-    const el = e.currentTarget;
-    el.dataset.touchY = String(e.touches[0].clientY);
-    el.style.transition = 'none';
-  }}
-  onTouchMove={e => {
-    const el = e.currentTarget;
-    const startY = Number(el.dataset.touchY);
-    const delta = e.touches[0].clientY - startY;
-    if (delta > 0) el.style.transform = `translateY(${delta}px)`;
-  }}
-  onTouchEnd={e => {
-    const el = e.currentTarget;
-    const startY = Number(el.dataset.touchY);
-    const endY = e.changedTouches[0].clientY;
-    const delta = endY - startY;
-    el.style.transition = 'transform 0.3s ease';
-    if (delta > 100) {
-      el.style.transform = 'translateY(100%)';
-      setTimeout(() => setSelectedPreviewSession(null), 300);
-    } else {
-      el.style.transform = 'translateY(0)';
-    }
-  }}
->
+            onClick={e => e.stopPropagation()}
+            onTouchStart={e => {
+              const el = e.currentTarget;
+              el.dataset.touchY = String(e.touches[0].clientY);
+              el.style.transition = 'none';
+            }}
+            onTouchMove={e => {
+              const el = e.currentTarget;
+              const startY = Number(el.dataset.touchY);
+              const delta = e.touches[0].clientY - startY;
+              if (delta > 0) el.style.transform = `translateY(${delta}px)`;
+            }}
+            onTouchEnd={e => {
+              const el = e.currentTarget;
+              const startY = Number(el.dataset.touchY);
+              const endY = e.changedTouches[0].clientY;
+              const delta = endY - startY;
+              el.style.transition = 'transform 0.3s ease';
+              if (delta > 100) {
+                el.style.transform = 'translateY(100%)';
+                setTimeout(() => setSelectedPreviewSession(null), 300);
+              } else {
+                el.style.transform = 'translateY(0)';
+              }
+            }}
+          >
             <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-6" />
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1 min-w-0 mr-4">
