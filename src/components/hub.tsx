@@ -449,7 +449,8 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             const dateLabel = `${date.getDate()} ${MONTHS[date.getMonth()]}`;
 
             return (
-              <div key={dayName} className={cn(
+              <div key={dayName} onClick={() => !isRest && session && setSelectedPreviewSession({ session, day: dayName, date })}
+              className={cn(
                 "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-colors",
                 isToday ? "bg-[#E24B4A]/5" : "",
                 !isRest ? "cursor-pointer hover:bg-white/5" : ""
