@@ -171,7 +171,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [manualSchedule, setManualSchedule] = useState<Record<string, string | null> | null>(null);
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
+  const planningRef = useRef<HTMLDivElement | null>(null);
   const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
 
   useEffect(() => {
@@ -187,7 +187,15 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       document.body.style.height = '';
     };
   }, [selectedPreviewSession, selectedExercise, longPressActive]);
-
+  useEffect(() => {
+    const el = planningRef.current;
+    if (!el) return;
+    const preventScroll = (e: TouchEvent) => {
+      if (touchDragDay.current) e.preventDefault();
+    };
+    el.addEventListener('touchmove', preventScroll, { passive: false });
+    return () => el.removeEventListener('touchmove', preventScroll);
+  }, []);
   const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   const currentDayIdx = (new Date().getDay() + 6) % 7;
   const todayName = dayNamesFull[currentDayIdx];
@@ -511,6 +519,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           )}
 
           <div
+            ref={planningRef}
             className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl select-none"
             onTouchMove={handleTouchMoveDrag}
             onTouchEnd={handleTouchEndDrag}
