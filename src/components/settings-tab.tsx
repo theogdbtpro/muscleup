@@ -1,12 +1,13 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { UserProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronLeft, Target, Award, Calendar, Repeat, CheckCircle, AlertTriangle, Sparkles, MapPin, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronLeft, Target, Award, Calendar, Repeat, CheckCircle, AlertTriangle, Sparkles, MapPin, ChevronUp, ChevronDown, Pencil, RotateCcw, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,14 +23,25 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   const [isObjectiveModalOpen, setIsObjectiveModalOpen] = useState(false);
   const [moveMessage, setMoveMessage] = useState<string | null>(null);
   
+  const [customNames, setCustomNames] = useState<Record<string, string>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+
   const dayNamesFull = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
   const isHighFrequency = tempProfile.frequency === "4j" || tempProfile.frequency === "5j";
 
   const [schedule, setSchedule] = useState<Record<string, string | null>>(() => {
-    const saved = localStorage.getItem("muscleup_schedule");
-    if (saved) return JSON.parse(saved);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem("muscleup_schedule");
+      if (saved) return JSON.parse(saved);
+    }
     return generateOptimizedSchedule(profile.frequency, profile.objective);
   });
+
+  useEffect(() => {
+    const savedNames = localStorage.getItem("muscleup_session_names");
+    if (savedNames) setCustomNames(JSON.parse(savedNames));
+  }, []);
 
   const currentProgram = PROGRAMS.find(p => p.id === tempProfile.objective) || PROGRAMS[0];
 
@@ -80,6 +92,26 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
       description: "Tes modifications ont été enregistrées avec succès.",
     });
     setTimeout(() => onBack(), 1000);
+  };
+
+  const handleSaveCustomName = (id: string) => {
+    if (!editValue.trim()) {
+      setEditingId(null);
+      return;
+    }
+    const newNames = { ...customNames, [id]: editValue };
+    setCustomNames(newNames);
+    localStorage.setItem("muscleup_session_names", JSON.stringify(newNames));
+    setEditingId(null);
+    toast({ title: "Nom mis à jour ✓" });
+  };
+
+  const handleResetName = (id: string) => {
+    const newNames = { ...customNames };
+    delete newNames[id];
+    setCustomNames(newNames);
+    localStorage.setItem("muscleup_session_names", JSON.stringify(newNames));
+    toast({ title: "Nom réinitialisé" });
   };
 
   const moveSession = (day: string, direction: 'up' | 'down') => {
@@ -221,26 +253,66 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               const nextDay = dayNamesFull[(idx + 1) % 7];
               const hasAdjacencyIssue = !isHighFrequency && !!sessionId && (!!schedule[prevDay] || !!schedule[nextDay]);
 
+              const displayName = session ? (customNames[session.id] || session.name) : "Repos";
+              const isCustom = session && customNames[session.id];
+
               return (
                 <div 
                   key={day}
                   className="p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-200"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 flex-1">
                     <span className="text-xs font-bold w-12 text-zinc-600">{day}</span>
-                    <div className="flex items-center gap-2">
-                      <span className={cn("text-sm font-bold uppercase tracking-tight", session ? "text-white" : "text-zinc-700")}>
-                        {session ? session.name : "Repos"}
-                      </span>
-                      {hasAdjacencyIssue && (
-                        <div className="w-5 h-5 bg-amber-500/20 rounded-full flex items-center justify-center">
-                          <span className="text-amber-500 text-[10px] font-bold">!</span>
-                        </div>
-                      )}
+                    <div className="flex flex-col flex-1">
+                      <div className="flex items-center gap-2">
+                        {editingId === session?.id ? (
+                          <div className="flex items-center gap-1 flex-1 max-w-[200px]">
+                            <Input
+                              autoFocus
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && handleSaveCustomName(session!.id)}
+                              onBlur={() => setEditingId(null)}
+                              className="h-8 bg-[#0F0F0F] border-[#E24B4A] text-sm py-1"
+                            />
+                            <button onClick={() => handleSaveCustomName(session!.id)} className="p-1.5 text-green-500">
+                              <Check className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className={cn("text-sm font-bold uppercase tracking-tight", session ? "text-white" : "text-zinc-700")}>
+                              {displayName}
+                            </span>
+                            {session && (
+                              <button 
+                                onClick={() => { setEditingId(session.id); setEditValue(customNames[session.id] || session.name); }} 
+                                className="p-1 text-zinc-600 hover:text-primary transition-colors"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                            )}
+                            {isCustom && (
+                              <button 
+                                onClick={() => handleResetName(session.id)} 
+                                className="p-1 text-zinc-600 hover:text-amber-500 transition-colors"
+                                title="Réinitialiser le nom"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {hasAdjacencyIssue && (
+                          <div className="w-5 h-5 bg-amber-500/20 rounded-full flex items-center justify-center">
+                            <span className="text-amber-500 text-[10px] font-bold">!</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {sessionId && (
+                  {sessionId && !editingId && (
                     <div className="flex gap-1">
                       <button
                         disabled={idx === 0}
@@ -262,6 +334,10 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               );
             })}
           </div>
+
+          <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest text-center">
+            💡 Astuce : utilise le crayon pour renommer tes séances
+          </p>
 
           {optimizationWarnings.length > 0 && (
             <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl space-y-2">

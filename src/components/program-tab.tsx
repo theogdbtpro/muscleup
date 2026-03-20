@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -52,6 +53,12 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
 
   const [internalSessionId, setInternalSessionId] = useState<string | null>(manualSessionId || null);
   const [phase, setPhase] = useState<"select" | "intro" | "workout">(manualSessionId ? "intro" : "select");
+  const [customNames, setCustomNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const savedNames = localStorage.getItem("muscleup_session_names");
+    if (savedNames) setCustomNames(JSON.parse(savedNames));
+  }, []);
 
   const schedule = useMemo(() => {
     if (typeof window === 'undefined') return null;
@@ -68,6 +75,8 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
     if (schedule && schedule[todayName]) return program.sessions.find(s => s.id === schedule[todayName]) || program.sessions[0];
     return program.sessions.find(s => s.day === todayName) || program.sessions[0];
   }, [program, internalSessionId, schedule]);
+
+  const currentSessionDisplayName = customNames[currentSession.id] || currentSession.name;
 
   const currentExercises = useMemo(() => {
     if (profile.location === 'maison' && currentSession.homeExercises) {
@@ -112,7 +121,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
 
   const handleFinish = () => {
     const todayStr = new Date().toISOString().split('T')[0];
-    const historyItem = { day: currentSession.day, date: new Date().toISOString(), sessionName: currentSession.name };
+    const historyItem = { day: currentSession.day, date: new Date().toISOString(), sessionName: currentSessionDisplayName };
     const existingHistory = JSON.parse(localStorage.getItem("muscleup_history") || "[]");
     localStorage.setItem("muscleup_history", JSON.stringify([historyItem, ...existingHistory]));
     const existingDates = JSON.parse(localStorage.getItem("completedDates") || "[]");
@@ -140,6 +149,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
         <div className="space-y-4 flex-1 overflow-y-auto no-scrollbar pb-10">
           {program.sessions.filter(s => !s.isRestDay).map((s) => {
             const isToday = s.id === todaySessionId;
+            const sessionDisplayName = customNames[s.id] || s.name;
             const scheduledDays = schedule
               ? Object.entries(schedule)
                   .filter(([_, id]) => id === s.id)
@@ -158,7 +168,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex flex-col">
-                    <div className="font-headline text-2xl text-white uppercase group-hover:text-primary transition-colors leading-none">{s.name}</div>
+                    <div className="font-headline text-2xl text-white uppercase group-hover:text-primary transition-colors leading-none">{sessionDisplayName}</div>
                     {scheduledDays && (
                       <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">
                         Prévu le {scheduledDays}
@@ -196,7 +206,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
         <div className="flex-1 flex flex-col justify-center">
           <div className="text-center mb-12">
             <div className="text-6xl mb-6">{program.emoji}</div>
-            <h1 className="text-4xl font-headline text-white uppercase leading-tight mb-2">{currentSession.name}</h1>
+            <h1 className="text-4xl font-headline text-white uppercase leading-tight mb-2">{currentSessionDisplayName}</h1>
             <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">
               Mode {profile.location === 'maison' ? '🏠 Maison' : '🏋️ Salle'} • {currentSession.duration}
             </p>
@@ -256,7 +266,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
         <div className="h-full bg-[#E24B4A] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
       </div>
 
-      <h2 className="text-2xl font-headline text-white mb-1 uppercase">{currentSession.name}</h2>
+      <h2 className="text-2xl font-headline text-white mb-1 uppercase">{currentSessionDisplayName}</h2>
       <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mb-5">Clique sur un exercice pour voir le mouvement</p>
 
       {readyMessage && (

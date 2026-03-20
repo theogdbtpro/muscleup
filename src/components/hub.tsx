@@ -1,3 +1,4 @@
+
 "use client";
 
 import { UserProfile } from "@/app/page";
@@ -99,6 +100,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const [selectedPreviewSession, setSelectedPreviewSession] = useState<{session: Session, day: string, date: Date} | null>(null);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [customNames, setCustomNames] = useState<Record<string, string>>({});
 
   const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
   const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
@@ -110,6 +112,8 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     if (savedHistory) setHistory(JSON.parse(savedHistory));
     const savedDates = localStorage.getItem("completedDates");
     if (savedDates) setCompletedDates(JSON.parse(savedDates));
+    const savedNames = localStorage.getItem("muscleup_session_names");
+    if (savedNames) setCustomNames(JSON.parse(savedNames));
   }, []);
 
   const finishedToday = useMemo(() => {
@@ -135,6 +139,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   }, [completedDates]);
 
   const baseSchedule = useMemo<Record<string, string | null>>(() => {
+    if (typeof window === 'undefined') return {};
     const saved = localStorage.getItem("muscleup_schedule");
     if (saved) return JSON.parse(saved);
     const mapping: Record<string, string | null> = {};
@@ -143,17 +148,16 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       mapping[d] = s ? s.id : null;
     });
     return mapping;
-  }, []);
+  }, [program]);
 
-  // Planning avec rotation selon la semaine
   const schedule = useMemo(() => {
     return getRotatedSchedule(baseSchedule, weekOffset, program);
   }, [baseSchedule, weekOffset, program]);
 
   const todaySessionId = schedule[todayName];
   const todaySession = program.sessions.find(s => s.id === todaySessionId);
+  const todaySessionDisplayName = todaySession ? (customNames[todaySession.id] || todaySession.name) : "Repos aujourd'hui";
 
-  // Dates de la semaine affichée
   const weekDates = useMemo(() => {
     const now = new Date();
     const monday = new Date(now);
@@ -271,7 +275,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                 {finishedToday ? "Bravo !" : "Séance du jour"}
               </h3>
               <h4 className="text-4xl font-headline text-white leading-tight uppercase">
-                {finishedToday ? "SÉANCE TERMINÉE ✓" : (todaySession ? todaySession.name : "Repos aujourd'hui")}
+                {finishedToday ? "SÉANCE TERMINÉE ✓" : todaySessionDisplayName}
               </h4>
               <p className={cn("font-medium text-sm", finishedToday ? "text-green-200" : "text-white/80")}>
                 {finishedToday ? "Ton corps te remercie. Repose-toi bien !" : (todaySession ? `Durée estimée : ${todaySession.duration}` : "Profite pour bien récupérer.")}
@@ -308,7 +312,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
               <button key={s.id} onClick={() => { onStartSession(s.id); setIsSessionPickerOpen(false); }}
                 className="w-full p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl text-left hover:border-[#E24B4A] transition-all flex justify-between items-center group">
                 <div>
-                  <div className="font-headline text-xl uppercase">{s.name}</div>
+                  <div className="font-headline text-xl uppercase">{customNames[s.id] || s.name}</div>
                   <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{s.exercises.length} exercices • {s.duration}</div>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-[#E24B4A]/10 flex items-center justify-center group-hover:bg-[#E24B4A] transition-colors">
@@ -364,6 +368,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             const isToday = weekOffset === 0 && idx === currentDayIdx;
             const isRest = !session || session.isRestDay;
             const dateLabel = `${date.getDate()} ${MONTHS[date.getMonth()]}`;
+            const sessionName = session ? (customNames[session.id] || session.name) : "Repos";
 
             return (
               <div key={dayName}
@@ -381,7 +386,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                   </div>
                   <span className={cn("text-sm font-bold uppercase tracking-tight",
                     isToday ? "text-white" : isRest ? "text-zinc-700" : "text-zinc-400")}>
-                    {isRest ? "Repos" : session.name}
+                    {sessionName}
                   </span>
                 </div>
                 {isDone
@@ -461,7 +466,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-6" />
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h2 className="text-3xl font-headline text-[#E24B4A] uppercase leading-none">{selectedPreviewSession.session.name}</h2>
+                <h2 className="text-3xl font-headline text-[#E24B4A] uppercase leading-none">{customNames[selectedPreviewSession.session.id] || selectedPreviewSession.session.name}</h2>
                 <div className="flex items-center gap-3 mt-2 text-zinc-500 font-bold uppercase text-[10px] tracking-widest">
                   <span>{selectedPreviewSession.day} {selectedPreviewSession.date.getDate()} {MONTHS[selectedPreviewSession.date.getMonth()]}</span>
                   <span>•</span>
