@@ -169,21 +169,15 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
   useEffect(() => {
     if (selectedPreviewSession || selectedExercise) {
-      const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      document.body.style.height = '100%';
     } else {
-      const scrollY = document.body.style.top;
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      document.body.style.overflow = '';
+      document.body.style.height = '';
     }
     return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
+      document.body.style.overflow = '';
+      document.body.style.height = '';
     };
   }, [selectedPreviewSession, selectedExercise]);
   const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
@@ -574,7 +568,11 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       {/* Modals EN DEHORS du div principal */}
       {selectedPreviewSession && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70" onClick={() => setSelectedPreviewSession(null)}>
-          <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto"
+                  onClick={e => e.stopPropagation()}
+                  onTouchStart={e => { const y = e.touches[0].clientY; e.currentTarget.dataset.touchY = String(y); }}
+                  onTouchEnd={e => { const startY = Number(e.currentTarget.dataset.touchY); const endY = e.changedTouches[0].clientY; if (endY - startY > 80) setSelectedPreviewSession(null); }}
+          >
             <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-6" />
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1 min-w-0 mr-4">
