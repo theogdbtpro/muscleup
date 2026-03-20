@@ -419,7 +419,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                 </p>
               </div>
               {!finishedToday && todaySession && (
-                <Button onClick={() => onStartSession(todaySessionId || undefined)} className="w-full h-11 bg-white text-[#E24B4A] rounded-xl text-base font-headline hover:bg-white/90 shadow-xl">
+                <Button onClick={() => onStartSession(todaySessionId || undefined)} className="w-full h-11 bg-white text-[#E24B4A] rounded-xl text-base font-headline hover:bg-white/90 shadow-xl press-effect ripple">
                   C'EST PARTI !
                 </Button>
               )}
@@ -711,7 +711,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             </div>
             <div className="space-y-3">
               <Button onClick={() => { onStartSession(selectedPreviewSession.session.id); setSelectedPreviewSession(null); }}
-                className="w-full h-14 bg-[#E24B4A] text-white font-headline text-xl rounded-xl shadow-xl">
+                className="w-full h-14 bg-[#E24B4A] text-white font-headline text-xl rounded-xl shadow-xl press-effect ripple">
                 {selectedPreviewSession.day === todayName && weekOffset === 0 ? "C'EST PARTI !" : "LANCER CETTE SÉANCE"}
               </Button>
               <button onClick={() => setSelectedPreviewSession(null)}

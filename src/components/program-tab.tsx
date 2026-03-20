@@ -159,7 +159,7 @@ function ExerciseDetailModal({ exercise, onClose, profile }: { exercise: Exercis
             <p className="text-sm text-zinc-300 italic border-l-2 border-[#EE3BAA] pl-4 leading-relaxed">"{exercise.technique}"</p>
           </div>
         </div>
-        <Button onClick={onClose} className="w-full h-12 bg-zinc-800 hover:bg-zinc-700 text-white font-headline text-lg rounded-xl">FERMER</Button>
+        <Button onClick={onClose} className="w-full h-12 bg-zinc-800 hover:bg-zinc-700 text-white font-headline text-lg rounded-xl press-effect">FERMER</Button>
       </div>
     </div>
   );
@@ -351,7 +351,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
           </div>
         </div>
         <Button onClick={() => { setCountdown(10); setCurrentExIdx(0); setCurrentSet(1); setDoneExercises([]); setIsResting(false); setPhase("countdown"); }}
-          className="w-full h-14 bg-[#E24B4A] text-white font-headline text-2xl rounded-xl mt-4 flex items-center justify-center gap-3">
+          className="w-full h-14 bg-[#E24B4A] text-white font-headline text-2xl rounded-xl mt-4 flex items-center justify-center gap-3 press-effect ripple">
           <Play className="w-6 h-6" /> LANCER LA SÉANCE
         </Button>
         {selectedExercise && <ExerciseDetailModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} profile={profile} />}
@@ -409,7 +409,13 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
                 strokeDasharray={276} strokeDashoffset={276 * (1 - restTime / 60)} className="transition-all duration-1000"/>
             </svg>
             <div className="flex flex-col items-center">
-              <Timer className="w-7 h-7 text-[#E24B4A] mb-1" />
+              <svg className="w-8 h-8 mb-1 dumbbell-lift" viewBox="0 0 24 24" fill="none">
+                <rect x="1" y="10" width="3" height="4" rx="1" fill="#E24B4A"/>
+                <rect x="4" y="8" width="2" height="8" rx="1" fill="#E24B4A"/>
+                <rect x="6" y="11" width="12" height="2" rx="1" fill="#E24B4A"/>
+                <rect x="18" y="8" width="2" height="8" rx="1" fill="#E24B4A"/>
+                <rect x="20" y="10" width="3" height="4" rx="1" fill="#E24B4A"/>
+              </svg>
               <span className="text-6xl font-headline text-white leading-none">{restTime}</span>
               <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Repos</span>
             </div>
@@ -484,7 +490,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
                 )} />
               ))}
             </div>
-            <Button onClick={handleSetDone} className="w-full h-14 rounded-3xl text-xl font-headline bg-[#E24B4A] text-white shadow-2xl">
+            <Button onClick={handleSetDone} className="w-full h-14 rounded-3xl text-xl font-headline bg-[#E24B4A] text-white shadow-2xl press-effect ripple">
               SÉRIE {currentSet} TERMINÉE ✓
             </Button>
           </div>
