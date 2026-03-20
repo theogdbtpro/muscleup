@@ -54,15 +54,15 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
   const [phase, setPhase] = useState<"select" | "intro" | "workout">(manualSessionId ? "intro" : "select");
 
   const schedule = useMemo(() => {
+    if (typeof window === 'undefined') return null;
     const saved = localStorage.getItem("muscleup_schedule");
-    if (saved) return JSON.parse(saved);
+    if (saved) return JSON.parse(saved) as Record<string, string | null>;
     return null;
   }, []);
 
   const currentSession = useMemo(() => {
     if (internalSessionId) return program.sessions.find(s => s.id === internalSessionId) || program.sessions[0];
     
-    // Fallback based on schedule if no internalSessionId is set (only for initial detection)
     const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
     const currentDayIdx = (new Date().getDay() + 6) % 7;
     const todayName = dayNamesFull[currentDayIdx];
@@ -141,6 +141,8 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
         <div className="space-y-4 flex-1 overflow-y-auto no-scrollbar pb-10">
           {program.sessions.filter(s => !s.isRestDay).map((s) => {
             const isToday = s.id === todaySessionId;
+            const scheduledDay = schedule ? Object.keys(schedule).find(day => schedule[day] === s.id) : null;
+
             return (
               <button 
                 key={s.id} 
@@ -151,7 +153,14 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
                 )}
               >
                 <div className="flex justify-between items-start mb-3">
-                  <div className="font-headline text-2xl text-white uppercase group-hover:text-primary transition-colors leading-none">{s.name}</div>
+                  <div className="flex flex-col">
+                    <div className="font-headline text-2xl text-white uppercase group-hover:text-primary transition-colors leading-none">{s.name}</div>
+                    {scheduledDay && (
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">
+                        Prévu le {scheduledDay}
+                      </span>
+                    )}
+                  </div>
                   {isToday && (
                     <span className="bg-primary text-white text-[9px] font-black px-2 py-1 rounded-sm uppercase tracking-tighter">
                       AUJOURD'HUI
