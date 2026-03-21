@@ -434,11 +434,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               );
             })}
           </div>
-
-          <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest text-center">
-            💡 Astuce : utilise le crayon pour renommer tes séances
-          </p>
-
           {freqWarning && (
             <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl">
               <p className="text-[10px] text-blue-300 font-bold leading-tight">{freqWarning}</p>
@@ -459,17 +454,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
         </section>
       </div>
 
-      <div className="sticky bottom-0 pt-4 bg-[#0F0F0F] z-20 space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={handleExportData}
-            className="h-12 rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] text-white text-[11px] font-bold uppercase tracking-widest hover:border-primary transition-all flex items-center justify-center gap-2">
-            📤 Exporter
-          </button>
-          <label className="h-12 rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] text-white text-[11px] font-bold uppercase tracking-widest hover:border-primary transition-all flex items-center justify-center gap-2 cursor-pointer">
-            📥 Importer
-            <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
-          </label>
-        </div>
+      <div className="sticky bottom-0 pt-4 bg-[#0F0F0F] z-20">
         <Button onClick={handleSave} className="w-full h-16 rounded-xl text-xl font-headline bg-primary text-white shadow-xl shadow-primary/20">
           SAUVEGARDER MON PROGRAMME ✓
         </Button>
