@@ -48,44 +48,62 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   function generateOptimizedSchedule(freq: string, objId: string) {
     const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
     const todayIdx = (new Date().getDay() + 6) % 7;
-    const todayStr = new Date().toISOString().split('T')[0];
-  
-    const selectedDays: string[] = [];
-    if (freq === "2j") selectedDays.push("Lundi", "Jeudi");
-    else if (freq === "3j") selectedDays.push("Lundi", "Mercredi", "Vendredi");
-    else if (freq === "4j") selectedDays.push("Lundi", "Mardi", "Jeudi", "Vendredi");
-    else if (freq === "5j") selectedDays.push("Lundi", "Mardi", "Mercredi", "Vendredi", "Samedi");
+    const nbSessions = freq === "2j" ? 2 : freq === "3j" ? 3 : freq === "4j" ? 4 : 5;
   
     const program = PROGRAMS.find(p => p.id === objId) || PROGRAMS[0];
     const sessionIds = program.sessions.filter(s => !s.isRestDay).map(s => s.id);
-    const newSchedule: Record<string, string | null> = {};
-    days.forEach(d => newSchedule[d] = null);
   
-    // Récupère le planning actuel pour garder les jours passés intacts
-    const existingSchedule: Record<string, string | null> = {};
+    // Garde les jours passés intacts
+    let existingSchedule: Record<string, string | null> = {};
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem("muscleup_schedule");
-      if (saved) Object.assign(existingSchedule, JSON.parse(saved));
+      if (saved) existingSchedule = JSON.parse(saved);
     }
   
-    selectedDays.forEach((day, idx) => {
-      const dayIdx = days.indexOf(day);
-      if (dayIdx < todayIdx) {
-        newSchedule[day] = existingSchedule[day] ?? null;
+    const newSchedule: Record<string, string | null> = {};
+    days.forEach(d => { newSchedule[d] = null; });
+  
+    // Jours passés : on garde SEULEMENT les séances qui correspondent
+  // à la nouvelle fréquence demandée
+  const pastDays = days.slice(0, todayIdx);
+  const pastSessions = pastDays.filter(d => existingSchedule[d]);
+  
+  // On ne garde que nbSessions séances au total (passées + futures)
+  // Donc on limite les séances passées à nbSessions max
+  let keptPast = 0;
+  days.forEach((day, idx) => {
+    if (idx < todayIdx) {
+      if (existingSchedule[day] && keptPast < nbSessions) {
+        newSchedule[day] = existingSchedule[day];
+        keptPast++;
       } else {
-        newSchedule[day] = sessionIds[idx % sessionIds.length];
+        newSchedule[day] = null;
       }
-    });
-    
-    // Garder aussi les jours passés non sélectionnés
-    days.forEach((day, dayIdx) => {
-      if (dayIdx < todayIdx && newSchedule[day] === null) {
-        newSchedule[day] = existingSchedule[day] ?? null;
-      }
-    });
-    
-    return newSchedule;
     }
+  });
+  
+    // Compte les séances déjà placées sur les jours passés
+    const alreadyPlaced = days.slice(0, todayIdx).filter(d => newSchedule[d]).length;
+    const toPlace = Math.max(0, nbSessions - alreadyPlaced);
+  
+    // Jours futurs disponibles (aujourd'hui inclus)
+    const futureDays = days.slice(todayIdx);
+  
+    if (toPlace > 0 && futureDays.length > 0) {
+      // Répartit les séances uniformément sur les jours futurs
+      const indices: number[] = [];
+      for (let i = 0; i < toPlace; i++) {
+        indices.push(Math.round(i * (futureDays.length - 1) / Math.max(toPlace - 1, 1)));
+      }
+      // Déduplique les indices
+      const uniqueIndices = [...new Set(indices)];
+      uniqueIndices.forEach((dayIdx, i) => {
+        newSchedule[futureDays[dayIdx]] = sessionIds[i % sessionIds.length];
+      });
+    }
+  
+    return newSchedule;
+  }
 
   const handleUpdateBaseInfo = (updates: Partial<UserProfile>) => {
     const newProfile = { ...tempProfile, ...updates };
@@ -139,18 +157,19 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   };
 
   const moveSession = (day: string, direction: 'up' | 'down') => {
+    const todayIdx = (new Date().getDay() + 6) % 7;
     const index = dayNamesFull.indexOf(day);
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= dayNamesFull.length) return;
-
+    if (index < todayIdx) return;
+    if (targetIndex < todayIdx) return;
+  
     const targetDay = dayNamesFull[targetIndex];
     const newSchedule = { ...schedule };
-    const currentSession = newSchedule[day];
-    const targetSession = newSchedule[targetDay];
-
-    newSchedule[targetDay] = currentSession;
-    newSchedule[day] = targetSession;
-
+    const tmp = newSchedule[day];
+    newSchedule[day] = newSchedule[targetDay];
+    newSchedule[targetDay] = tmp;
+  
     setSchedule(newSchedule);
     setMoveMessage(`Séance déplacée le ${targetDay} ✓`);
     setTimeout(() => setMoveMessage(null), 2000);

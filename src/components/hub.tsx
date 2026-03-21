@@ -280,13 +280,11 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const schedule = manualSchedule || rotatedSchedule;
 
   const swapDays = (dayA: string, dayB: string) => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const dateA = weekDates[dayNamesFull.indexOf(dayA)];
-    const dateB = weekDates[dayNamesFull.indexOf(dayB)];
-    const strA = dateA?.toISOString().split('T')[0];
-    const strB = dateB?.toISOString().split('T')[0];
-    if (strA && strA < todayStr) return;
-    if (strB && strB < todayStr) return;
+    if (weekOffset !== 0) return; // on ne peut modifier que la semaine en cours
+    const idxA = dayNamesFull.indexOf(dayA);
+    const idxB = dayNamesFull.indexOf(dayB);
+    if (idxA < currentDayIdx) return; // bloquer J-1 et avant
+    if (idxB < currentDayIdx) return;
     const base = { ...schedule };
     const tmp = base[dayA];
     base[dayA] = base[dayB];
@@ -294,7 +292,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     setManualSchedule(base);
     localStorage.setItem("muscleup_manual_schedule", JSON.stringify(base));
   };
-
   const resetToOptimal = () => {
     setManualSchedule(null);
     localStorage.removeItem("muscleup_manual_schedule");
@@ -568,7 +565,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                     "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-150",
                     isToday ? "bg-[#E24B4A]/5" : "",
                     isPast && !isDone ? "opacity-40 pointer-events-none" : "",
-                    isDone ? "bg-[#4CAF50]/10" : "",
+                    isDone ? "bg-[#4CAF50]/10 hover:bg-[#4CAF50]/10" : "",
                     !longPressActive && !isRest && !isPast ? "cursor-pointer hover:bg-white/5" : "",
                     !isRest && !isPast ? "cursor-grab active:cursor-grabbing" : "",
                     isDragging ? "!bg-zinc-700 opacity-60 border-dashed" : "",
