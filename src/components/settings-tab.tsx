@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -35,7 +34,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
       const saved = localStorage.getItem("muscleup_schedule");
       if (saved) return JSON.parse(saved);
     }
-    return generateOptimizedSchedule(profile.frequency, profile.objective);
+    return generateOptimizedSchedule(profile.frequency, profile.objective, false);
   });
 
   useEffect(() => {
@@ -45,50 +44,56 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
 
   const currentProgram = PROGRAMS.find(p => p.id === tempProfile.objective) || PROGRAMS[0];
 
-  function generateOptimizedSchedule(freq: string, objId: string) {
+  function generateOptimizedSchedule(freq: string, objId: string, isUpdate = false) {
     const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
     const todayIdx = (new Date().getDay() + 6) % 7;
     const nbSessions = freq === "2j" ? 2 : freq === "3j" ? 3 : freq === "4j" ? 4 : 5;
-  
+
     const program = PROGRAMS.find(p => p.id === objId) || PROGRAMS[0];
     const sessionIds = program.sessions.filter(s => !s.isRestDay).map(s => s.id);
-  
+
+    const newSchedule: Record<string, string | null> = {};
+    days.forEach(d => { newSchedule[d] = null; });
+
+    if (!isUpdate) {
+      // Affichage : planning type complet sur toute la semaine
+      const step = days.length / nbSessions;
+      for (let i = 0; i < nbSessions; i++) {
+        const dayIdx = Math.min(Math.floor(i * step), days.length - 1);
+        newSchedule[days[dayIdx]] = sessionIds[i % sessionIds.length];
+      }
+      return newSchedule;
+    }
+
+    // Sauvegarde : garde les jours passés, applique sur les futurs
     let existingSchedule: Record<string, string | null> = {};
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem("muscleup_schedule");
       if (saved) existingSchedule = JSON.parse(saved);
     }
-  
-    const newSchedule: Record<string, string | null> = {};
-    days.forEach(d => { newSchedule[d] = null; });
-  
+
     // Jours passés : on garde intact
     days.forEach((day, idx) => {
       if (idx < todayIdx) {
         newSchedule[day] = existingSchedule[day] ?? null;
       }
     });
-  
+
     // Compte les séances déjà placées dans le passé
-    const alreadyPlaced = days
-      .slice(0, todayIdx)
-      .filter(d => newSchedule[d] !== null).length;
-  
-    // Séances restantes à placer sur les jours futurs
-    const toPlace = Math.max(0, nbSessions - alreadyPlaced);
-  
-    // Jours futurs disponibles (aujourd'hui inclus)
+    const alreadyPlaced = days.slice(0, todayIdx).filter(d => newSchedule[d]).length;
+
+    // Place les séances restantes sur les jours futurs
     const futureDays = days.slice(todayIdx);
-  
-    if (toPlace > 0 && futureDays.length > 0) {
-      const actualToPlace = Math.min(toPlace, futureDays.length);
-      const step = futureDays.length / actualToPlace;
-      for (let i = 0; i < actualToPlace; i++) {
+    const toPlace = Math.min(Math.max(0, nbSessions - alreadyPlaced), futureDays.length);
+
+    if (toPlace > 0) {
+      const step = futureDays.length / toPlace;
+      for (let i = 0; i < toPlace; i++) {
         const dayIdx = Math.min(Math.floor(i * step), futureDays.length - 1);
         newSchedule[futureDays[dayIdx]] = sessionIds[(alreadyPlaced + i) % sessionIds.length];
       }
     }
-  
+
     return newSchedule;
   }
 
@@ -96,16 +101,18 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     const newProfile = { ...tempProfile, ...updates };
     setTempProfile(newProfile);
     if (updates.frequency || updates.objective) {
+      // Affichage : toujours une semaine type complète
       const newSchedule = generateOptimizedSchedule(
         updates.frequency || tempProfile.frequency,
-        updates.objective || tempProfile.objective
+        updates.objective || tempProfile.objective,
+        false
       );
       setSchedule(newSchedule);
     }
   };
 
   const handleReoptimize = () => {
-    const newSchedule = generateOptimizedSchedule(tempProfile.frequency, tempProfile.objective);
+    const newSchedule = generateOptimizedSchedule(tempProfile.frequency, tempProfile.objective, false);
     setSchedule(newSchedule);
     toast({
       title: "Planning ré-optimisé ✓",
@@ -115,10 +122,21 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
 
   const handleSave = () => {
     onUpdateProfile(tempProfile);
-    localStorage.setItem("muscleup_schedule", JSON.stringify(schedule));
+  
+    // Planning type pour les semaines futures UNIQUEMENT
+    const baseSchedule = generateOptimizedSchedule(
+      tempProfile.frequency,
+      tempProfile.objective,
+      false
+    );
+    localStorage.setItem("muscleup_base_schedule", JSON.stringify(baseSchedule));
+  
+    // On ne touche JAMAIS à muscleup_schedule (semaine en cours intacte)
+    // On ne touche JAMAIS à muscleup_manual_schedule
+  
     toast({
       title: "Programme mis à jour !",
-      description: "Tes modifications ont été enregistrées avec succès.",
+      description: "Les changements s'appliquent dès lundi prochain.",
     });
     setTimeout(() => onBack(), 1000);
   };
@@ -150,21 +168,23 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     if (targetIndex < 0 || targetIndex >= dayNamesFull.length) return;
     if (index < todayIdx) return;
     if (targetIndex < todayIdx) return;
-  
+
     const targetDay = dayNamesFull[targetIndex];
     const newSchedule = { ...schedule };
     const tmp = newSchedule[day];
     newSchedule[day] = newSchedule[targetDay];
     newSchedule[targetDay] = tmp;
-  
+
     setSchedule(newSchedule);
     setMoveMessage(`Séance déplacée le ${targetDay} ✓`);
     setTimeout(() => setMoveMessage(null), 2000);
   };
+
   const handleExportData = () => {
     const data = {
       profile: tempProfile,
       schedule: localStorage.getItem("muscleup_schedule"),
+      baseSchedule: localStorage.getItem("muscleup_base_schedule"),
       manualSchedule: localStorage.getItem("muscleup_manual_schedule"),
       history: localStorage.getItem("muscleup_history"),
       completedDates: localStorage.getItem("completedDates"),
@@ -188,6 +208,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
       try {
         const data = JSON.parse(event.target?.result as string);
         if (data.schedule) localStorage.setItem("muscleup_schedule", data.schedule);
+        if (data.baseSchedule) localStorage.setItem("muscleup_base_schedule", data.baseSchedule);
         if (data.manualSchedule) localStorage.setItem("muscleup_manual_schedule", data.manualSchedule);
         if (data.history) localStorage.setItem("muscleup_history", data.history);
         if (data.completedDates) localStorage.setItem("completedDates", data.completedDates);
@@ -200,7 +221,17 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     };
     reader.readAsText(file);
   };
-  
+
+  const freqWarning = useMemo(() => {
+    const todayIdx = (new Date().getDay() + 6) % 7;
+    const futureDays = 7 - todayIdx;
+    const nbSessions = tempProfile.frequency === "2j" ? 2 : tempProfile.frequency === "3j" ? 3 : tempProfile.frequency === "4j" ? 4 : 5;
+    if (nbSessions > futureDays) {
+      return `⚠️ Seulement ${futureDays} jour(s) restants cette semaine. La fréquence ${tempProfile.frequency} sera complète dès la semaine prochaine.`;
+    }
+    return null;
+  }, [tempProfile.frequency]);
+
   const optimizationWarnings = useMemo(() => {
     if (isHighFrequency) return [];
     const warnings: string[] = [];
@@ -407,6 +438,12 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
           <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest text-center">
             💡 Astuce : utilise le crayon pour renommer tes séances
           </p>
+
+          {freqWarning && (
+            <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl">
+              <p className="text-[10px] text-blue-300 font-bold leading-tight">{freqWarning}</p>
+            </div>
+          )}
 
           {optimizationWarnings.length > 0 && (
             <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl space-y-2">
