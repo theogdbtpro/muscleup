@@ -280,11 +280,17 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const schedule = manualSchedule || rotatedSchedule;
 
   const swapDays = (dayA: string, dayB: string) => {
-    if (weekOffset !== 0) return; // on ne peut modifier que la semaine en cours
+    if (weekOffset !== 0) return;
     const idxA = dayNamesFull.indexOf(dayA);
     const idxB = dayNamesFull.indexOf(dayB);
-    if (idxA < currentDayIdx) return; // bloquer J-1 et avant
+    if (idxA < currentDayIdx) return;
     if (idxB < currentDayIdx) return;
+    // Bloquer si le jour est validé (séance faite)
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dateA = weekDates[idxA]?.toISOString().split('T')[0];
+    const dateB = weekDates[idxB]?.toISOString().split('T')[0];
+    if (dateA && completedDates.includes(dateA)) return;
+    if (dateB && completedDates.includes(dateB)) return;
     const base = { ...schedule };
     const tmp = base[dayA];
     base[dayA] = base[dayB];

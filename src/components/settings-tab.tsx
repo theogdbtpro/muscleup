@@ -174,7 +174,46 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     setMoveMessage(`Séance déplacée le ${targetDay} ✓`);
     setTimeout(() => setMoveMessage(null), 2000);
   };
+  const handleExportData = () => {
+    const data = {
+      profile: tempProfile,
+      schedule: localStorage.getItem("muscleup_schedule"),
+      manualSchedule: localStorage.getItem("muscleup_manual_schedule"),
+      history: localStorage.getItem("muscleup_history"),
+      completedDates: localStorage.getItem("completedDates"),
+      sessionNames: localStorage.getItem("muscleup_session_names"),
+    };
+    const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "muscleup-sauvegarde.json";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Export réussi ✓", description: "Ton fichier de sauvegarde a été téléchargé." });
+  };
 
+  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        if (data.schedule) localStorage.setItem("muscleup_schedule", data.schedule);
+        if (data.manualSchedule) localStorage.setItem("muscleup_manual_schedule", data.manualSchedule);
+        if (data.history) localStorage.setItem("muscleup_history", data.history);
+        if (data.completedDates) localStorage.setItem("completedDates", data.completedDates);
+        if (data.sessionNames) localStorage.setItem("muscleup_session_names", data.sessionNames);
+        if (data.profile) onUpdateProfile(data.profile);
+        toast({ title: "Import réussi ✓", description: "Tes données ont été restaurées. Recharge la page." });
+      } catch {
+        toast({ title: "Erreur", description: "Fichier invalide." });
+      }
+    };
+    reader.readAsText(file);
+  };
+  
   const optimizationWarnings = useMemo(() => {
     if (isHighFrequency) return [];
     const warnings: string[] = [];
@@ -396,7 +435,17 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
         </section>
       </div>
 
-      <div className="sticky bottom-0 pt-4 bg-[#0F0F0F] z-20">
+      <div className="sticky bottom-0 pt-4 bg-[#0F0F0F] z-20 space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={handleExportData}
+            className="h-12 rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] text-white text-[11px] font-bold uppercase tracking-widest hover:border-primary transition-all flex items-center justify-center gap-2">
+            📤 Exporter
+          </button>
+          <label className="h-12 rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] text-white text-[11px] font-bold uppercase tracking-widest hover:border-primary transition-all flex items-center justify-center gap-2 cursor-pointer">
+            📥 Importer
+            <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
+          </label>
+        </div>
         <Button onClick={handleSave} className="w-full h-16 rounded-xl text-xl font-headline bg-primary text-white shadow-xl shadow-primary/20">
           SAUVEGARDER MON PROGRAMME ✓
         </Button>
