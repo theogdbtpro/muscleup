@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { UserProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronLeft, Target, Award, Calendar, Repeat, CheckCircle, AlertTriangle, Sparkles, MapPin, ChevronUp, ChevronDown, Pencil, RotateCcw, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ChevronLeft, Target, Award, Calendar, Repeat, CheckCircle, AlertTriangle, Sparkles, MapPin, ChevronUp, ChevronDown, Pencil, RotateCcw, Check, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 type SettingsTabProps = {
   profile: UserProfile;
@@ -25,15 +25,20 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
-
+  const [draggedDay, setDraggedDay] = useState<string | null>(null);
+  const [dragOverDay, setDragOverDay] = useState<string | null>(null);
+  const [longPressActive, setLongPressActive] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchDragDay = useRef<string | null>(null);
+  const planningRef = useRef<HTMLDivElement | null>(null);
   const dayNamesFull = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
   const isHighFrequency = tempProfile.frequency === "4j" || tempProfile.frequency === "5j";
 
   const [schedule, setSchedule] = useState<Record<string, string | null>>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem("muscleup_schedule");
-      if (saved) return JSON.parse(saved);
-    }
+    // Dans les paramètres, on affiche toujours le planning type complet
+    // (pas le planning de la semaine en cours avec jours passés)
+    const saved = typeof window !== 'undefined' ? localStorage.getItem("muscleup_base_schedule") : null;
+    if (saved) return JSON.parse(saved);
     return generateOptimizedSchedule(profile.frequency, profile.objective, false);
   });
 
@@ -162,12 +167,9 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   };
 
   const moveSession = (day: string, direction: 'up' | 'down') => {
-    const todayIdx = (new Date().getDay() + 6) % 7;
     const index = dayNamesFull.indexOf(day);
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= dayNamesFull.length) return;
-    if (index < todayIdx) return;
-    if (targetIndex < todayIdx) return;
 
     const targetDay = dayNamesFull[targetIndex];
     const newSchedule = { ...schedule };
@@ -231,7 +233,54 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     }
     return null;
   }, [tempProfile.frequency]);
-
+  const swapDaysSettings = (dayA: string, dayB: string) => {
+    const newSchedule = { ...schedule };
+    const tmp = newSchedule[dayA];
+    newSchedule[dayA] = newSchedule[dayB];
+    newSchedule[dayB] = tmp;
+    setSchedule(newSchedule);
+  };
+  
+  const handleDragStart = (dayName: string) => setDraggedDay(dayName);
+  const handleDragOver = (e: React.DragEvent, dayName: string) => {
+    e.preventDefault();
+    setDragOverDay(dayName);
+  };
+  const handleDrop = (dayName: string) => {
+    if (draggedDay && draggedDay !== dayName) swapDaysSettings(draggedDay, dayName);
+    setDraggedDay(null);
+    setDragOverDay(null);
+  };
+  
+  const handleTouchStartDrag = (e: React.TouchEvent, dayName: string) => {
+    longPressTimer.current = setTimeout(() => {
+      try { navigator.vibrate?.(50); } catch {}
+      setLongPressActive(true);
+      touchDragDay.current = dayName;
+      setDraggedDay(dayName);
+    }, 500);
+  };
+  const handleTouchCancelDrag = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  };
+  const handleTouchMoveDrag = (e: React.TouchEvent) => {
+    if (!touchDragDay.current) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const row = el?.closest('[data-day]') as HTMLElement | null;
+    if (row) setDragOverDay(row.dataset.day || null);
+  };
+  const handleTouchEndDrag = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    if (touchDragDay.current && dragOverDay && touchDragDay.current !== dragOverDay) {
+      swapDaysSettings(touchDragDay.current, dragOverDay);
+    }
+    touchDragDay.current = null;
+    setDraggedDay(null);
+    setDragOverDay(null);
+    setLongPressActive(false);
+  };
   const optimizationWarnings = useMemo(() => {
     if (isHighFrequency) return [];
     const warnings: string[] = [];
@@ -344,11 +393,21 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
             </button>
           )}
 
-          <div className="space-y-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
+<div
+            ref={planningRef}
+            className="space-y-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden select-none"
+            onTouchMove={handleTouchMoveDrag}
+            onTouchEnd={handleTouchEndDrag}
+            style={{ touchAction: longPressActive ? 'none' : 'pan-y', WebkitUserSelect: 'none' } as React.CSSProperties}
+          >
             {dayNamesFull.map((day, idx) => {
+              const todayIdx = (new Date().getDay() + 6) % 7;
               const sessionId = schedule[day];
               const session = currentProgram.sessions.find(s => s.id === sessionId);
-              
+              const isPast = false; // Dans les paramètres, tous les jours sont modifiables
+              const isDragging = draggedDay === day && longPressActive;
+              const isDropTarget = dragOverDay === day && draggedDay !== day;
+
               const prevDay = dayNamesFull[(idx + 6) % 7];
               const nextDay = dayNamesFull[(idx + 1) % 7];
               const hasAdjacencyIssue = !isHighFrequency && !!sessionId && (!!schedule[prevDay] || !!schedule[nextDay]);
@@ -357,11 +416,27 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               const isCustom = session && customNames[session.id];
 
               return (
-                <div 
+                <div
                   key={day}
-                  className="p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-200"
+                  data-day={day}
+                  draggable={!!sessionId && !isPast}
+                  onDragStart={!!sessionId && !isPast ? () => handleDragStart(day) : undefined}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDrop={() => handleDrop(day)}
+                  onDragEnd={() => { setDraggedDay(null); setDragOverDay(null); }}
+                  onTouchStart={!!sessionId && !isPast ? (e) => handleTouchStartDrag(e, day) : undefined}
+                  onTouchCancel={handleTouchCancelDrag}
+                  style={isDragging ? { opacity: 0.5, border: '2px dashed #E24B4A' } : isDropTarget ? { backgroundColor: 'rgba(226,75,74,0.1)', borderLeft: '4px solid #E24B4A' } : {}}
+                  className={cn(
+                    "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-200",
+                    isPast ? "opacity-40" : "",
+                    !!sessionId && !isPast ? "cursor-grab active:cursor-grabbing" : "",
+                  )}
                 >
                   <div className="flex items-center gap-4 flex-1">
+                  {!!sessionId && !isPast && draggedDay === day && (
+                      <GripVertical className="w-4 h-4 text-zinc-600 shrink-0" />
+                    )}
                     <span className="text-xs font-bold w-12 text-zinc-600">{day}</span>
                     <div className="flex flex-col flex-1">
                       <div className="flex items-center gap-2">
