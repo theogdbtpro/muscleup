@@ -91,15 +91,16 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   
     if (toPlace > 0 && futureDays.length > 0) {
       // Répartit les séances uniformément sur les jours futurs
-      const indices: number[] = [];
-      for (let i = 0; i < toPlace; i++) {
-        indices.push(Math.round(i * (futureDays.length - 1) / Math.max(toPlace - 1, 1)));
-      }
-      // Déduplique les indices
-      const uniqueIndices = [...new Set(indices)];
-      uniqueIndices.forEach((dayIdx, i) => {
-        newSchedule[futureDays[dayIdx]] = sessionIds[i % sessionIds.length];
-      });
+      let placed = 0;
+let sessionIdx = alreadyPlaced;
+for (let i = 0; i < futureDays.length && placed < toPlace; i++) {
+  const step = Math.floor(futureDays.length / toPlace);
+  if (i % Math.max(step, 1) === 0) {
+    newSchedule[futureDays[i]] = sessionIds[sessionIdx % sessionIds.length];
+    sessionIdx++;
+    placed++;
+  }
+}
     }
   
     return newSchedule;
