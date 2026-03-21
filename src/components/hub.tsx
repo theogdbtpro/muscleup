@@ -571,7 +571,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                     "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-150",
                     isToday ? "bg-[#E24B4A]/5" : "",
                     isPast && !isDone ? "opacity-40 pointer-events-none" : "",
-                    isDone ? "bg-[#4CAF50]/10 hover:bg-[#4CAF50]/10" : "",
+                    isDone ? "!bg-[#4CAF50]/10 hover:!bg-[#4CAF50]/10" : "",
                     !longPressActive && !isRest && !isPast ? "cursor-pointer hover:bg-white/5" : "",
                     !isRest && !isPast ? "cursor-grab active:cursor-grabbing" : "",
                     isDragging ? "!bg-zinc-700 opacity-60 border-dashed" : "",
