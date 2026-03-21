@@ -53,7 +53,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     const program = PROGRAMS.find(p => p.id === objId) || PROGRAMS[0];
     const sessionIds = program.sessions.filter(s => !s.isRestDay).map(s => s.id);
   
-    // Garde les jours passés intacts
     let existingSchedule: Record<string, string | null> = {};
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem("muscleup_schedule");
@@ -63,44 +62,31 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     const newSchedule: Record<string, string | null> = {};
     days.forEach(d => { newSchedule[d] = null; });
   
-    // Jours passés : on garde SEULEMENT les séances qui correspondent
-  // à la nouvelle fréquence demandée
-  const pastDays = days.slice(0, todayIdx);
-  const pastSessions = pastDays.filter(d => existingSchedule[d]);
-  
-  // On ne garde que nbSessions séances au total (passées + futures)
-  // Donc on limite les séances passées à nbSessions max
-  let keptPast = 0;
-  days.forEach((day, idx) => {
-    if (idx < todayIdx) {
-      if (existingSchedule[day] && keptPast < nbSessions) {
-        newSchedule[day] = existingSchedule[day];
-        keptPast++;
-      } else {
-        newSchedule[day] = null;
+    // Jours passés : on garde intact
+    days.forEach((day, idx) => {
+      if (idx < todayIdx) {
+        newSchedule[day] = existingSchedule[day] ?? null;
       }
-    }
-  });
+    });
   
-    // Compte les séances déjà placées sur les jours passés
-    const alreadyPlaced = days.slice(0, todayIdx).filter(d => newSchedule[d]).length;
+    // Compte les séances déjà placées dans le passé
+    const alreadyPlaced = days
+      .slice(0, todayIdx)
+      .filter(d => newSchedule[d] !== null).length;
+  
+    // Séances restantes à placer sur les jours futurs
     const toPlace = Math.max(0, nbSessions - alreadyPlaced);
   
     // Jours futurs disponibles (aujourd'hui inclus)
     const futureDays = days.slice(todayIdx);
   
     if (toPlace > 0 && futureDays.length > 0) {
-      // Répartit les séances uniformément sur les jours futurs
-      let placed = 0;
-let sessionIdx = alreadyPlaced;
-for (let i = 0; i < futureDays.length && placed < toPlace; i++) {
-  const step = Math.floor(futureDays.length / toPlace);
-  if (i % Math.max(step, 1) === 0) {
-    newSchedule[futureDays[i]] = sessionIds[sessionIdx % sessionIds.length];
-    sessionIdx++;
-    placed++;
-  }
-}
+      const actualToPlace = Math.min(toPlace, futureDays.length);
+      const step = futureDays.length / actualToPlace;
+      for (let i = 0; i < actualToPlace; i++) {
+        const dayIdx = Math.min(Math.floor(i * step), futureDays.length - 1);
+        newSchedule[futureDays[dayIdx]] = sessionIds[(alreadyPlaced + i) % sessionIds.length];
+      }
     }
   
     return newSchedule;
