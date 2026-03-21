@@ -47,21 +47,45 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
 
   function generateOptimizedSchedule(freq: string, objId: string) {
     const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+    const todayIdx = (new Date().getDay() + 6) % 7;
+    const todayStr = new Date().toISOString().split('T')[0];
+  
     const selectedDays: string[] = [];
     if (freq === "2j") selectedDays.push("Lundi", "Jeudi");
     else if (freq === "3j") selectedDays.push("Lundi", "Mercredi", "Vendredi");
     else if (freq === "4j") selectedDays.push("Lundi", "Mardi", "Jeudi", "Vendredi");
     else if (freq === "5j") selectedDays.push("Lundi", "Mardi", "Mercredi", "Vendredi", "Samedi");
-    
+  
     const program = PROGRAMS.find(p => p.id === objId) || PROGRAMS[0];
     const sessionIds = program.sessions.filter(s => !s.isRestDay).map(s => s.id);
     const newSchedule: Record<string, string | null> = {};
     days.forEach(d => newSchedule[d] = null);
+  
+    // Récupère le planning actuel pour garder les jours passés intacts
+    const existingSchedule: Record<string, string | null> = {};
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem("muscleup_schedule");
+      if (saved) Object.assign(existingSchedule, JSON.parse(saved));
+    }
+  
     selectedDays.forEach((day, idx) => {
-      newSchedule[day] = sessionIds[idx % sessionIds.length];
+      const dayIdx = days.indexOf(day);
+      if (dayIdx < todayIdx) {
+        newSchedule[day] = existingSchedule[day] ?? null;
+      } else {
+        newSchedule[day] = sessionIds[idx % sessionIds.length];
+      }
     });
+    
+    // Garder aussi les jours passés non sélectionnés
+    days.forEach((day, dayIdx) => {
+      if (dayIdx < todayIdx && newSchedule[day] === null) {
+        newSchedule[day] = existingSchedule[day] ?? null;
+      }
+    });
+    
     return newSchedule;
-  }
+    }
 
   const handleUpdateBaseInfo = (updates: Partial<UserProfile>) => {
     const newProfile = { ...tempProfile, ...updates };

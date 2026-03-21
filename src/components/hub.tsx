@@ -207,7 +207,22 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     const savedNames = localStorage.getItem("muscleup_session_names");
     if (savedNames) setCustomNames(JSON.parse(savedNames));
     const savedManual = localStorage.getItem("muscleup_manual_schedule");
-    if (savedManual) setManualSchedule(JSON.parse(savedManual));
+    const savedBase = localStorage.getItem("muscleup_schedule");
+    // On efface le planning manuel si le planning de base a changé
+    if (savedManual && savedBase) {
+      const manual = JSON.parse(savedManual);
+      const base = JSON.parse(savedBase);
+      const manualDays = Object.values(manual).filter(Boolean).length;
+      const baseDays = Object.values(base).filter(Boolean).length;
+      if (manualDays !== baseDays) {
+        setManualSchedule(null);
+        localStorage.removeItem("muscleup_manual_schedule");
+      } else {
+        setManualSchedule(manual);
+      }
+    } else if (savedManual) {
+      setManualSchedule(JSON.parse(savedManual));
+    }
   }, []);
 
   const saveCustomName = (sessionId: string, name: string) => {
@@ -265,6 +280,13 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const schedule = manualSchedule || rotatedSchedule;
 
   const swapDays = (dayA: string, dayB: string) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dateA = weekDates[dayNamesFull.indexOf(dayA)];
+    const dateB = weekDates[dayNamesFull.indexOf(dayB)];
+    const strA = dateA?.toISOString().split('T')[0];
+    const strB = dateB?.toISOString().split('T')[0];
+    if (strA && strA < todayStr) return;
+    if (strB && strB < todayStr) return;
     const base = { ...schedule };
     const tmp = base[dayA];
     base[dayA] = base[dayB];
@@ -282,6 +304,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const todaySessionId = schedule[todayName];
   const todaySession = program.sessions.find(s => s.id === todaySessionId);
   const todaySessionDisplayName = todaySession ? getSessionName(todaySession) : "Repos aujourd'hui";
+  const todayIsRest = !todaySession || todaySession.isRestDay;
 
   const weekDates = useMemo(() => {
     const now = new Date();
@@ -310,9 +333,12 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   }, [weekOffset]);
 
   const dayStatuses = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
     return weekDates.map(date => {
       const dateStr = date.toISOString().split('T')[0];
-      return completedDates.includes(dateStr) ? "done" : "upcoming";
+      if (completedDates.includes(dateStr)) return "done";
+      if (dateStr < todayStr) return "past";
+      return "upcoming";
     });
   }, [weekDates, completedDates]);
 
@@ -424,18 +450,18 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
         </button>
 
         {weekOffset === 0 && (
-          <Card className={cn("p-5 rounded-2xl border-none relative overflow-hidden shadow-2xl transition-all", finishedToday ? "bg-[#1A4A2A]" : "bg-[#E24B4A]")}>
+            <Card className={cn("p-5 rounded-2xl border-none relative overflow-hidden shadow-2xl transition-all", finishedToday || todayIsRest ? "bg-[#1A4A2A]" : "bg-[#E24B4A]")}>
             <div className="relative z-10 space-y-4">
               <div>
-                <h3 className={cn("text-[10px] font-bold uppercase tracking-widest mb-2", finishedToday ? "text-green-400" : "text-white/70")}>
-                  {finishedToday ? "Bravo !" : "Séance du jour"}
-                </h3>
-                <h4 className="text-2xl font-headline text-white leading-tight uppercase">
-                  {finishedToday ? "SÉANCE TERMINÉE ✓" : todaySessionDisplayName}
-                </h4>
-                <p className={cn("font-medium text-sm", finishedToday ? "text-green-200" : "text-white/80")}>
-                  {finishedToday ? "Ton corps te remercie. Repose-toi bien !" : (todaySession ? `Durée estimée : ${todaySession.duration}` : "Profite pour bien récupérer.")}
-                </p>
+              <h3 className={cn("text-[10px] font-bold uppercase tracking-widest mb-2", finishedToday || todayIsRest ? "text-green-400" : "text-white/70")}>
+                {finishedToday ? "Bravo !" : todayIsRest ? "Jour de repos 💤" : "Séance du jour"}
+              </h3>
+              <h4 className="text-2xl font-headline text-white leading-tight uppercase">
+                {finishedToday ? "SÉANCE TERMINÉE ✓" : todayIsRest ? "RÉCUPÉRATION" : todaySessionDisplayName}
+              </h4>
+              <p className={cn("font-medium text-sm", finishedToday || todayIsRest ? "text-green-200" : "text-white/80")}>
+               {finishedToday ? "Ton corps te remercie. Repose-toi bien !" : todayIsRest ? "Profite pour bien récupérer et t'hydrater." : (todaySession ? `Durée estimée : ${todaySession.duration}` : "Profite pour bien récupérer.")}
+              </p>
               </div>
               {!finishedToday && todaySession && (
                 <Button onClick={() => onStartSession(todaySessionId || undefined)} className="w-full h-11 bg-white text-[#E24B4A] rounded-xl text-base font-headline hover:bg-white/90 shadow-xl press-effect ripple">
@@ -522,6 +548,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
               const dateLabel = `${date.getDate()} ${MONTHS[date.getMonth()]}`;
               const isDragging = draggedDay === dayName && longPressActive;
               const isDropTarget = dragOverDay === dayName && draggedDay !== dayName;
+              const isPast = dayStatuses[idx] === "past";
 
               return (
                 <div
@@ -529,18 +556,21 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                   data-day={dayName}
                   ref={el => { dayRefs.current[dayName] = el; }}
                   style={isDragging ? { backgroundColor: '#3A3A3A', opacity: 0.5, border: '2px dashed #E24B4A' } : isDropTarget ? { backgroundColor: 'rgba(226,75,74,0.2)', borderLeft: '4px solid #E24B4A' } : {}}
-                  draggable={!isRest}
-                  onDragStart={!isRest ? () => handleDragStart(dayName) : undefined}
+                  draggable={!isRest && !isPast}
+                  onDragStart={!isRest && !isPast ? () => handleDragStart(dayName) : undefined}
                   onDragOver={(e) => handleDragOver(e, dayName)}
                   onDrop={() => handleDrop(dayName)}
                   onDragEnd={() => { setDraggedDay(null); setDragOverDay(null); }}
-                  onTouchStart={!isRest ? (e) => handleTouchStartDrag(e, dayName) : undefined}
+                  onTouchStart={!isRest && !isPast ? (e) => handleTouchStartDrag(e, dayName) : undefined}
                   onTouchCancel={handleTouchCancelDrag}
                   onClick={() => !longPressActive && !isRest && session && setSelectedPreviewSession({ session, day: dayName, date })}
                   className={cn(
                     "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-150",
                     isToday ? "bg-[#E24B4A]/5" : "",
-                    !longPressActive && !isRest ? "cursor-pointer hover:bg-white/5" : "",                    !isRest ? "cursor-grab active:cursor-grabbing" : "",
+                    isPast && !isDone ? "opacity-40 pointer-events-none" : "",
+                    isDone ? "bg-[#4CAF50]/10" : "",
+                    !longPressActive && !isRest && !isPast ? "cursor-pointer hover:bg-white/5" : "",
+                    !isRest && !isPast ? "cursor-grab active:cursor-grabbing" : "",
                     isDragging ? "!bg-zinc-700 opacity-60 border-dashed" : "",
                     isDropTarget ? "!bg-[#E24B4A]/20 border-l-4 border-l-[#E24B4A]" : "",
                     longPressActive && draggedDay === dayName ? "touch-none" : "",
@@ -576,12 +606,17 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                       </button>
                     )}
                     {editingSessionId !== session?.id && (
-                      isDone
-                        ? <CheckCircle2 className="w-4 h-4 text-[#4CAF50]" />
-                        : isToday && !isRest
-                          ? <Circle className="w-4 h-4 text-[#E24B4A]" />
-                          : <Circle className="w-4 h-4 text-zinc-800" />
-                    )}
+                       isDone
+                       ? <div className="flex items-center gap-1.5">
+                           <span className="text-[9px] font-black text-[#4CAF50] uppercase tracking-widest hidden sm:block">Validé</span>
+                           <CheckCircle2 className="w-5 h-5 text-[#4CAF50] fill-[#4CAF50]/20" />
+                         </div>
+                       : dayStatuses[idx] === "past"
+                         ? <span className="text-[10px] font-bold text-zinc-700 uppercase">—</span>
+                         : isToday && !isRest
+                           ? <Circle className="w-4 h-4 text-[#E24B4A]" />
+                           : <Circle className="w-4 h-4 text-zinc-800" />
+                   )}
                   </div>
                 </div>
               );
