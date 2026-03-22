@@ -40,7 +40,9 @@ export default function Dashboard({ profile, onUpdateProfile, onReset }: Dashboa
 
   const handleStartSession = (sessionId?: string) => {
     setManualSessionId(sessionId || null);
-    handleSetView("programme");
+    setTimeout(() => {
+      handleSetView("programme");
+    }, 50);
   };
 
   const handleSaveBodyProfile = (data: BodyProfile) => {

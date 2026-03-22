@@ -514,7 +514,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                 </p>
               </div>
               {!finishedToday && todaySession && !todayIsRest && (
-                <Button onClick={() => onStartSession(todaySessionId || undefined)} className="w-full h-11 bg-white text-[#E24B4A] rounded-xl text-base font-headline hover:bg-white/90 shadow-xl press-effect ripple">
+                <Button onClick={() => onStartSession(todaySessionId ?? undefined)} className="w-full h-11 bg-white text-[#E24B4A] rounded-xl text-base font-headline hover:bg-white/90 shadow-xl press-effect ripple">
                   C'EST PARTI !
                 </Button>
               )}
