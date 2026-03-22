@@ -43,6 +43,11 @@ export default function Dashboard({ profile, onUpdateProfile, onReset }: Dashboa
     handleSetView("programme");
   };
 
+  const handleSessionFinished = () => {
+    setRefreshKey(k => k + 1);
+    handleSetView("accueil");
+  };
+
   const handleSaveBodyProfile = (data: BodyProfile) => {
     onUpdateProfile({ ...profile, bodyProfile: data });
     handleSetView("accueil");
@@ -51,7 +56,7 @@ export default function Dashboard({ profile, onUpdateProfile, onReset }: Dashboa
   const showNav = view !== "body-profile" && view !== "planning-mensuel";
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0F0F0F] relative overflow-hidden">
+    <div className="flex-1 flex flex-col bg-[#0F0F0F] relative">
       <div className={`flex-1 overflow-y-auto no-scrollbar pb-24 transition-all duration-200 ${
         isTransitioning ? "opacity-0 scale-[0.98]" : "opacity-100 scale-100"
       }`}>
@@ -59,7 +64,7 @@ export default function Dashboard({ profile, onUpdateProfile, onReset }: Dashboa
           <Hub key={refreshKey} profile={profile} setView={handleSetView} onStartSession={handleStartSession} />
         )}
         {view === "programme" && (
-          <ProgramTab profile={profile} onBack={() => handleSetView("accueil")} onUpdateProfile={onUpdateProfile} manualSessionId={manualSessionId} />
+          <ProgramTab profile={profile} onBack={() => handleSetView("accueil")} onUpdateProfile={onUpdateProfile} manualSessionId={manualSessionId} onFinish={handleSessionFinished} />
         )}
         {view === "progres" && (
           <ProgressTab profile={profile} onReset={onReset} onBack={() => handleSetView("accueil")} />

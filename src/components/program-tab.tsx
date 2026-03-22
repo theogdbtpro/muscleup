@@ -170,10 +170,10 @@ type ProgramTabProps = {
   onBack: () => void;
   onUpdateProfile: (profile: UserProfile) => void;
   manualSessionId?: string | null;
+  onFinish?: () => void;
 };
 
-export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSessionId }: ProgramTabProps) {
-  const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
+  export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSessionId, onFinish }: ProgramTabProps) {  const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
   const [internalSessionId, setInternalSessionId] = useState<string | null>(manualSessionId || null);
   const [phase, setPhase] = useState<"select" | "intro" | "countdown" | "workout">(manualSessionId ? "intro" : "select");
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
@@ -272,7 +272,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
       if (!existingDates.includes(todayStr)) localStorage.setItem("completedDates", JSON.stringify([...existingDates, todayStr]));
       confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#E24B4A', '#FFFFFF', '#1A1A1A'] });
     }
-    onBack();
+    if (onFinish) onFinish(); else onBack();
   };
 
   if (phase === "select") {

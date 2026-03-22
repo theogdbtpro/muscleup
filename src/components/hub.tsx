@@ -493,7 +493,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
 
   return (
     <>
-      <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-20">
+      <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-20" style={{ isolation: 'isolate' }}>
 
         <header className="flex justify-between items-start">
           <div>
@@ -765,11 +765,9 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
         </section>
 
       </div>
-
       {selectedPreviewSession && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70" onClick={() => setSelectedPreviewSession(null)}>
-          <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto transition-transform"
-            onClick={e => e.stopPropagation()}
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }} className="flex items-end justify-center bg-black/70" onClick={() => setSelectedPreviewSession(null)}>
+          <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto transition-transform mb-0 pb-8"          onClick={e => e.stopPropagation()}
             onTouchStart={e => {
               const el = e.currentTarget;
               el.dataset.touchY = String(e.touches[0].clientY);
@@ -848,8 +846,8 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
         </div>
       )}
 
-      {selectedExercise && (
-        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/80" onClick={() => setSelectedExercise(null)}>
+{selectedExercise && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} className="flex items-end justify-center bg-black/80" onClick={() => setSelectedExercise(null)}>
           <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-[30px] p-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-8" />
             <ExerciseAnimation muscle={selectedExercise.muscle} />
