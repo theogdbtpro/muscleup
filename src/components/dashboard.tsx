@@ -35,14 +35,12 @@ export default function Dashboard({ profile, onUpdateProfile, onReset }: Dashboa
       setView(newView);
       if (newView === "accueil") setRefreshKey(k => k + 1);
       setIsTransitioning(false);
-    }, 180);
+    }, 50);
   };
 
   const handleStartSession = (sessionId?: string) => {
     setManualSessionId(sessionId || null);
-    setTimeout(() => {
-      handleSetView("programme");
-    }, 50);
+    handleSetView("programme");
   };
 
   const handleSaveBodyProfile = (data: BodyProfile) => {
