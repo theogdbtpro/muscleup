@@ -28,6 +28,7 @@ const OBJECTIVE_TIPS: Record<string, string> = {
 };
 
 const MONTHS = ["jan","fév","mar","avr","mai","jun","jul","aoû","sep","oct","nov","déc"];
+const DAY_NAMES = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 
 function getWeekNumber(date: Date): number {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -37,45 +38,17 @@ function getWeekNumber(date: Date): number {
   return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
 
-function getRotatedSchedule(
-  baseSchedule: Record<string, string | null>,
-  weekOffset: number,
-  program: Program
-): Record<string, string | null> {
-  const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
-  const sessions = program.sessions.filter(s => !s.isRestDay);
-  const trainingDays = dayNamesFull.filter(day => baseSchedule[day]);
-  if (trainingDays.length === 0 || sessions.length === 0) return baseSchedule;
-
-  const now = new Date();
-  const targetDate = new Date(now);
-  targetDate.setDate(now.getDate() + weekOffset * 7);
-  const weekNum = getWeekNumber(targetDate);
-  const rotation = weekNum % sessions.length;
-
-  const newSchedule: Record<string, string | null> = {};
-  dayNamesFull.forEach(day => { newSchedule[day] = null; });
-
-  const todayIdx = (new Date().getDay() + 6) % 7;
-
-  if (weekOffset === 0) {
-    const savedRaw = typeof window !== 'undefined' ? localStorage.getItem("muscleup_schedule") : null;
-    const saved = savedRaw ? JSON.parse(savedRaw) : {};
-    dayNamesFull.forEach((day, idx) => {
-      if (idx < todayIdx) {
-        newSchedule[day] = saved[day] ?? null;
-      }
-    });
+function generateBaseSchedule(frequency: string, program: Program): Record<string, string | null> {
+  const nbSessions = frequency === "2j" ? 2 : frequency === "3j" ? 3 : frequency === "4j" ? 4 : 5;
+  const sessionIds = program.sessions.filter(s => !s.isRestDay).map(s => s.id);
+  const result: Record<string, string | null> = {};
+  DAY_NAMES.forEach(d => { result[d] = null; });
+  const step = DAY_NAMES.length / nbSessions;
+  for (let i = 0; i < nbSessions; i++) {
+    const dayIdx = Math.min(Math.floor(i * step), DAY_NAMES.length - 1);
+    result[DAY_NAMES[dayIdx]] = sessionIds[i % sessionIds.length];
   }
-
-  trainingDays.forEach((day, idx) => {
-    const dayIdx = dayNamesFull.indexOf(day);
-    if (weekOffset === 0 && dayIdx < todayIdx) return;
-    const sessionIdx = (idx + rotation) % sessions.length;
-    newSchedule[day] = sessions[sessionIdx].id;
-  });
-
-  return newSchedule;
+  return result;
 }
 
 function ExerciseAnimation({ muscle }: { muscle: string }) {
@@ -190,11 +163,11 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const [isMounted, setIsMounted] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [manualSchedule, setManualSchedule] = useState<Record<string, string | null> | null>(null);
+  const [futureSchedules, setFutureSchedules] = useState<Record<number, Record<string, string | null>>>({});
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const planningRef = useRef<HTMLDivElement | null>(null);
   const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
 
-  // Nécessaire pour createPortal (SSR safe)
   useEffect(() => { setIsMounted(true); }, []);
 
   useEffect(() => {
@@ -216,10 +189,9 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     return () => el.removeEventListener('touchmove', preventScroll);
   }, []);
 
-  const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   const now = new Date();
   const currentDayIdx = (now.getDay() + 6) % 7;
-  const todayName = dayNamesFull[currentDayIdx];
+  const todayName = DAY_NAMES[currentDayIdx];
 
   useEffect(() => {
     const reload = () => {
@@ -230,21 +202,9 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       const savedNames = localStorage.getItem("muscleup_session_names");
       if (savedNames) setCustomNames(JSON.parse(savedNames));
       const savedManual = localStorage.getItem("muscleup_manual_schedule");
-      const savedBase = localStorage.getItem("muscleup_base_schedule");
-      if (savedManual && savedBase) {
-        const manual = JSON.parse(savedManual);
-        const base = JSON.parse(savedBase);
-        const manualDays = Object.values(manual).filter(Boolean).length;
-        const baseDays = Object.values(base).filter(Boolean).length;
-        if (manualDays !== baseDays) {
-          setManualSchedule(null);
-          localStorage.removeItem("muscleup_manual_schedule");
-        } else {
-          setManualSchedule(manual);
-        }
-      } else if (savedManual) {
-        setManualSchedule(JSON.parse(savedManual));
-      }
+      if (savedManual) setManualSchedule(JSON.parse(savedManual));
+      const savedFuture = localStorage.getItem("muscleup_future_schedules");
+      if (savedFuture) setFutureSchedules(JSON.parse(savedFuture));
     };
     reload();
     window.addEventListener("focus", reload);
@@ -278,14 +238,10 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     if (!completedDates.includes(todayStr)) return false;
     const savedSchedule = typeof window !== 'undefined' ? localStorage.getItem("muscleup_schedule") : null;
     const sched = savedSchedule ? JSON.parse(savedSchedule) : {};
-    const dn = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
-    const tName = dn[(new Date().getDay() + 6) % 7];
+    const tName = DAY_NAMES[(new Date().getDay() + 6) % 7];
     const todaySessId = sched[tName] ?? null;
     if (!todaySessId) return true;
-    const todayHistory = history.find(h =>
-      h.date?.split('T')[0] === todayStr && h.sessionId === todaySessId
-    );
-    return !!todayHistory;
+    return history.some(h => h.date?.split('T')[0] === todayStr && h.sessionId === todaySessId);
   }, [completedDates, history]);
 
   const streak = useMemo(() => {
@@ -305,20 +261,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     return count;
   }, [completedDates]);
 
-  const baseSchedule = useMemo<Record<string, string | null>>(() => {
-    if (typeof window === 'undefined') return {};
-    const savedBase = localStorage.getItem("muscleup_base_schedule");
-    if (savedBase) return JSON.parse(savedBase);
-    const saved = localStorage.getItem("muscleup_schedule");
-    if (saved) return JSON.parse(saved);
-    const mapping: Record<string, string | null> = {};
-    dayNamesFull.forEach(d => {
-      const s = program.sessions.find(ps => ps.day === d);
-      mapping[d] = s ? s.id : null;
-    });
-    return mapping;
-  }, [program]);
-
   const [currentWeekSchedule, setCurrentWeekSchedule] = useState<Record<string, string | null>>(() => {
     if (typeof window === 'undefined') return {};
     const saved = localStorage.getItem("muscleup_schedule");
@@ -331,48 +273,75 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     if (saved) setCurrentWeekSchedule(JSON.parse(saved));
   }, []);
 
-  const rotatedSchedule = useMemo(() => {
-    if (weekOffset === 0) return currentWeekSchedule;
-    if (weekOffset < 0) {
-      const empty: Record<string, string | null> = {};
-      dayNamesFull.forEach(d => { empty[d] = null; });
-      return empty;
+  // Planning type pour les semaines futures (respecte la fréquence)
+  const baseScheduleForFuture = useMemo(() => {
+    if (typeof window === 'undefined') return generateBaseSchedule(profile.frequency, program);
+    const savedBase = localStorage.getItem("muscleup_base_schedule");
+    if (savedBase) {
+      const parsed = JSON.parse(savedBase);
+      const nbSaved = Object.values(parsed).filter(Boolean).length;
+      const nbExpected = profile.frequency === "2j" ? 2 : profile.frequency === "3j" ? 3 : profile.frequency === "4j" ? 4 : 5;
+      if (nbSaved === nbExpected) return parsed;
     }
-    return getRotatedSchedule(baseSchedule, weekOffset, program);
-  }, [baseSchedule, weekOffset, program, currentWeekSchedule]);
+    return generateBaseSchedule(profile.frequency, program);
+  }, [program, profile.frequency]);
+
+  const getFutureWeekSchedule = (offset: number): Record<string, string | null> => {
+    if (futureSchedules[offset]) return futureSchedules[offset];
+    const sessions = program.sessions.filter(s => !s.isRestDay);
+    const trainingDays = DAY_NAMES.filter(day => baseScheduleForFuture[day]);
+    if (trainingDays.length === 0 || sessions.length === 0) return baseScheduleForFuture;
+    const target = new Date();
+    target.setDate(target.getDate() + offset * 7);
+    const weekNum = getWeekNumber(target);
+    const rotation = weekNum % sessions.length;
+    const result: Record<string, string | null> = {};
+    DAY_NAMES.forEach(d => { result[d] = null; });
+    trainingDays.forEach((day, idx) => {
+      const sessionIdx = (idx + rotation) % sessions.length;
+      result[day] = sessions[sessionIdx].id;
+    });
+    return result;
+  };
 
   const schedule = useMemo(() => {
-    if (manualSchedule) return manualSchedule;
-    if (weekOffset === 0) return currentWeekSchedule;
-    return rotatedSchedule;
-  }, [weekOffset, manualSchedule, currentWeekSchedule, rotatedSchedule]);
+    if (weekOffset === 0) return manualSchedule ?? currentWeekSchedule;
+    if (weekOffset < 0) {
+      const empty: Record<string, string | null> = {};
+      DAY_NAMES.forEach(d => { empty[d] = null; });
+      return empty;
+    }
+    return getFutureWeekSchedule(weekOffset);
+  }, [weekOffset, manualSchedule, currentWeekSchedule, futureSchedules, baseScheduleForFuture, program]);
 
   const swapDays = (dayA: string, dayB: string) => {
-    const idxA = dayNamesFull.indexOf(dayA);
-    const idxB = dayNamesFull.indexOf(dayB);
+    const idxA = DAY_NAMES.indexOf(dayA);
+    const idxB = DAY_NAMES.indexOf(dayB);
     if (weekOffset === 0 && idxA < currentDayIdx) return;
     if (weekOffset === 0 && idxB < currentDayIdx) return;
     const dateA = weekDates[idxA]?.toISOString().split('T')[0];
     const dateB = weekDates[idxB]?.toISOString().split('T')[0];
     if (dateA && completedDates.includes(dateA)) return;
     if (dateB && completedDates.includes(dateB)) return;
-    const base = { ...currentWeekSchedule, ...(manualSchedule ?? {}) };
+
+    const base = { ...schedule };
     const tmp = base[dayA];
     base[dayA] = base[dayB];
     base[dayB] = tmp;
-    localStorage.setItem("muscleup_schedule", JSON.stringify(base));
-    localStorage.setItem("muscleup_manual_schedule", JSON.stringify(base));
-    setCurrentWeekSchedule(base);
-    setManualSchedule(base);
+
+    if (weekOffset === 0) {
+      localStorage.setItem("muscleup_schedule", JSON.stringify(base));
+      localStorage.setItem("muscleup_manual_schedule", JSON.stringify(base));
+      setCurrentWeekSchedule(base);
+      setManualSchedule(base);
+    } else {
+      const updated = { ...futureSchedules, [weekOffset]: base };
+      setFutureSchedules(updated);
+      localStorage.setItem("muscleup_future_schedules", JSON.stringify(updated));
+    }
   };
 
-  const resetToOptimal = () => {
-    setManualSchedule(null);
-    localStorage.removeItem("muscleup_manual_schedule");
-    toast({ title: "Planning réinitialisé ✓", description: "Le planning optimal a été restauré." });
-  };
-
-  const todaySessionId = schedule[todayName] ?? null;
+  const todaySessionId = (manualSchedule ?? currentWeekSchedule)[todayName] ?? null;
   const todaySession = program.sessions.find(s => s.id === todaySessionId);
   const todaySessionDisplayName = todaySession ? getSessionName(todaySession) : 'Repos aujourd\'hui';
   const todayIsRest = !todaySession || todaySession.isRestDay;
@@ -382,7 +351,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     const monday = new Date(now);
     monday.setDate(now.getDate() - currentDayIdx + weekOffset * 7);
     monday.setHours(0, 0, 0, 0);
-    return dayNamesFull.map((_, i) => {
+    return DAY_NAMES.map((_, i) => {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
       return d;
@@ -476,7 +445,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     setLongPressActive(false);
   };
 
-  // ── Modals (rendues via Portal dans document.body) ──────────────
   const previewModal = selectedPreviewSession && isMounted ? createPortal(
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 9999 }}
@@ -557,10 +525,8 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
           >
             {selectedPreviewSession.day === todayName && weekOffset === 0 ? "C'EST PARTI !" : "LANCER CETTE SÉANCE"}
           </Button>
-          <button
-            onClick={() => setSelectedPreviewSession(null)}
-            className="w-full text-center text-xs font-bold uppercase tracking-widest text-zinc-600 hover:text-zinc-400 py-3 transition-colors"
-          >
+          <button onClick={() => setSelectedPreviewSession(null)}
+            className="w-full text-center text-xs font-bold uppercase tracking-widest text-zinc-600 hover:text-zinc-400 py-3 transition-colors">
             Fermer
           </button>
         </div>
@@ -575,10 +541,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       className="flex items-end justify-center bg-black/80"
       onClick={() => setSelectedExercise(null)}
     >
-      <div
-        className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-[30px] p-8 max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
-      >
+      <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-[30px] p-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-8" />
         <ExerciseAnimation muscle={selectedExercise.muscle} />
         <header className="mb-8 text-center">
@@ -734,7 +697,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             onTouchEnd={handleTouchEndDrag}
             style={{ touchAction: longPressActive ? 'none' : 'pan-y', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as React.CSSProperties}
           >
-            {dayNamesFull.map((dayName: string, idx: number) => {
+            {DAY_NAMES.map((dayName: string, idx: number) => {
               const sessionId = schedule[dayName];
               const session = program.sessions.find(s => s.id === sessionId);
               const date = weekDates[idx];
@@ -802,27 +765,25 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                     )}
                     {editingSessionId !== session?.id && (
                       isDone
-                      ? <div className="flex items-center gap-1.5">
-                          <span className="text-[9px] font-black text-green-500 uppercase tracking-widest">Validé</span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const dateStr = weekDates[idx].toISOString().split('T')[0];
-                              // Supprimer de completedDates
-                              const newDates = completedDates.filter(d => d !== dateStr);
-                              setCompletedDates(newDates);
-                              localStorage.setItem("completedDates", JSON.stringify(newDates));
-                              // Supprimer de l'historique
-                              const newHistory = history.filter(h => h.date?.split('T')[0] !== dateStr);
-                              setHistory(newHistory);
-                              localStorage.setItem("muscleup_history", JSON.stringify(newHistory));
-                              toast({ title: "Séance annulée", description: "La validation a été supprimée." });
-                            }}
-                            title="Annuler la validation"
-                          >
-                            <CheckCircle2 className="w-5 h-5 text-green-500 hover:text-red-400 transition-colors" />
-                          </button>
-                        </div>
+                        ? <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] font-black text-green-500 uppercase tracking-widest">Validé</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const dateStr = weekDates[idx].toISOString().split('T')[0];
+                                const newDates = completedDates.filter(d => d !== dateStr);
+                                setCompletedDates(newDates);
+                                localStorage.setItem("completedDates", JSON.stringify(newDates));
+                                const newHistory = history.filter(h => h.date?.split('T')[0] !== dateStr);
+                                setHistory(newHistory);
+                                localStorage.setItem("muscleup_history", JSON.stringify(newHistory));
+                                toast({ title: "Séance annulée", description: "La validation a été supprimée." });
+                              }}
+                              title="Annuler la validation"
+                            >
+                              <CheckCircle2 className="w-5 h-5 text-green-500 hover:text-red-400 transition-colors" />
+                            </button>
+                          </div>
                         : dayStatuses[idx] === "past"
                           ? <span className="text-[10px] font-bold text-zinc-700 uppercase">—</span>
                           : isToday && !isRest
@@ -897,7 +858,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
 
       </div>
 
-      {/* Modals rendues via Portal dans document.body */}
       {previewModal}
       {exerciseModal}
     </>
