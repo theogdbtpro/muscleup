@@ -326,7 +326,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     return getRotatedSchedule(baseSchedule, weekOffset, program);
   }, [baseSchedule, weekOffset, program, currentWeekSchedule]);
 
-  const schedule = manualSchedule || rotatedSchedule;
+  const schedule = weekOffset === 0 ? (manualSchedule || rotatedSchedule) : rotatedSchedule;
 
   const swapDays = (dayA: string, dayB: string) => {
     if (weekOffset !== 0) return;
