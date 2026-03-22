@@ -327,10 +327,15 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     return getRotatedSchedule(baseSchedule, weekOffset, program);
   }, [baseSchedule, weekOffset, program, currentWeekSchedule]);
 
-  const schedule = weekOffset === 0 ? (manualSchedule || rotatedSchedule) : rotatedSchedule;
+  const schedule = useMemo(() => {
+    if (manualSchedule) return manualSchedule;
+    if (weekOffset === 0) return currentWeekSchedule;
+    return rotatedSchedule;
+  }, [weekOffset, manualSchedule, currentWeekSchedule, rotatedSchedule]);
 
   const swapDays = (dayA: string, dayB: string) => {
-    if (weekOffset !== 0) return;
+    console.log("swapDays appelé", dayA, dayB, "weekOffset:", weekOffset, "currentDayIdx:", currentDayIdx);
+    console.log("schedule actuel:", JSON.stringify(schedule));
     const idxA = dayNamesFull.indexOf(dayA);
     const idxB = dayNamesFull.indexOf(dayB);
     if (idxA < currentDayIdx) return;
@@ -344,7 +349,9 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     base[dayA] = base[dayB];
     base[dayB] = tmp;
     setManualSchedule(base);
+    setCurrentWeekSchedule(base);
     localStorage.setItem("muscleup_manual_schedule", JSON.stringify(base));
+    localStorage.setItem("muscleup_schedule", JSON.stringify(base));
   };
 
   const resetToOptimal = () => {
