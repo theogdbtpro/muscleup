@@ -298,11 +298,16 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     return mapping;
   }, [program]);
 
-  const currentWeekSchedule = useMemo<Record<string, string | null>>(() => {
+  const [currentWeekSchedule, setCurrentWeekSchedule] = useState<Record<string, string | null>>(() => {
     if (typeof window === 'undefined') return {};
     const saved = localStorage.getItem("muscleup_schedule");
     if (saved) return JSON.parse(saved);
     return {};
+  });
+
+  useEffect(() => {
+    const saved = localStorage.getItem("muscleup_schedule");
+    if (saved) setCurrentWeekSchedule(JSON.parse(saved));
   }, []);
 
   const rotatedSchedule = useMemo(() => {
