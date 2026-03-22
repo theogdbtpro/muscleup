@@ -582,10 +582,10 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
             {dayNamesFull.map((dayName: string, idx: number) => {
               const sessionId = schedule[dayName];
               const session = program.sessions.find(s => s.id === sessionId);
-              const isDone = dayStatuses[idx] === "done";
               const date = weekDates[idx];
               const isToday = weekOffset === 0 && idx === currentDayIdx;
               const isRest = !session || session.isRestDay;
+              const isDone = dayStatuses[idx] === "done" && !isRest;
               const dateLabel = `${date.getDate()} ${MONTHS[date.getMonth()]}`;
               const isDragging = draggedDay === dayName && longPressActive;
               const isDropTarget = dragOverDay === dayName && draggedDay !== dayName;

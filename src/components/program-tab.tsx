@@ -259,12 +259,15 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
 
   const handleFinish = () => {
     const todayStr = new Date().toISOString().split('T')[0];
-    const historyItem = { day: currentSession.day, date: new Date().toISOString(), sessionName: currentSessionDisplayName };
-    const existingHistory = JSON.parse(localStorage.getItem("muscleup_history") || "[]");
-    localStorage.setItem("muscleup_history", JSON.stringify([historyItem, ...existingHistory]));
-    const existingDates = JSON.parse(localStorage.getItem("completedDates") || "[]");
-    if (!existingDates.includes(todayStr)) localStorage.setItem("completedDates", JSON.stringify([...existingDates, todayStr]));
-    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#E24B4A', '#FFFFFF', '#1A1A1A'] });
+    // Ne valide pas si c'est un jour de repos
+    if (!currentSession.isRestDay) {
+      const historyItem = { day: currentSession.day, date: new Date().toISOString(), sessionName: currentSessionDisplayName };
+      const existingHistory = JSON.parse(localStorage.getItem("muscleup_history") || "[]");
+      localStorage.setItem("muscleup_history", JSON.stringify([historyItem, ...existingHistory]));
+      const existingDates = JSON.parse(localStorage.getItem("completedDates") || "[]");
+      if (!existingDates.includes(todayStr)) localStorage.setItem("completedDates", JSON.stringify([...existingDates, todayStr]));
+      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#E24B4A', '#FFFFFF', '#1A1A1A'] });
+    }
     onBack();
   };
 
