@@ -218,7 +218,8 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   }, []);
 
   const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
-  const currentDayIdx = (new Date().getDay() + 6) % 7;
+  const now = new Date();
+  const currentDayIdx = (now.getDay() + 6) % 7;
   const todayName = dayNamesFull[currentDayIdx];
 
   useEffect(() => {
