@@ -387,7 +387,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
   const suggestedWeightCurrent = currentExercise ? getSuggestedWeight(currentExercise, profile) : null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#0F0F0F] flex flex-col animate-in slide-in-from-bottom duration-300">
+    <div className="fixed inset-0 z-[100] bg-[#0F0F0F] flex flex-col animate-in slide-in-from-bottom duration-300 overflow-hidden">
       {/* Header progress */}
       <div className="p-4 flex items-center gap-4 shrink-0">
         <button onClick={() => setPhase("intro")} className="text-zinc-500 p-1"><X className="w-5 h-5" /></button>
@@ -429,8 +429,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
           </button>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col px-4 pb-4 overflow-hidden">
-          {/* Nom + muscle */}
+        <div className="flex-1 flex flex-col px-4 pb-4 overflow-y-auto">          {/* Nom + muscle */}
           <div className="text-center mb-2 shrink-0">
             <span className="text-[#E24B4A] font-bold text-[10px] uppercase tracking-widest">
               Exercice {currentExIdx + 1} / {currentExercises.length}
@@ -485,7 +484,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
           </button>
 
           {/* Points séries + bouton */}
-          <div className="mt-auto shrink-0">
+          <div className="shrink-0">
             <div className="flex justify-center gap-2 mb-2">
               {Array.from({ length: totalSets }).map((_, i) => (
                 <div key={i} className={cn("w-2 h-2 rounded-full transition-all",
