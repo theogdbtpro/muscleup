@@ -11,7 +11,10 @@ import { useMemo, useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-
+const getLocalDateStr = () => {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+};
 type HubProps = {
   profile: UserProfile;
   setView: (view: any) => void;
@@ -234,7 +237,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const getSessionName = (session: Session) => customNames[session.id] || session.name;
 
   const finishedToday = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
     if (!completedDates.includes(todayStr)) return false;
     const savedSchedule = typeof window !== 'undefined' ? localStorage.getItem("muscleup_schedule") : null;
     const sched = savedSchedule ? JSON.parse(savedSchedule) : {};
@@ -247,7 +250,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const streak = useMemo(() => {
     const dates = Array.from(new Set(completedDates)).sort().reverse();
     if (dates.length === 0) return 0;
-    const today = new Date().toISOString().split('T')[0];
+    const today = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
@@ -373,7 +376,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   }, [weekOffset]);
 
   const dayStatuses = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateStr();
     return weekDates.map(date => {
       const dateStr = date.toISOString().split('T')[0];
       if (completedDates.includes(dateStr)) return "done";

@@ -257,8 +257,8 @@ type ProgramTabProps = {
     }
   };
   const handleFinish = () => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    console.log("SESSION TERMINÉE - id:", currentSession.id, "name:", currentSessionDisplayName);
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
     if (!currentSession.isRestDay) {
       const historyItem = {
         day: currentSession.day, 
