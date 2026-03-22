@@ -67,8 +67,11 @@ function getRotatedSchedule(
     });
   }
 
-  // Jours futurs (aujourd'hui inclus si semaine en cours)
+  // Jours futurs uniquement (aujourd'hui inclus)
   trainingDays.forEach((day, idx) => {
+    const dayIdx = dayNamesFull.indexOf(day);
+    // Ne pas écraser les jours passés de la semaine en cours
+    if (weekOffset === 0 && dayIdx < todayIdx) return;
     const sessionIdx = (idx + rotation) % sessions.length;
     newSchedule[day] = sessions[sessionIdx].id;
   });
