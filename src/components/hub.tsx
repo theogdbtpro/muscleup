@@ -617,7 +617,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                     "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-150",
                     isToday ? "bg-[#E24B4A]/5" : "",
                     isPast && !isDone ? "opacity-40 pointer-events-none" : "",
-                    isDone ? "!bg-[#4CAF50]/10 hover:!bg-[#4CAF50]/10" : "",
+                    isDone ? "!bg-green-500/10" : "",
                     !longPressActive && !isRest && !isPast ? "cursor-pointer hover:bg-white/5" : "",
                     !isRest && !isPast ? "cursor-grab active:cursor-grabbing" : "",
                     isDragging ? "!bg-zinc-700 opacity-60 border-dashed" : "",
@@ -656,8 +656,8 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                     {editingSessionId !== session?.id && (
                       isDone
                         ? <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] font-black text-[#4CAF50] uppercase tracking-widest hidden sm:block">Validé</span>
-                            <CheckCircle2 className="w-5 h-5 text-[#4CAF50] fill-[#4CAF50]/20" />
+                            <span className="text-[9px] font-black text-green-500 uppercase tracking-widest">Validé</span>
+                            <CheckCircle2 className="w-5 h-5 text-green-500" />
                           </div>
                         : dayStatuses[idx] === "past"
                           ? <span className="text-[10px] font-bold text-zinc-700 uppercase">—</span>
