@@ -353,9 +353,10 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     toast({ title: "Planning réinitialisé ✓", description: "Le planning optimal a été restauré." });
   };
 
-  const todaySessionId = schedule[todayName];
+  const todaySessionId = schedule[todayName] ?? null;
+  console.log("todayName:", todayName, "currentDayIdx:", currentDayIdx, "day():", new Date().getDay(), "schedule keys with values:", Object.entries(schedule).filter(([,v]) => v).map(([k]) => k));
   const todaySession = program.sessions.find(s => s.id === todaySessionId);
-  const todaySessionDisplayName = todaySession ? getSessionName(todaySession) : "Repos aujourd'hui";
+  const todaySessionDisplayName = todaySession ? getSessionName(todaySession) : 'Repos aujourd\'hui';
   const todayIsRest = !todaySession || todaySession.isRestDay;
 
   const weekDates = useMemo(() => {
