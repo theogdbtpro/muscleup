@@ -6,7 +6,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Flame, Activity, Utensils, MessageSquare, Lightbulb, CheckCircle2, Circle, ChevronRight, ChevronLeft, Clock, Timer, Zap, Info, Dumbbell, Home as HomeIcon, BarChart, Pencil, Check, X, RotateCcw, Lock, Unlock, GripVertical, CalendarDays } from "lucide-react";import { useMemo, useEffect, useState, useRef } from "react";
+import { Flame, Activity, Utensils, Lightbulb, CheckCircle2, Circle, ChevronRight, ChevronLeft, Clock, Timer, Zap, Info, Dumbbell, Home as HomeIcon, BarChart, Pencil, Check, X, RotateCcw, GripVertical, CalendarDays } from "lucide-react";
+import { useMemo, useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -57,7 +59,6 @@ function getRotatedSchedule(
   const todayIdx = (new Date().getDay() + 6) % 7;
 
   if (weekOffset === 0) {
-    // Semaine en cours : jours passés = on lit le planning sauvegardé
     const savedRaw = typeof window !== 'undefined' ? localStorage.getItem("muscleup_schedule") : null;
     const saved = savedRaw ? JSON.parse(savedRaw) : {};
     dayNamesFull.forEach((day, idx) => {
@@ -67,10 +68,8 @@ function getRotatedSchedule(
     });
   }
 
-  // Jours futurs uniquement (aujourd'hui inclus)
   trainingDays.forEach((day, idx) => {
     const dayIdx = dayNamesFull.indexOf(day);
-    // Ne pas écraser les jours passés de la semaine en cours
     if (weekOffset === 0 && dayIdx < todayIdx) return;
     const sessionIdx = (idx + rotation) % sessions.length;
     newSchedule[day] = sessions[sessionIdx].id;
@@ -78,6 +77,7 @@ function getRotatedSchedule(
 
   return newSchedule;
 }
+
 function ExerciseAnimation({ muscle }: { muscle: string }) {
   const m = muscle.toLowerCase();
   return (
@@ -187,24 +187,23 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const [draggedDay, setDraggedDay] = useState<string | null>(null);
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
   const [longPressActive, setLongPressActive] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [manualSchedule, setManualSchedule] = useState<Record<string, string | null> | null>(null);
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const planningRef = useRef<HTMLDivElement | null>(null);
   const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
 
+  // Nécessaire pour createPortal (SSR safe)
+  useEffect(() => { setIsMounted(true); }, []);
+
   useEffect(() => {
     if (selectedPreviewSession || selectedExercise || longPressActive) {
       document.body.style.overflow = 'hidden';
-      document.body.style.height = '100%';
     } else {
       document.body.style.overflow = '';
-      document.body.style.height = '';
     }
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.height = '';
-    };
+    return () => { document.body.style.overflow = ''; };
   }, [selectedPreviewSession, selectedExercise, longPressActive]);
 
   useEffect(() => {
@@ -248,15 +247,12 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       }
     };
     reload();
-    // PC : retour sur l'onglet
     window.addEventListener("focus", reload);
-    // Mobile : retour sur l'app depuis arrière-plan
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") reload();
-    });
+    const handleVisibility = () => { if (document.visibilityState === "visible") reload(); };
+    document.addEventListener("visibilitychange", handleVisibility);
     return () => {
       window.removeEventListener("focus", reload);
-      document.removeEventListener("visibilitychange", reload);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
 
@@ -282,9 +278,10 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     if (!completedDates.includes(todayStr)) return false;
     const savedSchedule = typeof window !== 'undefined' ? localStorage.getItem("muscleup_schedule") : null;
     const sched = savedSchedule ? JSON.parse(savedSchedule) : {};
-    const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
-    const todayName = dayNamesFull[(new Date().getDay() + 6) % 7];
-    const todaySessId = sched[todayName] ?? null;
+    const dn = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+    const tName = dn[(new Date().getDay() + 6) % 7];
+    const todaySessId = sched[tName] ?? null;
+    if (!todaySessId) return true;
     const todayHistory = history.find(h =>
       h.date?.split('T')[0] === todayStr && h.sessionId === todaySessId
     );
@@ -310,10 +307,8 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
 
   const baseSchedule = useMemo<Record<string, string | null>>(() => {
     if (typeof window === 'undefined') return {};
-    // Utilise le planning type pour les rotations des semaines futures
     const savedBase = localStorage.getItem("muscleup_base_schedule");
     if (savedBase) return JSON.parse(savedBase);
-    // Fallback sur le planning courant
     const saved = localStorage.getItem("muscleup_schedule");
     if (saved) return JSON.parse(saved);
     const mapping: Record<string, string | null> = {};
@@ -337,15 +332,12 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   }, []);
 
   const rotatedSchedule = useMemo(() => {
-    // Semaine en cours : on lit directement muscleup_schedule
     if (weekOffset === 0) return currentWeekSchedule;
-    // Semaines passées : on affiche vide, l'historique est dans completedDates
     if (weekOffset < 0) {
       const empty: Record<string, string | null> = {};
       dayNamesFull.forEach(d => { empty[d] = null; });
       return empty;
     }
-    // Semaines futures : on utilise baseSchedule avec rotation
     return getRotatedSchedule(baseSchedule, weekOffset, program);
   }, [baseSchedule, weekOffset, program, currentWeekSchedule]);
 
@@ -364,11 +356,7 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     const dateB = weekDates[idxB]?.toISOString().split('T')[0];
     if (dateA && completedDates.includes(dateA)) return;
     if (dateB && completedDates.includes(dateB)) return;
-    // On part toujours du schedule actuel affiché
-    const base = {
-      ...currentWeekSchedule,
-      ...(manualSchedule ?? {}),
-    };
+    const base = { ...currentWeekSchedule, ...(manualSchedule ?? {}) };
     const tmp = base[dayA];
     base[dayA] = base[dayB];
     base[dayB] = tmp;
@@ -385,7 +373,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   };
 
   const todaySessionId = schedule[todayName] ?? null;
-  console.log("todayName:", todayName, "currentDayIdx:", currentDayIdx, "day():", new Date().getDay(), "schedule keys with values:", Object.entries(schedule).filter(([,v]) => v).map(([k]) => k));
   const todaySession = program.sessions.find(s => s.id === todaySessionId);
   const todaySessionDisplayName = todaySession ? getSessionName(todaySession) : 'Repos aujourd\'hui';
   const todayIsRest = !todaySession || todaySession.isRestDay;
@@ -437,7 +424,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
 
   const totalWeeklyGoal = parseInt(profile.frequency) || 3;
   const weeklyProgressPercent = Math.min((weeklySessionsDone / totalWeeklyGoal) * 100, 100);
-
   const isHome = profile.location === 'maison';
 
   const bodyStatsSummary = useMemo(() => {
@@ -467,7 +453,6 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
       setDraggedDay(dayName);
     }, 500);
   };
-
   const handleTouchCancelDrag = () => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
   };
@@ -491,9 +476,138 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
     setLongPressActive(false);
   };
 
+  // ── Modals (rendues via Portal dans document.body) ──────────────
+  const previewModal = selectedPreviewSession && isMounted ? createPortal(
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 9999 }}
+      className="flex items-end justify-center bg-black/70"
+      onClick={() => setSelectedPreviewSession(null)}
+    >
+      <div
+        className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[85vh] overflow-y-auto pb-10"
+        onClick={e => e.stopPropagation()}
+        onTouchStart={e => {
+          const el = e.currentTarget;
+          el.dataset.touchY = String(e.touches[0].clientY);
+          el.style.transition = 'none';
+        }}
+        onTouchMove={e => {
+          const el = e.currentTarget;
+          const startY = Number(el.dataset.touchY);
+          const delta = e.touches[0].clientY - startY;
+          if (delta > 0) el.style.transform = `translateY(${delta}px)`;
+        }}
+        onTouchEnd={e => {
+          const el = e.currentTarget;
+          const startY = Number(el.dataset.touchY);
+          const endY = e.changedTouches[0].clientY;
+          const delta = endY - startY;
+          el.style.transition = 'transform 0.3s ease';
+          if (delta > 100) {
+            el.style.transform = 'translateY(100%)';
+            setTimeout(() => setSelectedPreviewSession(null), 300);
+          } else {
+            el.style.transform = 'translateY(0)';
+          }
+        }}
+      >
+        <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-6" />
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1 min-w-0 mr-4">
+            <EditableSessionName
+              sessionId={selectedPreviewSession.session.id}
+              defaultName={selectedPreviewSession.session.name}
+              currentName={getSessionName(selectedPreviewSession.session)}
+              onSave={saveCustomName}
+              onReset={resetCustomName}
+              className="text-3xl text-[#E24B4A] uppercase leading-none"
+            />
+            <div className="flex items-center gap-3 mt-2 text-zinc-500 font-bold uppercase text-[10px] tracking-widest">
+              <span>{selectedPreviewSession.day} {selectedPreviewSession.date.getDate()} {MONTHS[selectedPreviewSession.date.getMonth()]}</span>
+              <span>•</span>
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span>{selectedPreviewSession.session.duration}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="space-y-3 mb-6">
+          {(profile.location === 'maison' && selectedPreviewSession.session.homeExercises
+            ? selectedPreviewSession.session.homeExercises
+            : selectedPreviewSession.session.exercises
+          ).map((ex, i) => (
+            <div key={i} onClick={() => setSelectedExercise(ex)}
+              className="bg-[#0F0F0F] p-4 rounded-xl border border-[#2A2A2A] flex items-center gap-4 cursor-pointer hover:border-[#E24B4A]/50 transition-all group">
+              <div className="w-8 h-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center font-headline text-xl text-[#E24B4A] flex-shrink-0 group-hover:bg-[#E24B4A] group-hover:text-white transition-colors">{i + 1}</div>
+              <div className="flex-1">
+                <div className="font-bold text-sm text-white uppercase tracking-tight">{ex.name}</div>
+                <div className="flex items-center gap-3 mt-0.5">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase">{ex.sets} × {ex.reps}</span>
+                  <span className="text-[10px] font-bold text-[#EE3BAA] uppercase tracking-tighter">{ex.muscle}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="space-y-3">
+          <Button
+            onClick={() => { onStartSession(selectedPreviewSession.session.id); setSelectedPreviewSession(null); }}
+            className="w-full h-14 bg-[#E24B4A] text-white font-headline text-xl rounded-xl shadow-xl press-effect ripple"
+          >
+            {selectedPreviewSession.day === todayName && weekOffset === 0 ? "C'EST PARTI !" : "LANCER CETTE SÉANCE"}
+          </Button>
+          <button
+            onClick={() => setSelectedPreviewSession(null)}
+            className="w-full text-center text-xs font-bold uppercase tracking-widest text-zinc-600 hover:text-zinc-400 py-3 transition-colors"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
+  const exerciseModal = selectedExercise && isMounted ? createPortal(
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 10000 }}
+      className="flex items-end justify-center bg-black/80"
+      onClick={() => setSelectedExercise(null)}
+    >
+      <div
+        className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-[30px] p-8 max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-8" />
+        <ExerciseAnimation muscle={selectedExercise.muscle} />
+        <header className="mb-8 text-center">
+          <h2 className="text-4xl font-headline text-primary uppercase leading-none mb-3">{selectedExercise.name}</h2>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <span className="px-3 py-1 bg-[#EE3BAA]/10 text-[#EE3BAA] text-[10px] font-bold uppercase rounded-md border border-[#EE3BAA]/20">{selectedExercise.muscle}</span>
+            <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-[10px] font-bold uppercase rounded-md">{selectedExercise.sets} Séries × {selectedExercise.reps}</span>
+            <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-[10px] font-bold uppercase rounded-md flex items-center gap-1"><Timer className="w-3 h-3" /> {selectedExercise.rest}</span>
+          </div>
+        </header>
+        <div className="space-y-8">
+          <section className="space-y-3">
+            <div className="flex items-center gap-2"><Zap className="w-4 h-4 text-primary" /><h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Position & Mouvement</h3></div>
+            <p className="text-sm text-zinc-300 leading-relaxed bg-[#0F0F0F] p-5 rounded-2xl border border-zinc-800/50">{selectedExercise.position}</p>
+          </section>
+          <section className="space-y-3">
+            <div className="flex items-center gap-2"><Info className="w-4 h-4 text-[#EE3BAA]" /><h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Conseil technique</h3></div>
+            <p className="text-sm text-zinc-400 leading-relaxed italic border-l-2 border-[#EE3BAA] pl-4">"{selectedExercise.technique}"</p>
+          </section>
+          <Button onClick={() => setSelectedExercise(null)} className="w-full h-14 bg-zinc-800 hover:bg-zinc-700 text-white font-headline text-xl rounded-xl transition-colors">FERMER</Button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
   return (
     <>
-      <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-20" style={{ isolation: 'isolate' }}>
+      <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-20">
 
         <header className="flex justify-between items-start">
           <div>
@@ -688,10 +802,27 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
                     )}
                     {editingSessionId !== session?.id && (
                       isDone
-                        ? <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] font-black text-green-500 uppercase tracking-widest">Validé</span>
-                            <CheckCircle2 className="w-5 h-5 text-green-500" />
-                          </div>
+                      ? <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-black text-green-500 uppercase tracking-widest">Validé</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const dateStr = weekDates[idx].toISOString().split('T')[0];
+                              // Supprimer de completedDates
+                              const newDates = completedDates.filter(d => d !== dateStr);
+                              setCompletedDates(newDates);
+                              localStorage.setItem("completedDates", JSON.stringify(newDates));
+                              // Supprimer de l'historique
+                              const newHistory = history.filter(h => h.date?.split('T')[0] !== dateStr);
+                              setHistory(newHistory);
+                              localStorage.setItem("muscleup_history", JSON.stringify(newHistory));
+                              toast({ title: "Séance annulée", description: "La validation a été supprimée." });
+                            }}
+                            title="Annuler la validation"
+                          >
+                            <CheckCircle2 className="w-5 h-5 text-green-500 hover:text-red-400 transition-colors" />
+                          </button>
+                        </div>
                         : dayStatuses[idx] === "past"
                           ? <span className="text-[10px] font-bold text-zinc-700 uppercase">—</span>
                           : isToday && !isRest
@@ -765,114 +896,10 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
         </section>
 
       </div>
-      {selectedPreviewSession && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }} className="flex items-end justify-center bg-black/70" onClick={() => setSelectedPreviewSession(null)}>
-          <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto transition-transform mb-0 pb-8"          onClick={e => e.stopPropagation()}
-            onTouchStart={e => {
-              const el = e.currentTarget;
-              el.dataset.touchY = String(e.touches[0].clientY);
-              el.style.transition = 'none';
-            }}
-            onTouchMove={e => {
-              const el = e.currentTarget;
-              const startY = Number(el.dataset.touchY);
-              const delta = e.touches[0].clientY - startY;
-              if (delta > 0) el.style.transform = `translateY(${delta}px)`;
-            }}
-            onTouchEnd={e => {
-              const el = e.currentTarget;
-              const startY = Number(el.dataset.touchY);
-              const endY = e.changedTouches[0].clientY;
-              const delta = endY - startY;
-              el.style.transition = 'transform 0.3s ease';
-              if (delta > 100) {
-                el.style.transform = 'translateY(100%)';
-                setTimeout(() => setSelectedPreviewSession(null), 300);
-              } else {
-                el.style.transform = 'translateY(0)';
-              }
-            }}
-          >
-            <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-6" />
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex-1 min-w-0 mr-4">
-                <EditableSessionName
-                  sessionId={selectedPreviewSession.session.id}
-                  defaultName={selectedPreviewSession.session.name}
-                  currentName={getSessionName(selectedPreviewSession.session)}
-                  onSave={saveCustomName}
-                  onReset={resetCustomName}
-                  className="text-3xl text-[#E24B4A] uppercase leading-none"
-                />
-                <div className="flex items-center gap-3 mt-2 text-zinc-500 font-bold uppercase text-[10px] tracking-widest">
-                  <span>{selectedPreviewSession.day} {selectedPreviewSession.date.getDate()} {MONTHS[selectedPreviewSession.date.getMonth()]}</span>
-                  <span>•</span>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    <span>{selectedPreviewSession.session.duration}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-3 mb-6">
-              {(profile.location === 'maison' && selectedPreviewSession.session.homeExercises
-                ? selectedPreviewSession.session.homeExercises
-                : selectedPreviewSession.session.exercises
-              ).map((ex, i) => (
-                <div key={i} onClick={() => setSelectedExercise(ex)}
-                  className="bg-[#0F0F0F] p-4 rounded-xl border border-[#2A2A2A] flex items-center gap-4 cursor-pointer hover:border-[#E24B4A]/50 transition-all group">
-                  <div className="w-8 h-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center font-headline text-xl text-[#E24B4A] flex-shrink-0 group-hover:bg-[#E24B4A] group-hover:text-white transition-colors">{i + 1}</div>
-                  <div className="flex-1">
-                    <div className="font-bold text-sm text-white uppercase tracking-tight">{ex.name}</div>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-[10px] font-bold text-zinc-500 uppercase">{ex.sets} × {ex.reps}</span>
-                      <span className="text-[10px] font-bold text-[#EE3BAA] uppercase tracking-tighter">{ex.muscle}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="space-y-3">
-              <Button onClick={() => { onStartSession(selectedPreviewSession.session.id); setSelectedPreviewSession(null); }}
-                className="w-full h-14 bg-[#E24B4A] text-white font-headline text-xl rounded-xl shadow-xl press-effect ripple">
-                {selectedPreviewSession.day === todayName && weekOffset === 0 ? "C'EST PARTI !" : "LANCER CETTE SÉANCE"}
-              </Button>
-              <button onClick={() => setSelectedPreviewSession(null)}
-                className="w-full text-center text-xs font-bold uppercase tracking-widest text-zinc-600 hover:text-zinc-400 py-3 transition-colors">
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
-{selectedExercise && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} className="flex items-end justify-center bg-black/80" onClick={() => setSelectedExercise(null)}>
-          <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-[30px] p-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-8" />
-            <ExerciseAnimation muscle={selectedExercise.muscle} />
-            <header className="mb-8 text-center">
-              <h2 className="text-4xl font-headline text-primary uppercase leading-none mb-3">{selectedExercise.name}</h2>
-              <div className="flex flex-wrap gap-2 justify-center">
-                <span className="px-3 py-1 bg-[#EE3BAA]/10 text-[#EE3BAA] text-[10px] font-bold uppercase rounded-md border border-[#EE3BAA]/20">{selectedExercise.muscle}</span>
-                <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-[10px] font-bold uppercase rounded-md">{selectedExercise.sets} Séries × {selectedExercise.reps}</span>
-                <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-[10px] font-bold uppercase rounded-md flex items-center gap-1"><Timer className="w-3 h-3" /> {selectedExercise.rest}</span>
-              </div>
-            </header>
-            <div className="space-y-8">
-              <section className="space-y-3">
-                <div className="flex items-center gap-2"><Zap className="w-4 h-4 text-primary" /><h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Position & Mouvement</h3></div>
-                <p className="text-sm text-zinc-300 leading-relaxed bg-[#0F0F0F] p-5 rounded-2xl border border-zinc-800/50">{selectedExercise.position}</p>
-              </section>
-              <section className="space-y-3">
-                <div className="flex items-center gap-2"><Info className="w-4 h-4 text-[#EE3BAA]" /><h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Conseil technique</h3></div>
-                <p className="text-sm text-zinc-400 leading-relaxed italic border-l-2 border-[#EE3BAA] pl-4">"{selectedExercise.technique}"</p>
-              </section>
-              <Button onClick={() => setSelectedExercise(null)} className="w-full h-14 bg-zinc-800 hover:bg-zinc-700 text-white font-headline text-xl rounded-xl transition-colors">FERMER</Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modals rendues via Portal dans document.body */}
+      {previewModal}
+      {exerciseModal}
     </>
   );
 }

@@ -59,7 +59,6 @@
   min-height: 100vh;
   position: relative;
   background-color: #0F0F0F;
-  overflow-x: hidden;
 }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
