@@ -259,9 +259,13 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
 
   const handleFinish = () => {
     const todayStr = new Date().toISOString().split('T')[0];
-    // Ne valide pas si c'est un jour de repos
     if (!currentSession.isRestDay) {
-      const historyItem = { day: currentSession.day, date: new Date().toISOString(), sessionName: currentSessionDisplayName };
+      const historyItem = { 
+        day: currentSession.day, 
+        date: new Date().toISOString(), 
+        sessionName: currentSessionDisplayName,
+        sessionId: currentSession.id  // ← on stocke l'id de la séance validée
+      };
       const existingHistory = JSON.parse(localStorage.getItem("muscleup_history") || "[]");
       localStorage.setItem("muscleup_history", JSON.stringify([historyItem, ...existingHistory]));
       const existingDates = JSON.parse(localStorage.getItem("completedDates") || "[]");

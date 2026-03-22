@@ -223,28 +223,41 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   const todayName = dayNamesFull[currentDayIdx];
 
   useEffect(() => {
-    const savedHistory = localStorage.getItem("muscleup_history");
-    if (savedHistory) setHistory(JSON.parse(savedHistory));
-    const savedDates = localStorage.getItem("completedDates");
-    if (savedDates) setCompletedDates(JSON.parse(savedDates));
-    const savedNames = localStorage.getItem("muscleup_session_names");
-    if (savedNames) setCustomNames(JSON.parse(savedNames));
-    const savedManual = localStorage.getItem("muscleup_manual_schedule");
-    const savedBase = localStorage.getItem("muscleup_schedule");
-    if (savedManual && savedBase) {
-      const manual = JSON.parse(savedManual);
-      const base = JSON.parse(savedBase);
-      const manualDays = Object.values(manual).filter(Boolean).length;
-      const baseDays = Object.values(base).filter(Boolean).length;
-      if (manualDays !== baseDays) {
-        setManualSchedule(null);
-        localStorage.removeItem("muscleup_manual_schedule");
-      } else {
-        setManualSchedule(manual);
+    const reload = () => {
+      const savedHistory = localStorage.getItem("muscleup_history");
+      if (savedHistory) setHistory(JSON.parse(savedHistory));
+      const savedDates = localStorage.getItem("completedDates");
+      if (savedDates) setCompletedDates(JSON.parse(savedDates));
+      const savedNames = localStorage.getItem("muscleup_session_names");
+      if (savedNames) setCustomNames(JSON.parse(savedNames));
+      const savedManual = localStorage.getItem("muscleup_manual_schedule");
+      const savedBase = localStorage.getItem("muscleup_base_schedule");
+      if (savedManual && savedBase) {
+        const manual = JSON.parse(savedManual);
+        const base = JSON.parse(savedBase);
+        const manualDays = Object.values(manual).filter(Boolean).length;
+        const baseDays = Object.values(base).filter(Boolean).length;
+        if (manualDays !== baseDays) {
+          setManualSchedule(null);
+          localStorage.removeItem("muscleup_manual_schedule");
+        } else {
+          setManualSchedule(manual);
+        }
+      } else if (savedManual) {
+        setManualSchedule(JSON.parse(savedManual));
       }
-    } else if (savedManual) {
-      setManualSchedule(JSON.parse(savedManual));
-    }
+    };
+    reload();
+    // PC : retour sur l'onglet
+    window.addEventListener("focus", reload);
+    // Mobile : retour sur l'app depuis arrière-plan
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") reload();
+    });
+    return () => {
+      window.removeEventListener("focus", reload);
+      document.removeEventListener("visibilitychange", reload);
+    };
   }, []);
 
   const saveCustomName = (sessionId: string, name: string) => {
@@ -266,8 +279,17 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
 
   const finishedToday = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
-    return completedDates.includes(todayStr);
-  }, [completedDates]);
+    if (!completedDates.includes(todayStr)) return false;
+    const savedSchedule = typeof window !== 'undefined' ? localStorage.getItem("muscleup_schedule") : null;
+    const sched = savedSchedule ? JSON.parse(savedSchedule) : {};
+    const dayNamesFull = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+    const todayName = dayNamesFull[(new Date().getDay() + 6) % 7];
+    const todaySessId = sched[todayName] ?? null;
+    const todayHistory = history.find(h =>
+      h.date?.split('T')[0] === todayStr && h.sessionId === todaySessId
+    );
+    return !!todayHistory;
+  }, [completedDates, history]);
 
   const streak = useMemo(() => {
     const dates = Array.from(new Set(completedDates)).sort().reverse();
@@ -334,24 +356,26 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
   }, [weekOffset, manualSchedule, currentWeekSchedule, rotatedSchedule]);
 
   const swapDays = (dayA: string, dayB: string) => {
-    console.log("swapDays appelé", dayA, dayB, "weekOffset:", weekOffset, "currentDayIdx:", currentDayIdx);
-    console.log("schedule actuel:", JSON.stringify(schedule));
     const idxA = dayNamesFull.indexOf(dayA);
     const idxB = dayNamesFull.indexOf(dayB);
-    if (idxA < currentDayIdx) return;
-    if (idxB < currentDayIdx) return;
+    if (weekOffset === 0 && idxA < currentDayIdx) return;
+    if (weekOffset === 0 && idxB < currentDayIdx) return;
     const dateA = weekDates[idxA]?.toISOString().split('T')[0];
     const dateB = weekDates[idxB]?.toISOString().split('T')[0];
     if (dateA && completedDates.includes(dateA)) return;
     if (dateB && completedDates.includes(dateB)) return;
-    const base = { ...schedule };
+    // On part toujours du schedule actuel affiché
+    const base = {
+      ...currentWeekSchedule,
+      ...(manualSchedule ?? {}),
+    };
     const tmp = base[dayA];
     base[dayA] = base[dayB];
     base[dayB] = tmp;
-    setManualSchedule(base);
-    setCurrentWeekSchedule(base);
-    localStorage.setItem("muscleup_manual_schedule", JSON.stringify(base));
     localStorage.setItem("muscleup_schedule", JSON.stringify(base));
+    localStorage.setItem("muscleup_manual_schedule", JSON.stringify(base));
+    setCurrentWeekSchedule(base);
+    setManualSchedule(base);
   };
 
   const resetToOptimal = () => {
