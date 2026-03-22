@@ -61,8 +61,7 @@ export default function Dashboard({ profile, onUpdateProfile, onReset }: Dashboa
   isTransitioning ? "opacity-0 scale-[0.98]" : "opacity-100 scale-100"
 }`} style={{ overflowX: 'visible' }}>
         {view === "accueil" && (
-          <Hub key={refreshKey} profile={profile} setView={handleSetView} onStartSession={handleStartSession} />
-        )}
+          <Hub key={refreshKey} profile={profile} setView={handleSetView} onStartSession={handleStartSession} onReset={onReset} />        )}
         {view === "programme" && (
           <ProgramTab profile={profile} onBack={() => handleSetView("accueil")} onUpdateProfile={onUpdateProfile} manualSessionId={manualSessionId} onFinish={handleSessionFinished} />
         )}

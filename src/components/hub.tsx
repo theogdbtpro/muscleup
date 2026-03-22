@@ -19,6 +19,7 @@ type HubProps = {
   profile: UserProfile;
   setView: (view: any) => void;
   onStartSession: (sessionId?: string) => void;
+  onReset: () => void;
 };
 
 const OBJECTIVE_TIPS: Record<string, string> = {
@@ -150,7 +151,7 @@ function EditableSessionName({
   );
 }
 
-export default function Hub({ profile, setView, onStartSession }: HubProps) {
+export default function Hub({ profile, setView, onStartSession, onReset }: HubProps) {
   const { toast } = useToast();
   const [history, setHistory] = useState<any[]>([]);
   const [completedDates, setCompletedDates] = useState<string[]>([]);
@@ -577,9 +578,16 @@ export default function Hub({ profile, setView, onStartSession }: HubProps) {
 
         <header className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-headline text-white leading-none">
-              {profile.name ? `Bonjour ${profile.name} !` : "Bonjour !"}
-            </h1>
+          <h1
+  className="text-3xl font-headline text-white leading-none cursor-pointer"
+  onClick={() => {
+    if (confirm("Se déconnecter de ce compte ?\n\nToutes tes données seront supprimées.")) {
+      onReset();
+    }
+  }}
+>
+  {profile.name ? `Bonjour ${profile.name} !` : "Bonjour !"}
+</h1>
             <div className="flex items-center gap-2 mt-2">
               <div className={cn(
                 "flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-tighter",
