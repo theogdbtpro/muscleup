@@ -35,21 +35,23 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
-    // Écouter l'état de l'authentification Firebase
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    // Si auth n'a pas de méthode onAuthStateChanged (mode mock)
+    if (!auth || !auth.onAuthStateChanged) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: any) => {
       setUser(firebaseUser);
       
-      if (firebaseUser) {
-        // Si l'utilisateur est connecté, on charge son profil local
-        // (À terme, on chargera depuis Firestore)
-        const stored = localStorage.getItem(`muscleup_profile_${firebaseUser.uid}`);
-        if (stored) {
-          setProfile(JSON.parse(stored));
-        } else {
-          setProfile(null);
-        }
+      const uid = firebaseUser ? firebaseUser.uid : "guest";
+      const stored = localStorage.getItem(`muscleup_profile_${uid}`);
+      
+      if (stored) {
+        setProfile(JSON.parse(stored));
       } else {
         setProfile(null);
       }
@@ -60,25 +62,24 @@ export default function Home() {
   }, []);
 
   const handleOnboardingComplete = (newProfile: UserProfile) => {
-    if (!user) return;
-    localStorage.setItem(`muscleup_profile_${user.uid}`, JSON.stringify(newProfile));
-    if (newProfile.bodyProfile) {
-      localStorage.setItem(`muscleup_body_profile_${user.uid}`, JSON.stringify(newProfile.bodyProfile));
-    }
+    const uid = user ? user.uid : "guest";
+    localStorage.setItem(`muscleup_profile_${uid}`, JSON.stringify(newProfile));
     setProfile(newProfile);
   };
 
   const handleUpdateProfile = (updatedProfile: UserProfile) => {
-    if (!user) return;
-    localStorage.setItem(`muscleup_profile_${user.uid}`, JSON.stringify(updatedProfile));
-    if (updatedProfile.bodyProfile) {
-      localStorage.setItem(`muscleup_body_profile_${user.uid}`, JSON.stringify(updatedProfile.bodyProfile));
-    }
+    const uid = user ? user.uid : "guest";
+    localStorage.setItem(`muscleup_profile_${uid}`, JSON.stringify(updatedProfile));
     setProfile(updatedProfile);
   };
 
   const handleReset = () => {
-    auth.signOut();
+    if (user) {
+      auth.signOut();
+    } else {
+      setIsGuest(false);
+      setProfile(null);
+    }
   };
 
   if (loading) {
@@ -89,9 +90,19 @@ export default function Home() {
     );
   }
 
-  // Étape 1 : Si pas d'utilisateur, écran Auth
-  if (!user) {
-    return <AuthScreen />;
+  // Étape 1 : Si pas d'utilisateur et pas en mode invité, écran Auth
+  if (!user && !isGuest) {
+    return (
+      <div className="flex-1 flex flex-col">
+        <AuthScreen />
+        <button 
+          onClick={() => setIsGuest(true)}
+          className="bg-transparent text-zinc-600 text-[10px] font-bold uppercase tracking-widest pb-10 hover:text-white transition-colors"
+        >
+          Continuer sans compte (mode démo)
+        </button>
+      </div>
+    );
   }
 
   // Étape 2 : Si utilisateur mais pas de profil, Onboarding
