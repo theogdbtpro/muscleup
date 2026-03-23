@@ -19,12 +19,14 @@ import {
   ChevronUp,
   ChevronDown,
   User as UserIcon,
-  ArrowRight
+  ArrowRight,
+  Pencil
 } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { getExerciseAdvice } from "@/ai/flows/exercise-advice";
+import { Input } from "@/components/ui/input";
 
 const getLocalDateStr = (date: Date = new Date()) => {
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
@@ -59,9 +61,14 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const [dailyAdvice, setDailyAdvice] = useState<string>("Prêt pour ta prochaine dose de gains ?");
   const [loadingAdvice, setLoadingAdvice] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [draggedDay, setDraggedDay] = useState<string | null>(null);
   
   const user = auth.currentUser;
   const uidPrefix = user ? `_${user.uid}` : "_guest";
+
+  const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
 
   useEffect(() => {
     const loadData = () => {
@@ -80,9 +87,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
       }
     };
     loadData();
-  }, [profile.frequency, profile.objective, uidPrefix]);
-
-  const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
+  }, [profile.frequency, profile.objective, uidPrefix, program]);
 
   useEffect(() => {
     const fetchAdvice = async () => {
@@ -111,11 +116,9 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const todaySessionId = currentWeekSchedule[DAY_NAMES[currentDayIdx]];
   const todaySession = program.sessions.find(s => s.id === todaySessionId);
 
-  // Calculate next session info for the success card
   const nextSessionInfo = useMemo(() => {
     if (!finishedToday && todaySession) return null;
     
-    // Start searching from tomorrow
     for (let i = 1; i < 14; i++) {
       const d = new Date();
       d.setDate(d.getDate() + i);
@@ -190,6 +193,36 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     try { navigator.vibrate?.(20); } catch {}
   };
 
+  const handleDragStart = (day: string) => {
+    setDraggedDay(day);
+  };
+
+  const handleDrop = (targetDay: string) => {
+    if (!draggedDay || draggedDay === targetDay) return;
+    
+    const newSchedule = { ...currentWeekSchedule };
+    const tmp = newSchedule[draggedDay];
+    newSchedule[draggedDay] = newSchedule[targetDay];
+    newSchedule[targetDay] = tmp;
+
+    setCurrentWeekSchedule(newSchedule);
+    localStorage.setItem("muscleup_base_schedule" + uidPrefix, JSON.stringify(newSchedule));
+    setDraggedDay(null);
+    try { navigator.vibrate?.(20); } catch {}
+  };
+
+  const handleRename = (id: string) => {
+    const trimmed = editValue.trim();
+    if (!trimmed) {
+      setEditingId(null);
+      return;
+    }
+    const newNames = { ...customNames, [id]: trimmed };
+    setCustomNames(newNames);
+    localStorage.setItem("muscleup_session_names" + uidPrefix, JSON.stringify(newNames));
+    setEditingId(null);
+  };
+
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500 pb-28">
       {/* 1. Header */}
@@ -232,25 +265,25 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </button>
       </div>
 
-      {/* 3. Carte Héros */}
+      {/* 3. Carte Héros Dynamique (Style Image) */}
       {finishedToday && weekOffset === 0 ? (
         <Card className="bg-gradient-to-br from-[#163020] to-[#0F1F15] border border-green-900/30 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group animate-in zoom-in duration-500">
-          <div className="relative z-10">
-            <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-widest block mb-2">SÉANCE TERMINÉE ✓</span>
-            <h2 className="text-5xl font-headline text-white uppercase leading-none mb-6">
+          <div className="relative z-10 flex flex-col items-start gap-1">
+            <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-widest block mb-1">SÉANCE TERMINÉE ✓</span>
+            <h2 className="text-6xl font-headline text-white uppercase leading-none mb-8 tracking-tighter">
               {todaySession ? getSessionName(todaySession) : "RÉCUPÉRATION"}
             </h2>
             {nextSessionInfo && (
-              <div className="bg-black/20 backdrop-blur-sm p-4 rounded-2xl border border-white/5 inline-flex flex-col">
-                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1 flex items-center gap-1">
-                  PROCHAINE SÉANCE <ArrowRight className="w-2 h-2" />
+              <div className="bg-black/30 backdrop-blur-md p-5 rounded-3xl border border-white/5 inline-flex flex-col min-w-[160px]">
+                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                  PROCHAINE SÉANCE <ArrowRight className="w-2.5 h-2.5" />
                 </span>
-                <span className="text-lg font-headline text-[#4ADE80] leading-none uppercase">{nextSessionInfo.name}</span>
-                <span className="text-[9px] font-bold text-zinc-500 uppercase mt-1">{nextSessionInfo.date}</span>
+                <span className="text-xl font-headline text-[#4ADE80] leading-none uppercase tracking-tight">{nextSessionInfo.name}</span>
+                <span className="text-[10px] font-bold text-zinc-600 uppercase mt-1.5">{nextSessionInfo.date}</span>
               </div>
             )}
           </div>
-          <Check className="absolute -right-4 -bottom-4 w-40 h-40 text-green-500/10 -rotate-12" />
+          <Check className="absolute -right-6 -bottom-6 w-48 h-48 text-green-500/10 -rotate-12 pointer-events-none" />
         </Card>
       ) : (!todaySession && weekOffset === 0) ? (
         <Card className="bg-gradient-to-br from-[#163020] to-[#0F1F15] border border-green-900/30 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group">
@@ -271,9 +304,11 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
           </div>
           <Dumbbell className="absolute -right-6 -bottom-6 w-48 h-48 text-[#E24B4A]/10 rotate-12" />
         </Card>
-      ) : null}
+      ) : (
+        <div className="h-10" /> // Spacer quand hors semaine courante
+      )}
 
-      {/* 4. Planning Hebdomadaire */}
+      {/* 4. Planning Hebdomadaire avec Drag and Drop */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-headline text-white tracking-wide uppercase">Planning</h2>
@@ -281,7 +316,9 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
              <button onClick={() => setWeekOffset(prev => prev - 1)} className="p-1.5 text-zinc-500 hover:text-white transition-all press-effect">
                <ChevronLeft className="w-5 h-5" />
              </button>
-             <button onClick={() => setWeekOffset(0)} className="text-[9px] font-black text-zinc-500 uppercase tracking-widest px-2">AUJOURD'HUI</button>
+             <button onClick={() => setWeekOffset(0)} className="text-[9px] font-black text-zinc-500 uppercase tracking-widest px-3">
+               {weekOffset === 0 ? "CETTE SEMAINE" : (weekOffset > 0 ? `+${weekOffset} SÉM.` : `${weekOffset} SÉM.`)}
+             </button>
              <button onClick={() => setWeekOffset(prev => prev + 1)} className="p-1.5 text-zinc-500 hover:text-white transition-all press-effect">
                <ChevronRight className="w-5 h-5" />
              </button>
@@ -306,9 +343,14 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             return (
               <div 
                 key={day} 
+                draggable={!isPast && !!session}
+                onDragStart={() => handleDragStart(day)}
+                onDragOver={(e) => { e.preventDefault(); }}
+                onDrop={() => handleDrop(day)}
                 className={cn(
-                  "p-5 flex items-center justify-between border-b border-zinc-800/30 last:border-0 transition-all", 
-                  isDone ? "bg-green-500/10" : (isToday ? "bg-[#E24B4A]/[0.05]" : "")
+                  "p-5 flex items-center justify-between border-b border-zinc-800/30 last:border-0 transition-all cursor-grab active:cursor-grabbing", 
+                  isDone ? "bg-green-500/10" : (isToday ? "bg-[#E24B4A]/[0.05]" : ""),
+                  draggedDay === day && "opacity-40"
                 )}
               >
                 <div className="flex items-center gap-6 flex-1 min-w-0">
@@ -321,12 +363,33 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                     </span>
                   </div>
                   
-                  <div className="flex-1 min-w-0">
-                    <span className={cn("text-2xl font-headline uppercase truncate tracking-tight block", 
-                      session ? (isDone ? "text-green-400" : (isPast ? "text-zinc-700" : "text-white")) : "text-zinc-800"
-                    )}>
-                      {session ? getSessionName(session) : "REPOS"}
-                    </span>
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                    {editingId === session?.id ? (
+                      <Input
+                        autoFocus
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleRename(session!.id)}
+                        onBlur={() => setEditingId(null)}
+                        className="h-8 bg-black border-primary text-white font-headline text-lg uppercase"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2 group">
+                        <span className={cn("text-2xl font-headline uppercase truncate tracking-tight block", 
+                          session ? (isDone ? "text-green-400" : (isPast ? "text-zinc-700" : "text-white")) : "text-zinc-800"
+                        )}>
+                          {session ? getSessionName(session) : "REPOS"}
+                        </span>
+                        {session && !isPast && (
+                          <button 
+                            onClick={() => { setEditingId(session.id); setEditValue(getSessionName(session)); }}
+                            className="p-1 opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-primary transition-all"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -334,14 +397,14 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                   {session && !isPast && (
                     <div className="flex flex-col gap-0.5">
                       <button 
-                        onClick={() => moveSession(day, 'up')}
+                        onClick={(e) => { e.stopPropagation(); moveSession(day, 'up'); }}
                         disabled={idx === 0}
                         className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all press-effect"
                       >
                         <ChevronUp className="w-3 h-3" />
                       </button>
                       <button 
-                        onClick={() => moveSession(day, 'down')}
+                        onClick={(e) => { e.stopPropagation(); moveSession(day, 'down'); }}
                         disabled={idx === 6}
                         className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all press-effect"
                       >
@@ -366,7 +429,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </section>
 
-      {/* 5. Programme Actuel */}
+      {/* 5. Programme Actuel (Déplacé ici) */}
       <Card className="bg-[#1A1A1A]/60 backdrop-blur-md border-[#2A2A2A] p-4 rounded-3xl flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 flex items-center justify-center text-2xl shadow-lg">
