@@ -18,7 +18,8 @@ import {
   Check,
   ChevronUp,
   ChevronDown,
-  User as UserIcon
+  User as UserIcon,
+  ArrowRight
 } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -106,6 +107,34 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
   const finishedToday = useMemo(() => completedDates.includes(getLocalDateStr()), [completedDates]);
 
+  const currentDayIdx = (new Date().getDay() + 6) % 7;
+  const todaySessionId = currentWeekSchedule[DAY_NAMES[currentDayIdx]];
+  const todaySession = program.sessions.find(s => s.id === todaySessionId);
+
+  // Calculate next session info for the success card
+  const nextSessionInfo = useMemo(() => {
+    if (!finishedToday && todaySession) return null;
+    
+    // Start searching from tomorrow
+    for (let i = 1; i < 14; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      const dIdx = (d.getDay() + 6) % 7;
+      const dName = DAY_NAMES[dIdx];
+      const sId = currentWeekSchedule[dName];
+      if (sId) {
+        const s = program.sessions.find(ps => ps.id === sId);
+        if (s) {
+          return {
+            name: customNames[s.id] || s.name,
+            date: `${d.getDate()} ${d.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase()}`
+          };
+        }
+      }
+    }
+    return null;
+  }, [finishedToday, todaySession, currentWeekSchedule, program, customNames]);
+
   const weeklyStats = useMemo(() => {
     const totalPlanned = Object.values(currentWeekSchedule).filter(id => id !== null).length;
     const now = new Date();
@@ -161,10 +190,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     try { navigator.vibrate?.(20); } catch {}
   };
 
-  const currentDayIdx = (new Date().getDay() + 6) % 7;
-  const todaySessionId = currentWeekSchedule[DAY_NAMES[currentDayIdx]];
-  const todaySession = program.sessions.find(s => s.id === todaySessionId);
-
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500 pb-28">
       {/* 1. Header */}
@@ -191,7 +216,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Navigation Grid (Plus Flashy) */}
+      {/* 2. Navigation Grid */}
       <div className="grid grid-cols-3 gap-4">
         <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
           <BarChart className="w-7 h-7 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] transition-transform group-hover:scale-110" />
@@ -208,7 +233,26 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
       </div>
 
       {/* 3. Carte Héros */}
-      {(!todaySession || finishedToday) && weekOffset === 0 ? (
+      {finishedToday && weekOffset === 0 ? (
+        <Card className="bg-gradient-to-br from-[#163020] to-[#0F1F15] border border-green-900/30 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group animate-in zoom-in duration-500">
+          <div className="relative z-10">
+            <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-widest block mb-2">SÉANCE TERMINÉE ✓</span>
+            <h2 className="text-5xl font-headline text-white uppercase leading-none mb-6">
+              {todaySession ? getSessionName(todaySession) : "RÉCUPÉRATION"}
+            </h2>
+            {nextSessionInfo && (
+              <div className="bg-black/20 backdrop-blur-sm p-4 rounded-2xl border border-white/5 inline-flex flex-col">
+                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                  PROCHAINE SÉANCE <ArrowRight className="w-2 h-2" />
+                </span>
+                <span className="text-lg font-headline text-[#4ADE80] leading-none uppercase">{nextSessionInfo.name}</span>
+                <span className="text-[9px] font-bold text-zinc-500 uppercase mt-1">{nextSessionInfo.date}</span>
+              </div>
+            )}
+          </div>
+          <Check className="absolute -right-4 -bottom-4 w-40 h-40 text-green-500/10 -rotate-12" />
+        </Card>
+      ) : (!todaySession && weekOffset === 0) ? (
         <Card className="bg-gradient-to-br from-[#163020] to-[#0F1F15] border border-green-900/30 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group">
           <div className="relative z-10">
             <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-widest block mb-2">JOUR DE REPOS</span>
@@ -229,7 +273,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </Card>
       ) : null}
 
-      {/* 4. Planning Hebdomadaire (Boutons Haut/Bas à droite) */}
+      {/* 4. Planning Hebdomadaire */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-headline text-white tracking-wide uppercase">Planning</h2>
@@ -264,7 +308,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                 key={day} 
                 className={cn(
                   "p-5 flex items-center justify-between border-b border-zinc-800/30 last:border-0 transition-all", 
-                  isToday ? "bg-[#E24B4A]/[0.05]" : ""
+                  isDone ? "bg-green-500/10" : (isToday ? "bg-[#E24B4A]/[0.05]" : "")
                 )}
               >
                 <div className="flex items-center gap-6 flex-1 min-w-0">
@@ -279,7 +323,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                   
                   <div className="flex-1 min-w-0">
                     <span className={cn("text-2xl font-headline uppercase truncate tracking-tight block", 
-                      session ? (isPast && !isDone ? "text-zinc-700" : "text-white") : "text-zinc-800"
+                      session ? (isDone ? "text-green-400" : (isPast ? "text-zinc-700" : "text-white")) : "text-zinc-800"
                     )}>
                       {session ? getSessionName(session) : "REPOS"}
                     </span>
@@ -287,7 +331,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                 </div>
 
                 <div className="shrink-0 flex items-center gap-3 ml-3">
-                  {/* Boutons Haut/Bas ici à côté du rond */}
                   {session && !isPast && (
                     <div className="flex flex-col gap-0.5">
                       <button 
