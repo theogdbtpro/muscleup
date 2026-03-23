@@ -1,8 +1,9 @@
+
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { UserProfile } from "@/app/page";
-import { PROGRAMS } from "@/data/programs";
+import { PROGRAMS, Session } from "@/data/programs";
 import { ChevronLeft, ChevronRight, Play, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,12 @@ export default function MonthlyPlanning({ profile, onBack, onStartSession }: Mon
   const todayStr = today.toISOString().split('T')[0];
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedWeekIdx, setSelectedWeekIdx] = useState<number | null>(null);
+  const [customNames, setCustomNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const savedNames = localStorage.getItem("muscleup_session_names");
+    if (savedNames) setCustomNames(JSON.parse(savedNames));
+  }, []);
 
   const program = useMemo(() => PROGRAMS.find(p => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
   const sessions = useMemo(() => program.sessions.filter(s => !s.isRestDay), [program]);
@@ -51,11 +58,6 @@ export default function MonthlyPlanning({ profile, onBack, onStartSession }: Mon
   const completedDates = useMemo<string[]>(() => {
     if (typeof window === 'undefined') return [];
     return JSON.parse(localStorage.getItem("completedDates") || "[]");
-  }, []);
-
-  const customNames = useMemo<Record<string, string>>(() => {
-    if (typeof window === 'undefined') return {};
-    return JSON.parse(localStorage.getItem("muscleup_session_names") || "{}");
   }, []);
 
   const getSessionForDate = (date: Date): string | null => {
