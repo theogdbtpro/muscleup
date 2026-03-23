@@ -230,18 +230,18 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Navigation Grid (Emoji Style) */}
+      {/* 2. Navigation Grid (Minimaliste & Sobre) */}
       <div className="grid grid-cols-3 gap-4">
-        <button onClick={() => setView("progres")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all">
-          <span className="text-3xl">📈</span>
-          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Progrès</span>
+        <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
+          <BarChart className="w-6 h-6 text-zinc-400 group-hover:text-primary transition-colors" />
+          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Profil</span>
         </button>
-        <button onClick={() => setView("nutrition")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all">
-          <span className="text-3xl">🥗</span>
+        <button onClick={() => setView("nutrition")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
+          <Utensils className="w-6 h-6 text-zinc-400 group-hover:text-primary transition-colors" />
           <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nutrition</span>
         </button>
-        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all">
-          <span className="text-3xl">🗓️</span>
+        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
+          <Calendar className="w-6 h-6 text-zinc-400 group-hover:text-primary transition-colors" />
           <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Planning</span>
         </button>
       </div>
@@ -382,7 +382,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </section>
 
-      {/* 5. Programme Actuel (Placé sous le planning) */}
+      {/* 5. Programme Actuel */}
       <Card className="bg-[#1A1A1A]/60 backdrop-blur-md border-[#2A2A2A] p-4 rounded-3xl flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 flex items-center justify-center text-2xl shadow-lg">
@@ -405,23 +405,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </Button>
       </Card>
 
-      {/* 6. Profil Corporel */}
-      <button onClick={() => setView("body-profile")} className="w-full bg-[#1A1A1A]/40 border border-zinc-800/50 p-6 rounded-[32px] flex items-center justify-between group active:scale-[0.98] transition-all">
-        <div className="flex items-center gap-5">
-          <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center shadow-lg">
-            <BarChart className="w-6 h-6 text-blue-400" />
-          </div>
-          <div>
-            <span className="text-sm font-headline text-white uppercase block leading-tight tracking-tight">Profil corporel 📊</span>
-            <span className={cn("text-[10px] font-black uppercase tracking-tight", bodyProfileStats?.color || "text-zinc-600")}>
-              {bodyProfileStats?.summary || "Complète tes mesures"}
-            </span>
-          </div>
-        </div>
-        <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-primary transition-colors" />
-      </button>
-
-      {/* 7. Conseil du Jour */}
+      {/* 6. Conseil du Jour */}
       <section className="space-y-4">
         <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Le Coach dit...</h2>
         <Card className="bg-[#1A1A1A]/40 border border-zinc-800/50 p-6 rounded-[32px] flex items-start gap-5">
@@ -434,7 +418,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </Card>
       </section>
 
-      {/* 8. Ma Progression */}
+      {/* 7. Ma Progression */}
       <section className="space-y-4">
         <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Effort Semainier</h2>
         <Card className="bg-zinc-900/30 border border-zinc-800/50 p-6 rounded-[32px] space-y-4">
