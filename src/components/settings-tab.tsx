@@ -85,12 +85,18 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
 
   const handleSave = () => {
     onUpdateProfile(tempProfile);
+    
+    // On sauvegarde le nouveau planning de base
     localStorage.setItem("muscleup_base_schedule", JSON.stringify(schedule));
     localStorage.setItem("muscleup_schedule", JSON.stringify(schedule));
     
+    // IMPORTANT : On supprime les ajustements manuels pour forcer l'application du nouveau rythme
+    // sur la semaine en cours.
+    localStorage.removeItem("muscleup_manual_schedule");
+    
     toast({
       title: "Programme mis à jour !",
-      description: "Tes modifications ont été enregistrées.",
+      description: "Ton nouveau rythme a été appliqué immédiatement.",
     });
     setTimeout(() => onBack(), 800);
   };
