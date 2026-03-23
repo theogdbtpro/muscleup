@@ -1,3 +1,4 @@
+
 "use client";
 
 import { UserProfile } from "@/app/page";
@@ -199,7 +200,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const currentDayIdx = (now.getDay() + 6) % 7;
   const todayName = DAY_NAMES[currentDayIdx];
 
-  // Logic pour charger les données sans boucle infinie
   const loadData = () => {
     const savedHistory = localStorage.getItem("muscleup_history");
     if (savedHistory) setHistory(JSON.parse(savedHistory));
@@ -290,7 +290,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     return count;
   }, [completedDates]);
 
-  // Planning type pour les semaines futures (respecte la fréquence)
   const baseScheduleForFuture = useMemo(() => {
     if (typeof window === 'undefined') return generateBaseSchedule(profile.frequency, program);
     const savedBase = localStorage.getItem("muscleup_base_schedule");
@@ -406,11 +405,20 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const weeklyProgressPercent = Math.min((weeklySessionsDone / totalWeeklyGoal) * 100, 100);
   const isHome = profile.location === 'maison';
 
-  const bodyStatsSummary = useMemo(() => {
+  const bodyProfileStats = useMemo(() => {
     if (!profile.bodyProfile) return null;
     const { poids, taille } = profile.bodyProfile;
-    const imc = (poids / ((taille / 100) ** 2)).toFixed(1);
-    return `${poids}kg · ${taille}cm · IMC ${imc}`;
+    const imc = poids / ((taille / 100) ** 2);
+    let color = "text-zinc-500";
+    if (imc < 18.5) color = "text-yellow-500";
+    else if (imc < 25) color = "text-green-500";
+    else if (imc < 30) color = "text-yellow-500";
+    else color = "text-red-500";
+    
+    return {
+      summary: `${poids}kg · ${taille}cm · IMC ${imc.toFixed(1)}`,
+      color
+    };
   }, [profile.bodyProfile]);
 
   const handleDragStart = (dayName: string) => setDraggedDay(dayName);
@@ -799,15 +807,15 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
         <section>
           <button onClick={() => setView("body-profile")}
-            className="w-full bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-2xl flex items-center justify-between hover:bg-[#2A2A2A] transition-all group">
+            className="w-full bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-2xl flex items-center justify-between hover:bg-[#2A2A2A] transition-all group shadow-sm">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                 <BarChart className="w-6 h-6 text-primary" />
               </div>
               <div className="text-left">
                 <span className="text-[12px] font-bold text-white uppercase block leading-tight">Mon profil corporel 📊</span>
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight">
-                  {bodyStatsSummary || "Complète tes mesures"}
+                <span className={cn("text-[10px] font-bold uppercase tracking-tight", bodyProfileStats?.color || "text-zinc-500")}>
+                  {bodyProfileStats?.summary || "Complète tes mesures"}
                 </span>
               </div>
             </div>
@@ -847,3 +855,4 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     </>
   );
 }
+
