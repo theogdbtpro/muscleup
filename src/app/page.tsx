@@ -4,6 +4,9 @@
 import { useEffect, useState } from "react";
 import Onboarding from "@/components/onboarding";
 import Dashboard from "@/components/dashboard";
+import AuthScreen from "@/components/auth-screen";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged, User } from "firebase/auth";
 
 export type BodyProfile = {
   poids: number;
@@ -29,37 +32,53 @@ export type UserProfile = {
 };
 
 export default function Home() {
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem("muscleup_profile");
-    if (stored) {
-      setProfile(JSON.parse(stored));
-    }
-    setLoading(false);
+    // Écouter l'état de l'authentification Firebase
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      
+      if (firebaseUser) {
+        // Si l'utilisateur est connecté, on charge son profil local
+        // (À terme, on chargera depuis Firestore)
+        const stored = localStorage.getItem(`muscleup_profile_${firebaseUser.uid}`);
+        if (stored) {
+          setProfile(JSON.parse(stored));
+        } else {
+          setProfile(null);
+        }
+      } else {
+        setProfile(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleOnboardingComplete = (newProfile: UserProfile) => {
-    localStorage.setItem("muscleup_profile", JSON.stringify(newProfile));
+    if (!user) return;
+    localStorage.setItem(`muscleup_profile_${user.uid}`, JSON.stringify(newProfile));
     if (newProfile.bodyProfile) {
-      localStorage.setItem("muscleup_body_profile", JSON.stringify(newProfile.bodyProfile));
+      localStorage.setItem(`muscleup_body_profile_${user.uid}`, JSON.stringify(newProfile.bodyProfile));
     }
     setProfile(newProfile);
   };
 
   const handleUpdateProfile = (updatedProfile: UserProfile) => {
-    localStorage.setItem("muscleup_profile", JSON.stringify(updatedProfile));
+    if (!user) return;
+    localStorage.setItem(`muscleup_profile_${user.uid}`, JSON.stringify(updatedProfile));
     if (updatedProfile.bodyProfile) {
-      localStorage.setItem("muscleup_body_profile", JSON.stringify(updatedProfile.bodyProfile));
+      localStorage.setItem(`muscleup_body_profile_${user.uid}`, JSON.stringify(updatedProfile.bodyProfile));
     }
     setProfile(updatedProfile);
   };
 
   const handleReset = () => {
-    localStorage.removeItem("muscleup_profile");
-    localStorage.removeItem("muscleup_body_profile");
-    setProfile(null);
+    auth.signOut();
   };
 
   if (loading) {
@@ -70,10 +89,17 @@ export default function Home() {
     );
   }
 
+  // Étape 1 : Si pas d'utilisateur, écran Auth
+  if (!user) {
+    return <AuthScreen />;
+  }
+
+  // Étape 2 : Si utilisateur mais pas de profil, Onboarding
   if (!profile || !profile.onboarded) {
     return <Onboarding onComplete={handleOnboardingComplete} />;
   }
 
+  // Étape 3 : Dashboard
   return (
     <Dashboard 
       profile={profile} 
