@@ -38,7 +38,6 @@ export default function Home() {
   const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
-    // Si auth n'a pas de méthode onAuthStateChanged (mode mock)
     if (!auth || !auth.onAuthStateChanged) {
       setLoading(false);
       return;
@@ -48,7 +47,16 @@ export default function Home() {
       setUser(firebaseUser);
       
       const uid = firebaseUser ? firebaseUser.uid : "guest";
-      const stored = localStorage.getItem(`muscleup_profile_${uid}`);
+      const newKey = `muscleup_profile_${uid}`;
+      const oldKey = `muscleup_profile`;
+      
+      let stored = localStorage.getItem(newKey);
+      
+      // MIGRATION : Si pas de profil avec le nouvel ID mais qu'un ancien profil existe
+      if (!stored && localStorage.getItem(oldKey)) {
+        stored = localStorage.getItem(oldKey);
+        if (stored) localStorage.setItem(newKey, stored);
+      }
       
       if (stored) {
         setProfile(JSON.parse(stored));
@@ -90,27 +98,26 @@ export default function Home() {
     );
   }
 
-  // Étape 1 : Si pas d'utilisateur et pas en mode invité, écran Auth
   if (!user && !isGuest) {
     return (
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col bg-[#0F0F0F]">
         <AuthScreen />
-        <button 
-          onClick={() => setIsGuest(true)}
-          className="bg-transparent text-zinc-600 text-[10px] font-bold uppercase tracking-widest pb-10 hover:text-white transition-colors"
-        >
-          Continuer sans compte (mode démo)
-        </button>
+        <div className="flex justify-center pb-12">
+          <button 
+            onClick={() => setIsGuest(true)}
+            className="text-zinc-600 text-[10px] font-bold uppercase tracking-widest hover:text-white transition-colors"
+          >
+            Continuer en mode invité (démo)
+          </button>
+        </div>
       </div>
     );
   }
 
-  // Étape 2 : Si utilisateur mais pas de profil, Onboarding
   if (!profile || !profile.onboarded) {
     return <Onboarding onComplete={handleOnboardingComplete} />;
   }
 
-  // Étape 3 : Dashboard
   return (
     <Dashboard 
       profile={profile} 
