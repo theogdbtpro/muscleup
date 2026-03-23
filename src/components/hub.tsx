@@ -206,7 +206,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500 pb-28">
-      {/* 1. Header avec Avatar */}
+      {/* 1. Header */}
       <header className="flex justify-between items-center">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shadow-inner">
@@ -230,7 +230,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Carte Programme Actuel (Glassmorphism) */}
+      {/* 2. Programme Actuel */}
       <Card className="bg-[#1A1A1A]/60 backdrop-blur-md border-[#2A2A2A] p-4 rounded-3xl flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 flex items-center justify-center text-2xl shadow-lg">
@@ -244,67 +244,59 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
           </div>
         </div>
         <Button 
-          variant="destructive" 
+          variant="default" 
           size="sm" 
           onClick={() => setView("settings")}
-          className="h-9 px-4 rounded-xl text-[10px] font-black uppercase tracking-tighter bg-primary shadow-lg shadow-primary/20 press-effect"
+          className="h-8 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-primary"
         >
-          RÉGLER {'>'}
+          MODIFIER {'>'}
         </Button>
       </Card>
 
-      {/* 3. Carte Héros (Glow Effect) */}
+      {/* 3. Carte Héros */}
       {(!todaySession || finishedToday) && weekOffset === 0 ? (
         <Card className="bg-gradient-to-br from-[#163020] to-[#0F1F15] border border-green-900/30 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 blur-3xl -mr-16 -mt-16" />
           <div className="relative z-10">
-            <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-widest block mb-2 flex items-center gap-2">
-              RÉCUPÉRATION <span className="w-1.5 h-1.5 rounded-full bg-[#4ADE80] animate-pulse" />
-            </span>
-            <h2 className="text-5xl font-headline text-white uppercase leading-none mb-3">JOUR DE REPOS</h2>
-            <p className="text-sm text-[#4ADE80]/80 font-medium">Tes muscles se construisent maintenant. Repose-toi !</p>
+            <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-widest block mb-2">JOUR DE REPOS</span>
+            <h2 className="text-5xl font-headline text-white uppercase leading-none mb-3">RECUPERATION</h2>
           </div>
-          <Activity className="absolute -right-4 -bottom-4 w-40 h-40 text-green-500/5 -rotate-12 transition-transform group-hover:scale-110 duration-500" />
+          <Activity className="absolute -right-4 -bottom-4 w-40 h-40 text-green-500/5 -rotate-12" />
         </Card>
       ) : weekOffset === 0 ? (
         <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-primary/20 blur-3xl -mr-20 -mt-20" />
           <div className="relative z-10">
-            <span className="text-[10px] font-black text-primary uppercase tracking-widest block mb-2 flex items-center gap-2">
-              SÉANCE DU JOUR <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            </span>
+            <span className="text-[10px] font-black text-primary uppercase tracking-widest block mb-2">SÉANCE DU JOUR</span>
             <h2 className="text-5xl font-headline text-white uppercase leading-none mb-6">{todaySession ? getSessionName(todaySession) : ""}</h2>
             <Button onClick={() => onStartSession(todaySession?.id)} className="bg-primary text-white font-headline text-2xl h-16 px-10 rounded-2xl shadow-2xl shadow-primary/30 press-effect ripple">
               C'EST PARTI !
             </Button>
           </div>
-          <Dumbbell className="absolute -right-6 -bottom-6 w-48 h-48 text-primary/10 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
+          <Dumbbell className="absolute -right-6 -bottom-6 w-48 h-48 text-primary/10 rotate-12" />
         </Card>
       ) : null}
 
-      {/* 4. Planning Hebdomadaire (Modern List) */}
-      <section className="space-y-5">
+      {/* 4. Planning Hebdomadaire (Fidèle au screen) */}
+      <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
-            <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Planning</h2>
-            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest flex items-center gap-2">
-              {weekOffset === 0 ? "Cette semaine" : weekOffset > 0 ? `Dans ${weekOffset} sem.` : `Il y a ${Math.abs(weekOffset)} sem.`}
-              <div className="w-1 h-1 rounded-full bg-zinc-800" />
-              {weeklyStats.done}/{weeklyStats.total} complété
-            </span>
+            <h2 className="text-3xl font-headline text-white tracking-wide uppercase">Planning</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">CETTE SEMAINE</span>
+              <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{weeklyStats.done}/{weeklyStats.total} COMPLÉTÉ</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 bg-zinc-900 p-1 rounded-2xl border border-zinc-800">
-             <button onClick={() => setWeekOffset(prev => prev - 1)} className="w-10 h-10 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all press-effect">
+          <div className="flex items-center gap-1.5 bg-[#1A1A1A] p-1.5 rounded-2xl border border-zinc-800">
+             <button onClick={() => setWeekOffset(prev => prev - 1)} className="p-1.5 text-zinc-500 hover:text-white transition-all press-effect">
                <ChevronLeft className="w-5 h-5" />
              </button>
-             <button onClick={() => setWeekOffset(0)} className="text-[9px] font-black text-zinc-500 uppercase tracking-tighter px-3 py-2 hover:text-primary transition-colors">AUJOURD'HUI</button>
-             <button onClick={() => setWeekOffset(prev => prev + 1)} className="w-10 h-10 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all press-effect">
+             <button onClick={() => setWeekOffset(0)} className="text-[9px] font-black text-zinc-500 uppercase tracking-widest px-2">AUJOURD'HUI</button>
+             <button onClick={() => setWeekOffset(prev => prev + 1)} className="p-1.5 text-zinc-500 hover:text-white transition-all press-effect">
                <ChevronRight className="w-5 h-5" />
              </button>
           </div>
         </div>
         
-        <div className="bg-[#141414] border border-zinc-800/50 rounded-[32px] overflow-hidden shadow-2xl">
+        <div className="bg-[#141414]/80 border border-zinc-800/50 rounded-[32px] overflow-hidden shadow-2xl">
           {DAY_NAMES.map((day, idx) => {
             const sessionId = currentWeekSchedule[day];
             const session = program.sessions.find(s => s.id === sessionId);
@@ -314,7 +306,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             const diff = idx - currentDayReal + (weekOffset * 7);
             date.setDate(date.getDate() + diff);
             const dateStr = getLocalDateStr(date);
-            const displayDate = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+            const displayDate = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
             
             const isToday = weekOffset === 0 && currentDayReal === idx;
             const isDone = completedDates.includes(dateStr);
@@ -332,23 +324,22 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                 onDrop={() => !isPast && onDrop(day)}
                 className={cn(
                   "p-5 flex items-center justify-between border-b border-zinc-800/30 last:border-0 transition-all", 
-                  isToday ? "bg-primary/5" : "",
+                  isToday ? "bg-primary/[0.03]" : "",
                   isDragged ? "opacity-30 scale-95" : "opacity-100",
-                  isOver ? "bg-primary/10" : "",
-                  !isPast && session ? "cursor-grab active:cursor-grabbing" : "cursor-default"
+                  isOver ? "bg-primary/5" : "",
                 )}
               >
                 <div className="flex items-center gap-5 flex-1 min-w-0">
-                  <div className="w-12 shrink-0 text-center">
-                    <span className={cn("text-[11px] font-black uppercase block leading-none mb-1", isToday ? "text-primary" : isPast ? "text-zinc-700" : "text-zinc-600")}>{day.substring(0,3)}</span>
-                    <span className="text-[9px] font-bold text-zinc-700 uppercase tracking-widest">{displayDate}</span>
+                  <div className="w-12 shrink-0">
+                    <span className={cn("text-[11px] font-black uppercase block leading-none mb-1", isToday ? "text-primary" : "text-zinc-600")}>{day.substring(0,3)}</span>
+                    <span className="text-[9px] font-bold text-zinc-700 uppercase tracking-widest">{date.getDate()} {date.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase()}</span>
                   </div>
                   
                   <div className="flex-1 flex items-center gap-3 min-w-0">
                     {session && !isPast && <GripVertical className="w-4 h-4 text-zinc-800 shrink-0" />}
                     
                     {editingSessionId === session?.id ? (
-                      <div className="flex items-center gap-2 flex-1 animate-in slide-in-from-left-2">
+                      <div className="flex items-center gap-2 flex-1">
                         <Input 
                           autoFocus
                           value={editValue}
@@ -362,10 +353,10 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                     ) : (
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className={cn("text-sm font-headline uppercase truncate tracking-tight", 
+                          <span className={cn("text-base font-headline uppercase truncate tracking-tight", 
                             session ? (isPast ? "text-zinc-600" : "text-white") : "text-zinc-800"
                           )}>
-                            {session ? getSessionName(session) : "RÉCUPÉRATION"}
+                            {session ? getSessionName(session) : "RECUPERATION"}
                           </span>
                           {session && !isPast && (
                             <button 
@@ -376,7 +367,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                             </button>
                           )}
                         </div>
-                        {session && !isPast && <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest">{session.duration} • {session.exercises.length} exercices</span>}
+                        {session && !isPast && <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest">{session.duration} • {session.exercises.length} EXERCICES</span>}
                       </div>
                     )}
                   </div>
@@ -386,8 +377,8 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                   <button 
                     onClick={() => toggleDateCompletion(dateStr)}
                     className={cn(
-                      "w-7 h-7 rounded-2xl border-2 flex items-center justify-center transition-all press-effect", 
-                      isDone ? "bg-green-500 border-green-500 shadow-lg shadow-green-500/20" : "border-zinc-800 hover:border-zinc-700"
+                      "w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all press-effect", 
+                      isDone ? "bg-green-500 border-green-500" : "border-zinc-800"
                     )}
                   >
                     {isDone && <CheckCircle2 className="w-4 h-4 text-white" />}
@@ -397,38 +388,38 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             );
           })}
         </div>
-        <p className="text-[9px] text-center font-bold text-zinc-700 uppercase tracking-widest animate-pulse">
-          💡 ASTUCE : Glisse une séance pour la déplacer
+        <p className="text-[9px] text-center font-bold text-zinc-700 uppercase tracking-widest">
+          💡 ASTUCE : GLISSE UNE SÉANCE POUR LA DÉPLACER
         </p>
       </section>
 
-      {/* 5. Grille de navigation (Accents Couleurs) */}
+      {/* 5. Navigation Grid (Fidèle au screen) */}
       <div className="grid grid-cols-3 gap-4">
-        <button onClick={() => setView("progres")} className="bg-[#1A1A1A] border border-zinc-800/50 p-6 rounded-3xl flex flex-col items-center gap-3 active:scale-95 transition-all shadow-xl hover:bg-zinc-800/50 group">
-          <div className="w-12 h-12 rounded-2xl bg-[#EE3BAA]/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Activity className="w-6 h-6 text-[#EE3BAA]" />
+        <button onClick={() => setView("progres")} className="bg-[#1A1A1A]/80 border border-zinc-800/50 aspect-square rounded-[32px] flex flex-col items-center justify-center gap-3 active:scale-95 transition-all shadow-xl">
+          <div className="w-14 h-14 rounded-2xl bg-pink-500/10 flex items-center justify-center">
+            <Activity className="w-7 h-7 text-pink-500" />
           </div>
-          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-tighter">Progrès</span>
+          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Progrès</span>
         </button>
-        <button onClick={() => setView("nutrition")} className="bg-[#1A1A1A] border border-zinc-800/50 p-6 rounded-3xl flex flex-col items-center gap-3 active:scale-95 transition-all shadow-xl hover:bg-zinc-800/50 group">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Utensils className="w-6 h-6 text-primary" />
+        <button onClick={() => setView("nutrition")} className="bg-[#1A1A1A]/80 border border-zinc-800/50 aspect-square rounded-[32px] flex flex-col items-center justify-center gap-3 active:scale-95 transition-all shadow-xl">
+          <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
+            <Utensils className="w-7 h-7 text-red-500" />
           </div>
-          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-tighter">Nutrition</span>
+          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nutrition</span>
         </button>
-        <button onClick={() => setView("planning-mensuel")} className="bg-[#1A1A1A] border border-zinc-800/50 p-6 rounded-3xl flex flex-col items-center gap-3 active:scale-95 transition-all shadow-xl hover:bg-zinc-800/50 group">
-          <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Calendar className="w-6 h-6 text-purple-400" />
+        <button onClick={() => setView("planning-mensuel")} className="bg-[#1A1A1A]/80 border border-zinc-800/50 aspect-square rounded-[32px] flex flex-col items-center justify-center gap-3 active:scale-95 transition-all shadow-xl">
+          <div className="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center">
+            <Calendar className="w-7 h-7 text-purple-400" />
           </div>
-          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-tighter">Planning</span>
+          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Planning</span>
         </button>
       </div>
 
-      {/* 6. Profil Corporel Card (Large) */}
-      <button onClick={() => setView("body-profile")} className="w-full bg-gradient-to-r from-[#1A1A1A] to-zinc-900 border border-zinc-800/50 p-6 rounded-[32px] flex items-center justify-between group active:scale-[0.98] transition-all shadow-2xl">
+      {/* 6. Profil Corporel */}
+      <button onClick={() => setView("body-profile")} className="w-full bg-[#1A1A1A]/40 border border-zinc-800/50 p-6 rounded-[32px] flex items-center justify-between group active:scale-[0.98] transition-all">
         <div className="flex items-center gap-5">
-          <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center shadow-lg">
-            <BarChart className="w-7 h-7 text-blue-400" />
+          <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center shadow-lg">
+            <BarChart className="w-6 h-6 text-blue-400" />
           </div>
           <div>
             <span className="text-sm font-headline text-white uppercase block leading-tight tracking-tight">Profil corporel 📊</span>
@@ -437,40 +428,36 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             </span>
           </div>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-primary transition-colors">
-          <ChevronRight className="w-5 h-5" />
-        </div>
+        <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-primary transition-colors" />
       </button>
 
-      {/* 7. Conseil du Jour (Modernized) */}
+      {/* 7. Conseil du Jour */}
       <section className="space-y-4">
         <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Le Coach dit...</h2>
-        <Card className="bg-[#1A1A1A]/40 backdrop-blur-md border border-zinc-800/50 p-8 rounded-[32px] flex items-start gap-6 shadow-2xl">
-          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 shadow-lg">
-            <Lightbulb className="w-7 h-7 text-amber-500 animate-pulse" />
+        <Card className="bg-[#1A1A1A]/40 border border-zinc-800/50 p-6 rounded-[32px] flex items-start gap-5">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+            <Lightbulb className="w-6 h-6 text-amber-500" />
           </div>
-          <p className={cn("text-sm text-zinc-300 italic font-medium leading-relaxed", loadingAdvice && "animate-pulse")}>
+          <p className={cn("text-sm text-zinc-400 italic font-medium leading-relaxed", loadingAdvice && "animate-pulse")}>
             "{dailyAdvice}"
           </p>
         </Card>
       </section>
 
-      {/* 8. Ma Progression (Progress Card) */}
+      {/* 8. Ma Progression */}
       <section className="space-y-4">
         <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Effort Semainier</h2>
-        <Card className="bg-zinc-900/50 border border-zinc-800/50 p-8 rounded-[40px] shadow-2xl space-y-8">
+        <Card className="bg-zinc-900/30 border border-zinc-800/50 p-6 rounded-[32px] space-y-4">
           <div className="flex justify-between items-end">
             <div>
-              <div className="text-6xl font-headline text-white leading-none">{weeklyStats.done} / {weeklyStats.total}</div>
-              <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-2 flex items-center gap-2">
-                SÉANCES VALIDÉES <div className="w-1 h-1 rounded-full bg-primary" /> OBJECTIF : {profile.frequency}
-              </div>
+              <div className="text-5xl font-headline text-white leading-none">{weeklyStats.done} / {weeklyStats.total}</div>
+              <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">SÉANCES VALIDÉES</div>
             </div>
-            <div className="text-3xl font-headline text-primary">{weeklyStats.percent}%</div>
+            <div className="text-2xl font-headline text-primary">{weeklyStats.percent}%</div>
           </div>
-          <div className="h-4 bg-zinc-800/50 rounded-full overflow-hidden p-1">
+          <div className="h-3 bg-zinc-800/50 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-primary to-orange-500 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(226,75,74,0.4)]" 
+              className="h-full bg-primary rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(226,75,74,0.3)]" 
               style={{ width: `${weeklyStats.percent}%` }}
             />
           </div>
