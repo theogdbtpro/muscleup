@@ -5,11 +5,9 @@ import { UserProfile } from "@/app/page";
 import { PROGRAMS, Session, Program } from "@/data/programs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { 
   Flame, 
   Utensils, 
-  CheckCircle2, 
   ChevronRight, 
   ChevronLeft, 
   Dumbbell, 
@@ -17,7 +15,6 @@ import {
   Calendar,
   Lightbulb,
   BarChart,
-  Pencil,
   Check,
   ChevronUp,
   ChevronDown,
@@ -58,14 +55,10 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const [completedDates, setCompletedDates] = useState<string[]>([]);
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [currentWeekSchedule, setCurrentWeekSchedule] = useState<Record<string, string | null>>({});
-  const [dailyAdvice, setDailyAdvice] = useState<string>("Charge tes batteries pour ta prochaine séance !");
+  const [dailyAdvice, setDailyAdvice] = useState<string>("Prêt pour ta prochaine dose de gains ?");
   const [loadingAdvice, setLoadingAdvice] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
-
-  const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
   const user = auth.currentUser;
   const uidPrefix = user ? `_${user.uid}` : "_guest";
 
@@ -86,20 +79,22 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
       }
     };
     loadData();
-  }, [profile.frequency, program, uidPrefix]);
+  }, [profile.frequency, profile.objective, uidPrefix]);
+
+  const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
 
   useEffect(() => {
     const fetchAdvice = async () => {
       setLoadingAdvice(true);
       try {
         const res = await getExerciseAdvice({
-          exerciseName: "Musculation générale",
+          exerciseName: "Musculation",
           level: profile.level,
           objective: profile.objective
         });
         setDailyAdvice(res.advice);
       } catch (e) {
-        setDailyAdvice("Garde les omoplates serrées sur le banc pour protéger tes épaules.");
+        setDailyAdvice("Garde le focus sur la contraction volontaire pour maximiser l'hypertrophie.");
       } finally {
         setLoadingAdvice(false);
       }
@@ -137,13 +132,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     };
   }, [currentWeekSchedule, completedDates, weekOffset]);
 
-  const handleSaveName = (id: string) => {
-    const newNames = { ...customNames, [id]: editValue };
-    setCustomNames(newNames);
-    localStorage.setItem("muscleup_session_names" + uidPrefix, JSON.stringify(newNames));
-    setEditingSessionId(null);
-  };
-
   const toggleDateCompletion = (dateStr: string) => {
     const isDone = completedDates.includes(dateStr);
     let newDates;
@@ -170,7 +158,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
     setCurrentWeekSchedule(newSchedule);
     localStorage.setItem("muscleup_base_schedule" + uidPrefix, JSON.stringify(newSchedule));
-    localStorage.setItem("muscleup_schedule" + uidPrefix, JSON.stringify(newSchedule));
     try { navigator.vibrate?.(20); } catch {}
   };
 
@@ -198,25 +185,25 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             </div>
           </div>
         </div>
-        <div className="bg-primary px-4 py-2 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary/20 press-effect">
+        <div className="bg-[#E24B4A] px-4 py-2 rounded-2xl flex items-center gap-2 shadow-lg shadow-[#E24B4A]/30 press-effect">
           <Flame className="w-4 h-4 text-white fill-white animate-pulse" />
           <span className="text-sm font-black text-white tracking-tighter uppercase">{completedDates.length} JOURS</span>
         </div>
       </header>
 
-      {/* 2. Navigation Grid (Épurée & Colorée) */}
+      {/* 2. Navigation Grid (Plus Flashy) */}
       <div className="grid grid-cols-3 gap-4">
         <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
-          <BarChart className="w-6 h-6 text-blue-400 transition-transform group-hover:scale-110" />
-          <span className="text-[10px] font-black uppercase text-zinc-500 group-hover:text-blue-400 tracking-widest">Profil</span>
+          <BarChart className="w-7 h-7 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] transition-transform group-hover:scale-110" />
+          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Profil</span>
         </button>
         <button onClick={() => setView("nutrition")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
-          <Utensils className="w-6 h-6 text-pink-400 transition-transform group-hover:scale-110" />
-          <span className="text-[10px] font-black uppercase text-zinc-500 group-hover:text-pink-400 tracking-widest">Nutrition</span>
+          <Utensils className="w-7 h-7 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.5)] transition-transform group-hover:scale-110" />
+          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nutrition</span>
         </button>
         <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
-          <Calendar className="w-6 h-6 text-amber-400 transition-transform group-hover:scale-110" />
-          <span className="text-[10px] font-black uppercase text-zinc-500 group-hover:text-amber-400 tracking-widest">Planning</span>
+          <Calendar className="w-7 h-7 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)] transition-transform group-hover:scale-110" />
+          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Planning</span>
         </button>
       </div>
 
@@ -230,19 +217,19 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
           <Activity className="absolute -right-4 -bottom-4 w-40 h-40 text-green-500/5 -rotate-12" />
         </Card>
       ) : weekOffset === 0 ? (
-        <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group">
+        <Card className="bg-gradient-to-br from-[#E24B4A]/20 to-[#E24B4A]/5 border border-[#E24B4A]/20 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group">
           <div className="relative z-10">
-            <span className="text-[10px] font-black text-primary uppercase tracking-widest block mb-2">SÉANCE DU JOUR</span>
+            <span className="text-[10px] font-black text-[#E24B4A] uppercase tracking-widest block mb-2">SÉANCE DU JOUR</span>
             <h2 className="text-5xl font-headline text-white uppercase leading-none mb-6">{todaySession ? getSessionName(todaySession) : ""}</h2>
-            <Button onClick={() => onStartSession(todaySession?.id)} className="bg-primary text-white font-headline text-2xl h-16 px-10 rounded-2xl shadow-2xl shadow-primary/30 press-effect ripple">
+            <Button onClick={() => onStartSession(todaySession?.id)} className="bg-[#E24B4A] text-white font-headline text-2xl h-16 px-10 rounded-2xl shadow-2xl shadow-[#E24B4A]/30 press-effect ripple">
               C'EST PARTI !
             </Button>
           </div>
-          <Dumbbell className="absolute -right-6 -bottom-6 w-48 h-48 text-primary/10 rotate-12" />
+          <Dumbbell className="absolute -right-6 -bottom-6 w-48 h-48 text-[#E24B4A]/10 rotate-12" />
         </Card>
       ) : null}
 
-      {/* 4. Planning Hebdomadaire (Fidèle au Screenshot) */}
+      {/* 4. Planning Hebdomadaire (Boutons Haut/Bas à droite) */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-headline text-white tracking-wide uppercase">Planning</h2>
@@ -277,12 +264,12 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                 key={day} 
                 className={cn(
                   "p-5 flex items-center justify-between border-b border-zinc-800/30 last:border-0 transition-all", 
-                  isToday ? "bg-primary/[0.05]" : ""
+                  isToday ? "bg-[#E24B4A]/[0.05]" : ""
                 )}
               >
                 <div className="flex items-center gap-6 flex-1 min-w-0">
                   <div className="w-14 shrink-0">
-                    <span className={cn("text-[11px] font-black uppercase block leading-none mb-1", isToday ? "text-primary" : "text-zinc-600")}>
+                    <span className={cn("text-[11px] font-black uppercase block leading-none mb-1", isToday ? "text-[#E24B4A]" : "text-zinc-600")}>
                       {day}
                     </span>
                     <span className="text-[9px] font-bold text-zinc-700 uppercase tracking-widest">
@@ -290,38 +277,36 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                     </span>
                   </div>
                   
-                  <div className="flex-1 flex items-center gap-3 min-w-0">
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className={cn("text-2xl font-headline uppercase truncate tracking-tight", 
-                          session ? (isPast && !isDone ? "text-zinc-700" : "text-white") : "text-zinc-800"
-                        )}>
-                          {session ? getSessionName(session) : "REPOS"}
-                        </span>
-                        {session && !isPast && (
-                          <div className="flex flex-col gap-0.5 ml-2">
-                            <button 
-                              onClick={() => moveSession(day, 'up')}
-                              disabled={idx === 0}
-                              className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all"
-                            >
-                              <ChevronUp className="w-3 h-3" />
-                            </button>
-                            <button 
-                              onClick={() => moveSession(day, 'down')}
-                              disabled={idx === 6}
-                              className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all"
-                            >
-                              <ChevronDown className="w-3 h-3" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <span className={cn("text-2xl font-headline uppercase truncate tracking-tight block", 
+                      session ? (isPast && !isDone ? "text-zinc-700" : "text-white") : "text-zinc-800"
+                    )}>
+                      {session ? getSessionName(session) : "REPOS"}
+                    </span>
                   </div>
                 </div>
 
-                <div className="shrink-0 ml-3">
+                <div className="shrink-0 flex items-center gap-3 ml-3">
+                  {/* Boutons Haut/Bas ici à côté du rond */}
+                  {session && !isPast && (
+                    <div className="flex flex-col gap-0.5">
+                      <button 
+                        onClick={() => moveSession(day, 'up')}
+                        disabled={idx === 0}
+                        className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all press-effect"
+                      >
+                        <ChevronUp className="w-3 h-3" />
+                      </button>
+                      <button 
+                        onClick={() => moveSession(day, 'down')}
+                        disabled={idx === 6}
+                        className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all press-effect"
+                      >
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+
                   <button 
                     onClick={() => toggleDateCompletion(dateStr)}
                     className={cn(
@@ -355,7 +340,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
           variant="default" 
           size="sm" 
           onClick={() => setView("settings")}
-          className="h-8 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-primary"
+          className="h-8 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-[#E24B4A] shadow-lg shadow-[#E24B4A]/20"
         >
           MODIFIER {'>'}
         </Button>
@@ -366,7 +351,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Le Coach dit...</h2>
         <Card className="bg-[#1A1A1A]/40 border border-zinc-800/50 p-6 rounded-[32px] flex items-start gap-5">
           <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-            <Lightbulb className="w-6 h-6 text-amber-500" />
+            <Lightbulb className="w-6 h-6 text-amber-500 drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]" />
           </div>
           <p className={cn("text-sm text-zinc-400 italic font-medium leading-relaxed", loadingAdvice && "animate-pulse")}>
             "{dailyAdvice}"
@@ -383,11 +368,11 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
               <div className="text-5xl font-headline text-white leading-none">{weeklyStats.done} / {weeklyStats.total}</div>
               <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">SÉANCES VALIDÉES</div>
             </div>
-            <div className="text-2xl font-headline text-primary">{weeklyStats.percent}%</div>
+            <div className="text-2xl font-headline text-[#E24B4A]">{weeklyStats.percent}%</div>
           </div>
           <div className="h-3 bg-zinc-800/50 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-primary rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(226,75,74,0.3)]" 
+              className="h-full bg-[#E24B4A] rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(226,75,74,0.3)]" 
               style={{ width: `${weeklyStats.percent}%` }}
             />
           </div>
