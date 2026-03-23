@@ -197,7 +197,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     let color = "text-green-500";
     if (imc < 18.5 || imc >= 25) color = "text-yellow-500";
     if (imc >= 30) color = "text-red-500";
-    return { summary: `${poids}KG · ${taille}CM · IMC ${imc.toFixed(1)}`, color };
+    return { summary: `${poids}KG · ${taille}CM · IMC ${imc.toFixed(1)}`, color, imc };
   }, [profile.bodyProfile]);
 
   const currentDayIdx = (new Date().getDay() + 6) % 7;
@@ -230,19 +230,22 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Navigation Grid (Minimaliste & Sobre) */}
+      {/* 2. Navigation Grid (Premium & Colorée) */}
       <div className="grid grid-cols-3 gap-4">
-        <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
-          <BarChart className="w-6 h-6 text-zinc-400 group-hover:text-primary transition-colors" />
-          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Profil</span>
+        <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group relative overflow-hidden">
+          <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <BarChart className="w-6 h-6 text-zinc-400 group-hover:text-blue-400 transition-colors" />
+          <span className="text-[10px] font-black uppercase text-zinc-500 group-hover:text-blue-400 tracking-widest">Profil</span>
         </button>
-        <button onClick={() => setView("nutrition")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
-          <Utensils className="w-6 h-6 text-zinc-400 group-hover:text-primary transition-colors" />
-          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nutrition</span>
+        <button onClick={() => setView("nutrition")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group relative overflow-hidden">
+          <div className="absolute inset-0 bg-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Utensils className="w-6 h-6 text-zinc-400 group-hover:text-pink-400 transition-colors" />
+          <span className="text-[10px] font-black uppercase text-zinc-500 group-hover:text-pink-400 tracking-widest">Nutrition</span>
         </button>
-        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
-          <Calendar className="w-6 h-6 text-zinc-400 group-hover:text-primary transition-colors" />
-          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Planning</span>
+        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group relative overflow-hidden">
+          <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Calendar className="w-6 h-6 text-zinc-400 group-hover:text-amber-400 transition-colors" />
+          <span className="text-[10px] font-black uppercase text-zinc-500 group-hover:text-amber-400 tracking-widest">Planning</span>
         </button>
       </div>
 
