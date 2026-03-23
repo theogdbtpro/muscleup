@@ -11,10 +11,12 @@ import { useMemo, useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+
 const getLocalDateStr = () => {
   const n = new Date();
   return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
 };
+
 type HubProps = {
   profile: UserProfile;
   setView: (view: any) => void;
@@ -197,28 +199,44 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const currentDayIdx = (now.getDay() + 6) % 7;
   const todayName = DAY_NAMES[currentDayIdx];
 
+  // Logic pour charger les données sans boucle infinie
+  const loadData = () => {
+    const savedHistory = localStorage.getItem("muscleup_history");
+    if (savedHistory) setHistory(JSON.parse(savedHistory));
+    
+    const savedDates = localStorage.getItem("completedDates");
+    if (savedDates) setCompletedDates(JSON.parse(savedDates));
+    
+    const savedNames = localStorage.getItem("muscleup_session_names");
+    if (savedNames) setCustomNames(JSON.parse(savedNames));
+    
+    const savedManual = localStorage.getItem("muscleup_manual_schedule");
+    if (savedManual) setManualSchedule(JSON.parse(savedManual));
+    
+    const savedFuture = localStorage.getItem("muscleup_future_schedules");
+    if (savedFuture) setFutureSchedules(JSON.parse(savedFuture));
+
+    const savedSchedule = localStorage.getItem("muscleup_schedule") || localStorage.getItem("muscleup_base_schedule");
+    if (savedSchedule) {
+      setCurrentWeekSchedule(JSON.parse(savedSchedule));
+    } else {
+      const generated = generateBaseSchedule(profile.frequency, program);
+      setCurrentWeekSchedule(generated);
+      localStorage.setItem("muscleup_schedule", JSON.stringify(generated));
+    }
+  };
+
+  const [currentWeekSchedule, setCurrentWeekSchedule] = useState<Record<string, string | null>>({});
+
   useEffect(() => {
-    const reload = () => {
-      const savedHistory = localStorage.getItem("muscleup_history");
-      if (savedHistory) setHistory(JSON.parse(savedHistory));
-      const savedDates = localStorage.getItem("completedDates");
-      if (savedDates) setCompletedDates(JSON.parse(savedDates));
-      const savedNames = localStorage.getItem("muscleup_session_names");
-      if (savedNames) setCustomNames(JSON.parse(savedNames));
-      const savedManual = localStorage.getItem("muscleup_manual_schedule");
-      if (savedManual) setManualSchedule(JSON.parse(savedManual));
-      const savedFuture = localStorage.getItem("muscleup_future_schedules");
-      if (savedFuture) setFutureSchedules(JSON.parse(savedFuture));
-    };
-    reload();
-    window.addEventListener("focus", reload);
-    const handleVisibility = () => { if (document.visibilityState === "visible") reload(); };
-    document.addEventListener("visibilitychange", handleVisibility);
+    loadData();
+    window.addEventListener("focus", loadData);
+    document.addEventListener("visibilitychange", loadData);
     return () => {
-      window.removeEventListener("focus", reload);
-      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", loadData);
+      document.removeEventListener("visibilitychange", loadData);
     };
-  }, []);
+  }, [profile.frequency, program]);
 
   const saveCustomName = (sessionId: string, name: string) => {
     const updated = { ...customNames, [sessionId]: name };
@@ -238,54 +256,46 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const getSessionName = (session: Session) => customNames[session.id] || session.name;
 
   const finishedToday = useMemo(() => {
-    const todayStr = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
+    const todayStr = getLocalDateStr();
     if (!completedDates.includes(todayStr)) return false;
-    const savedSchedule = typeof window !== 'undefined' ? localStorage.getItem("muscleup_schedule") : null;
-    const sched = savedSchedule ? JSON.parse(savedSchedule) : {};
+    const sched = manualSchedule ?? currentWeekSchedule;
     const tName = DAY_NAMES[(new Date().getDay() + 6) % 7];
     const todaySessId = sched[tName] ?? null;
     if (!todaySessId) return true;
     return history.some(h => h.date?.split('T')[0] === todayStr && h.sessionId === todaySessId);
-  }, [completedDates, history]);
+  }, [completedDates, history, manualSchedule, currentWeekSchedule]);
 
   const streak = useMemo(() => {
     const dates = Array.from(new Set(completedDates)).sort().reverse();
     if (dates.length === 0) return 0;
-    const today = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const today = getLocalDateStr();
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth()+1).padStart(2,'0')}-${String(yesterdayDate.getDate()).padStart(2,'0')}`;
+    
     if (dates[0] !== today && dates[0] !== yesterdayStr) return 0;
+    
     let count = 0;
-    let checkDate = dates[0] === today ? new Date() : yesterday;
-    while (dates.includes(checkDate.toISOString().split('T')[0])) {
-      count++;
-      checkDate.setDate(checkDate.getDate() - 1);
+    let checkDate = dates[0] === today ? new Date() : yesterdayDate;
+    
+    while (true) {
+      const checkStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth()+1).padStart(2,'0')}-${String(checkDate.getDate()).padStart(2,'0')}`;
+      if (dates.includes(checkStr)) {
+        count++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
     }
     return count;
   }, [completedDates]);
-
-  const [currentWeekSchedule, setCurrentWeekSchedule] = useState<Record<string, string | null>>(() => {
-    if (typeof window === 'undefined') return {};
-    const saved = localStorage.getItem("muscleup_schedule");
-    if (saved) return JSON.parse(saved);
-    return {};
-  });
-
-  useEffect(() => {
-    const saved = localStorage.getItem("muscleup_schedule");
-    if (saved) setCurrentWeekSchedule(JSON.parse(saved));
-  }, []);
 
   // Planning type pour les semaines futures (respecte la fréquence)
   const baseScheduleForFuture = useMemo(() => {
     if (typeof window === 'undefined') return generateBaseSchedule(profile.frequency, program);
     const savedBase = localStorage.getItem("muscleup_base_schedule");
     if (savedBase) {
-      const parsed = JSON.parse(savedBase);
-      const nbSaved = Object.values(parsed).filter(Boolean).length;
-      const nbExpected = profile.frequency === "2j" ? 2 : profile.frequency === "3j" ? 3 : profile.frequency === "4j" ? 4 : 5;
-      if (nbSaved === nbExpected) return parsed;
+      return JSON.parse(savedBase);
     }
     return generateBaseSchedule(profile.frequency, program);
   }, [program, profile.frequency]);
@@ -321,8 +331,8 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const swapDays = (dayA: string, dayB: string) => {
     const idxA = DAY_NAMES.indexOf(dayA);
     const idxB = DAY_NAMES.indexOf(dayB);
-    if (weekOffset === 0 && idxA < currentDayIdx) return;
-    if (weekOffset === 0 && idxB < currentDayIdx) return;
+    if (weekOffset === 0 && (idxA < currentDayIdx || idxB < currentDayIdx)) return;
+    
     const dateA = weekDates[idxA]?.toISOString().split('T')[0];
     const dateB = weekDates[idxB]?.toISOString().split('T')[0];
     if (dateA && completedDates.includes(dateA)) return;
@@ -351,9 +361,8 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const todayIsRest = !todaySession || todaySession.isRestDay;
 
   const weekDates = useMemo(() => {
-    const now = new Date();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - currentDayIdx + weekOffset * 7);
+    const monday = new Date();
+    monday.setDate(monday.getDate() - currentDayIdx + weekOffset * 7);
     monday.setHours(0, 0, 0, 0);
     return DAY_NAMES.map((_, i) => {
       const d = new Date(monday);
@@ -370,16 +379,15 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   }, [weekDates]);
 
   const weekNumber = useMemo(() => {
-    const now = new Date();
-    const target = new Date(now);
-    target.setDate(now.getDate() + weekOffset * 7);
+    const target = new Date();
+    target.setDate(target.getDate() + weekOffset * 7);
     return getWeekNumber(target);
   }, [weekOffset]);
 
   const dayStatuses = useMemo(() => {
     const todayStr = getLocalDateStr();
     return weekDates.map(date => {
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
       if (completedDates.includes(dateStr)) return "done";
       if (dateStr < todayStr) return "past";
       return "upcoming";
@@ -388,9 +396,8 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
   const weeklySessionsDone = useMemo(() => {
     if (weekOffset !== 0) return 0;
-    const now = new Date();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - currentDayIdx);
+    const monday = new Date();
+    monday.setDate(monday.getDate() - currentDayIdx);
     monday.setHours(0,0,0,0);
     return history.filter(h => h.date && new Date(h.date) >= monday).length;
   }, [history, currentDayIdx, weekOffset]);
@@ -575,19 +582,18 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   return (
     <>
       <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-20">
-
         <header className="flex justify-between items-start">
           <div>
-          <h1
-  className="text-3xl font-headline text-white leading-none cursor-pointer"
-  onClick={() => {
-    if (confirm("Se déconnecter de ce compte ?\n\nToutes tes données seront supprimées.")) {
-      onReset();
-    }
-  }}
->
-  {profile.name ? `Bonjour ${profile.name} !` : "Bonjour !"}
-</h1>
+            <h1
+              className="text-3xl font-headline text-white leading-none cursor-pointer"
+              onClick={() => {
+                if (confirm("Se déconnecter de ce compte ?\n\nToutes tes données seront supprimées.")) {
+                  onReset();
+                }
+              }}
+            >
+              {profile.name ? `Bonjour ${profile.name} !` : "Bonjour !"}
+            </h1>
             <div className="flex items-center gap-2 mt-2">
               <div className={cn(
                 "flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-tighter",
@@ -692,15 +698,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             </div>
           </div>
 
-          {weekOffset !== 0 && (
-            <div className="bg-[#1A1A1A] border border-[#E24B4A]/20 rounded-xl p-3 flex items-center justify-between">
-              <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Semaine {weekNumber}</p>
-              <button onClick={() => setWeekOffset(0)} className="text-[10px] font-bold text-white bg-[#E24B4A] px-3 py-1.5 rounded-lg uppercase tracking-widest flex items-center gap-1">
-                📅 Aujourd'hui
-              </button>
-            </div>
-          )}
-
           <div
             ref={planningRef}
             className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl select-none"
@@ -743,7 +740,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                     !isRest && !isPast ? "cursor-grab active:cursor-grabbing" : "",
                     isDragging ? "!bg-zinc-700 opacity-60 border-dashed" : "",
                     isDropTarget ? "!bg-[#E24B4A]/20 border-l-4 border-l-[#E24B4A]" : "",
-                    longPressActive && draggedDay === dayName ? "touch-none" : "",
                   )}>
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     {!isRest && draggedDay === dayName && (
@@ -768,38 +764,16 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                     )}
                   </div>
                   <div className="flex items-center gap-2 ml-2 shrink-0">
-                    {!longPressActive && !isRest && !isPast && editingSessionId !== session?.id && (
-                      <button onClick={(e) => { e.stopPropagation(); setSelectedPreviewSession({ session: session!, day: dayName, date }); }}
-                        className="text-zinc-600 hover:text-zinc-300 transition-colors">
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
+                    {isDone && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-black text-green-500 uppercase tracking-widest">Validé</span>
+                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      </div>
                     )}
-                    {editingSessionId !== session?.id && (
-                      isDone
-                        ? <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] font-black text-green-500 uppercase tracking-widest">Validé</span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const dateStr = weekDates[idx].toISOString().split('T')[0];
-                                const newDates = completedDates.filter(d => d !== dateStr);
-                                setCompletedDates(newDates);
-                                localStorage.setItem("completedDates", JSON.stringify(newDates));
-                                const newHistory = history.filter(h => h.date?.split('T')[0] !== dateStr);
-                                setHistory(newHistory);
-                                localStorage.setItem("muscleup_history", JSON.stringify(newHistory));
-                                toast({ title: "Séance annulée", description: "La validation a été supprimée." });
-                              }}
-                              title="Annuler la validation"
-                            >
-                              <CheckCircle2 className="w-5 h-5 text-green-500 hover:text-red-400 transition-colors" />
-                            </button>
-                          </div>
-                        : dayStatuses[idx] === "past"
-                          ? <span className="text-[10px] font-bold text-zinc-700 uppercase">—</span>
-                          : isToday && !isRest
-                            ? <Circle className="w-4 h-4 text-[#E24B4A]" />
-                            : <Circle className="w-4 h-4 text-zinc-800" />
+                    {!isDone && (
+                      isToday && !isRest
+                        ? <Circle className="w-4 h-4 text-[#E24B4A]" />
+                        : <Circle className="w-4 h-4 text-zinc-800" />
                     )}
                   </div>
                 </div>
@@ -866,7 +840,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             <Progress value={weeklyProgressPercent} className="h-3 bg-[#0F0F0F]" />
           </Card>
         </section>
-
       </div>
 
       {previewModal}

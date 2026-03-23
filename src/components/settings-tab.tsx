@@ -25,80 +25,43 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
-  const [draggedDay, setDraggedDay] = useState<string | null>(null);
-  const [dragOverDay, setDragOverDay] = useState<string | null>(null);
-  const [longPressActive, setLongPressActive] = useState(false);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const touchDragDay = useRef<string | null>(null);
-  const planningRef = useRef<HTMLDivElement | null>(null);
   const dayNamesFull = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-  const isHighFrequency = tempProfile.frequency === "4j" || tempProfile.frequency === "5j";
 
   const [schedule, setSchedule] = useState<Record<string, string | null>>(() => {
-    // Dans les paramètres, on affiche toujours le planning type complet
-    // (pas le planning de la semaine en cours avec jours passés)
-    const saved = typeof window !== 'undefined' ? localStorage.getItem("muscleup_base_schedule") : null;
-    if (saved) return JSON.parse(saved);
-    return generateOptimizedSchedule(profile.frequency, profile.objective, false);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem("muscleup_base_schedule");
+      if (saved) return JSON.parse(saved);
+    }
+    return {};
   });
 
   useEffect(() => {
     const savedNames = localStorage.getItem("muscleup_session_names");
     if (savedNames) setCustomNames(JSON.parse(savedNames));
+
+    const savedSchedule = localStorage.getItem("muscleup_base_schedule") || localStorage.getItem("muscleup_schedule");
+    if (savedSchedule) {
+      setSchedule(JSON.parse(savedSchedule));
+    } else {
+      const generated = generateOptimizedSchedule(profile.frequency, profile.objective);
+      setSchedule(generated);
+    }
   }, []);
 
-  const currentProgram = PROGRAMS.find(p => p.id === tempProfile.objective) || PROGRAMS[0];
-
-  function generateOptimizedSchedule(freq: string, objId: string, isUpdate = false) {
+  function generateOptimizedSchedule(freq: string, objId: string) {
     const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-    const todayIdx = (new Date().getDay() + 6) % 7;
     const nbSessions = freq === "2j" ? 2 : freq === "3j" ? 3 : freq === "4j" ? 4 : 5;
-
     const program = PROGRAMS.find(p => p.id === objId) || PROGRAMS[0];
     const sessionIds = program.sessions.filter(s => !s.isRestDay).map(s => s.id);
 
     const newSchedule: Record<string, string | null> = {};
     days.forEach(d => { newSchedule[d] = null; });
 
-    if (!isUpdate) {
-      // Affichage : planning type complet sur toute la semaine
-      const step = days.length / nbSessions;
-      for (let i = 0; i < nbSessions; i++) {
-        const dayIdx = Math.min(Math.floor(i * step), days.length - 1);
-        newSchedule[days[dayIdx]] = sessionIds[i % sessionIds.length];
-      }
-      return newSchedule;
+    const step = days.length / nbSessions;
+    for (let i = 0; i < nbSessions; i++) {
+      const dayIdx = Math.min(Math.floor(i * step), days.length - 1);
+      newSchedule[days[dayIdx]] = sessionIds[i % sessionIds.length];
     }
-
-    // Sauvegarde : garde les jours passés, applique sur les futurs
-    let existingSchedule: Record<string, string | null> = {};
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem("muscleup_schedule");
-      if (saved) existingSchedule = JSON.parse(saved);
-    }
-
-    // Jours passés : on garde intact
-    days.forEach((day, idx) => {
-      if (idx < todayIdx) {
-        newSchedule[day] = existingSchedule[day] ?? null;
-      }
-    });
-
-    // Compte les séances déjà placées dans le passé
-    const alreadyPlaced = days.slice(0, todayIdx).filter(d => newSchedule[d]).length;
-
-    // Place les séances restantes sur les jours futurs
-    const futureDays = days.slice(todayIdx);
-    const toPlace = Math.min(Math.max(0, nbSessions - alreadyPlaced), futureDays.length);
-
-    if (toPlace > 0) {
-      const step = futureDays.length / toPlace;
-      for (let i = 0; i < toPlace; i++) {
-        const dayIdx = Math.min(Math.floor(i * step), futureDays.length - 1);
-        newSchedule[futureDays[dayIdx]] = sessionIds[(alreadyPlaced + i) % sessionIds.length];
-      }
-    }
-
     return newSchedule;
   }
 
@@ -106,56 +69,42 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     const newProfile = { ...tempProfile, ...updates };
     setTempProfile(newProfile);
     if (updates.frequency || updates.objective) {
-      // Affichage : toujours une semaine type complète
       const newSchedule = generateOptimizedSchedule(
         updates.frequency || tempProfile.frequency,
-        updates.objective || tempProfile.objective,
-        false
+        updates.objective || tempProfile.objective
       );
       setSchedule(newSchedule);
     }
   };
 
   const handleReoptimize = () => {
-    const newSchedule = generateOptimizedSchedule(tempProfile.frequency, tempProfile.objective, false);
+    const newSchedule = generateOptimizedSchedule(tempProfile.frequency, tempProfile.objective);
     setSchedule(newSchedule);
-    toast({
-      title: "Planning ré-optimisé ✓",
-      description: "Récupération maximale configurée.",
-    });
+    toast({ title: "Planning ré-optimisé ✓" });
   };
 
   const handleSave = () => {
     onUpdateProfile(tempProfile);
-  
-    // Planning type pour les semaines futures UNIQUEMENT
-    const baseSchedule = generateOptimizedSchedule(
-      tempProfile.frequency,
-      tempProfile.objective,
-      false
-    );
-    localStorage.setItem("muscleup_base_schedule", JSON.stringify(baseSchedule));
-  
-    // On ne touche JAMAIS à muscleup_schedule (semaine en cours intacte)
-    // On ne touche JAMAIS à muscleup_manual_schedule
-  
+    localStorage.setItem("muscleup_base_schedule", JSON.stringify(schedule));
+    localStorage.setItem("muscleup_schedule", JSON.stringify(schedule));
+    
     toast({
       title: "Programme mis à jour !",
-      description: "Les changements s'appliquent dès lundi prochain.",
+      description: "Tes modifications ont été enregistrées.",
     });
-    setTimeout(() => onBack(), 1000);
+    setTimeout(() => onBack(), 800);
   };
 
   const handleSaveCustomName = (id: string) => {
-    if (!editValue.trim()) {
+    const trimmed = editValue.trim();
+    if (!trimmed) {
       setEditingId(null);
       return;
     }
-    const newNames = { ...customNames, [id]: editValue };
+    const newNames = { ...customNames, [id]: trimmed };
     setCustomNames(newNames);
     localStorage.setItem("muscleup_session_names", JSON.stringify(newNames));
     setEditingId(null);
-    toast({ title: "Nom mis à jour ✓" });
   };
 
   const handleResetName = (id: string) => {
@@ -163,7 +112,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     delete newNames[id];
     setCustomNames(newNames);
     localStorage.setItem("muscleup_session_names", JSON.stringify(newNames));
-    toast({ title: "Nom réinitialisé" });
   };
 
   const moveSession = (day: string, direction: 'up' | 'down') => {
@@ -182,108 +130,10 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     setTimeout(() => setMoveMessage(null), 2000);
   };
 
-  const handleExportData = () => {
-    const data = {
-      profile: tempProfile,
-      schedule: localStorage.getItem("muscleup_schedule"),
-      baseSchedule: localStorage.getItem("muscleup_base_schedule"),
-      manualSchedule: localStorage.getItem("muscleup_manual_schedule"),
-      history: localStorage.getItem("muscleup_history"),
-      completedDates: localStorage.getItem("completedDates"),
-      sessionNames: localStorage.getItem("muscleup_session_names"),
-    };
-    const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "muscleup-sauvegarde.json";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast({ title: "Export réussi ✓", description: "Ton fichier de sauvegarde a été téléchargé." });
-  };
-
-  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = JSON.parse(event.target?.result as string);
-        if (data.schedule) localStorage.setItem("muscleup_schedule", data.schedule);
-        if (data.baseSchedule) localStorage.setItem("muscleup_base_schedule", data.baseSchedule);
-        if (data.manualSchedule) localStorage.setItem("muscleup_manual_schedule", data.manualSchedule);
-        if (data.history) localStorage.setItem("muscleup_history", data.history);
-        if (data.completedDates) localStorage.setItem("completedDates", data.completedDates);
-        if (data.sessionNames) localStorage.setItem("muscleup_session_names", data.sessionNames);
-        if (data.profile) onUpdateProfile(data.profile);
-        toast({ title: "Import réussi ✓", description: "Tes données ont été restaurées. Recharge la page." });
-      } catch {
-        toast({ title: "Erreur", description: "Fichier invalide." });
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const freqWarning = useMemo(() => {
-    const todayIdx = (new Date().getDay() + 6) % 7;
-    const futureDays = 7 - todayIdx;
-    const nbSessions = tempProfile.frequency === "2j" ? 2 : tempProfile.frequency === "3j" ? 3 : tempProfile.frequency === "4j" ? 4 : 5;
-    if (nbSessions > futureDays) {
-      return `⚠️ Seulement ${futureDays} jour(s) restants cette semaine. La fréquence ${tempProfile.frequency} sera complète dès la semaine prochaine.`;
-    }
-    return null;
-  }, [tempProfile.frequency]);
-  const swapDaysSettings = (dayA: string, dayB: string) => {
-    const newSchedule = { ...schedule };
-    const tmp = newSchedule[dayA];
-    newSchedule[dayA] = newSchedule[dayB];
-    newSchedule[dayB] = tmp;
-    setSchedule(newSchedule);
-  };
-  
-  const handleDragStart = (dayName: string) => setDraggedDay(dayName);
-  const handleDragOver = (e: React.DragEvent, dayName: string) => {
-    e.preventDefault();
-    setDragOverDay(dayName);
-  };
-  const handleDrop = (dayName: string) => {
-    if (draggedDay && draggedDay !== dayName) swapDaysSettings(draggedDay, dayName);
-    setDraggedDay(null);
-    setDragOverDay(null);
-  };
-  
-  const handleTouchStartDrag = (e: React.TouchEvent, dayName: string) => {
-    longPressTimer.current = setTimeout(() => {
-      try { navigator.vibrate?.(50); } catch {}
-      setLongPressActive(true);
-      touchDragDay.current = dayName;
-      setDraggedDay(dayName);
-    }, 500);
-  };
-  const handleTouchCancelDrag = () => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
-  };
-  const handleTouchMoveDrag = (e: React.TouchEvent) => {
-    if (!touchDragDay.current) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const row = el?.closest('[data-day]') as HTMLElement | null;
-    if (row) setDragOverDay(row.dataset.day || null);
-  };
-  const handleTouchEndDrag = () => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
-    if (touchDragDay.current && dragOverDay && touchDragDay.current !== dragOverDay) {
-      swapDaysSettings(touchDragDay.current, dragOverDay);
-    }
-    touchDragDay.current = null;
-    setDraggedDay(null);
-    setDragOverDay(null);
-    setLongPressActive(false);
-  };
   const optimizationWarnings = useMemo(() => {
-    if (isHighFrequency) return [];
     const warnings: string[] = [];
+    if (tempProfile.frequency === "4j" || tempProfile.frequency === "5j") return [];
+    
     for (let i = 0; i < dayNamesFull.length; i++) {
       const today = dayNamesFull[i];
       const tomorrow = dayNamesFull[(i + 1) % dayNamesFull.length];
@@ -292,7 +142,9 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
       }
     }
     return warnings;
-  }, [schedule, isHighFrequency]);
+  }, [schedule, tempProfile.frequency]);
+
+  const currentProgram = PROGRAMS.find(p => p.id === tempProfile.objective) || PROGRAMS[0];
 
   return (
     <div className="min-h-full bg-[#0F0F0F] flex flex-col p-6 animate-in slide-in-from-right duration-300">
@@ -373,157 +225,70 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-primary" />
-              <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Planning de la semaine</h2>
+              <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Planning hebdomadaire</h2>
             </div>
-            {moveMessage && (
-              <div className="flex items-center gap-1.5 text-green-500 animate-in fade-in">
-                <CheckCircle className="w-3.5 h-3.5" />
-                <span className="text-[9px] font-bold uppercase">{moveMessage}</span>
-              </div>
-            )}
+            {moveMessage && <span className="text-[9px] font-bold text-green-500 uppercase">{moveMessage}</span>}
           </div>
 
-          {!isHighFrequency && (
-            <button 
-              onClick={handleReoptimize}
-              className="w-full flex items-center justify-center gap-2 p-3 border border-dashed border-primary/50 text-primary rounded-xl text-xs font-bold uppercase hover:bg-primary/5 transition-all mb-4"
-            >
-              <Sparkles className="w-4 h-4" />
-              Ré-optimiser automatiquement
-            </button>
-          )}
+          <button onClick={handleReoptimize} className="w-full p-3 border border-dashed border-primary/50 text-primary rounded-xl text-xs font-bold uppercase hover:bg-primary/5 mb-4">
+            <Sparkles className="w-4 h-4 mr-2 inline" /> Ré-optimiser automatiquement
+          </button>
 
-<div
-            ref={planningRef}
-            className="space-y-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden select-none"
-            onTouchMove={handleTouchMoveDrag}
-            onTouchEnd={handleTouchEndDrag}
-            style={{ touchAction: longPressActive ? 'none' : 'pan-y', WebkitUserSelect: 'none' } as React.CSSProperties}
-          >
+          <div className="space-y-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
             {dayNamesFull.map((day, idx) => {
-              const todayIdx = (new Date().getDay() + 6) % 7;
               const sessionId = schedule[day];
               const session = currentProgram.sessions.find(s => s.id === sessionId);
-              const isPast = false; // Dans les paramètres, tous les jours sont modifiables
-              const isDragging = draggedDay === day && longPressActive;
-              const isDropTarget = dragOverDay === day && draggedDay !== day;
-
-              const prevDay = dayNamesFull[(idx + 6) % 7];
-              const nextDay = dayNamesFull[(idx + 1) % 7];
-              const hasAdjacencyIssue = !isHighFrequency && !!sessionId && (!!schedule[prevDay] || !!schedule[nextDay]);
-
               const displayName = session ? (customNames[session.id] || session.name) : "Repos";
-              const isCustom = session && customNames[session.id];
 
               return (
-                <div
-                  key={day}
-                  data-day={day}
-                  draggable={!!sessionId && !isPast}
-                  onDragStart={!!sessionId && !isPast ? () => handleDragStart(day) : undefined}
-                  onDragOver={(e) => handleDragOver(e, day)}
-                  onDrop={() => handleDrop(day)}
-                  onDragEnd={() => { setDraggedDay(null); setDragOverDay(null); }}
-                  onTouchStart={!!sessionId && !isPast ? (e) => handleTouchStartDrag(e, day) : undefined}
-                  onTouchCancel={handleTouchCancelDrag}
-                  style={isDragging ? { opacity: 0.5, border: '2px dashed #E24B4A' } : isDropTarget ? { backgroundColor: 'rgba(226,75,74,0.1)', borderLeft: '4px solid #E24B4A' } : {}}
-                  className={cn(
-                    "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all duration-200",
-                    isPast ? "opacity-40" : "",
-                    !!sessionId && !isPast ? "cursor-grab active:cursor-grabbing" : "",
-                  )}
-                >
+                <div key={day} className="p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0">
                   <div className="flex items-center gap-4 flex-1">
-                  {!!sessionId && !isPast && draggedDay === day && (
-                      <GripVertical className="w-4 h-4 text-zinc-600 shrink-0" />
-                    )}
                     <span className="text-xs font-bold w-12 text-zinc-600">{day}</span>
-                    <div className="flex flex-col flex-1">
-                      <div className="flex items-center gap-2">
-                        {editingId === session?.id ? (
-                          <div className="flex items-center gap-1 flex-1 max-w-[200px]">
-                            <Input
-                              autoFocus
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => e.key === 'Enter' && handleSaveCustomName(session!.id)}
-                              onBlur={() => setEditingId(null)}
-                              className="h-8 bg-[#0F0F0F] border-[#E24B4A] text-sm py-1"
-                            />
-                            <button onClick={() => handleSaveCustomName(session!.id)} className="p-1.5 text-green-500">
-                              <Check className="w-4 h-4" />
+                    <div className="flex-1 flex items-center gap-2">
+                      {editingId === session?.id ? (
+                        <div className="flex items-center gap-1 flex-1">
+                          <Input
+                            autoFocus
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSaveCustomName(session!.id)}
+                            onBlur={() => setEditingId(null)}
+                            className="h-8 bg-[#0F0F0F] border-[#E24B4A] text-sm"
+                          />
+                          <button onClick={() => handleSaveCustomName(session!.id)} className="text-green-500 p-1"><Check className="w-4 h-4" /></button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className={cn("text-sm font-bold uppercase", session ? "text-white" : "text-zinc-800")}>{displayName}</span>
+                          {session && (
+                            <button onClick={() => { setEditingId(session.id); setEditValue(customNames[session.id] || session.name); }} className="text-zinc-600 hover:text-primary">
+                              <Pencil className="w-3 h-3" />
                             </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className={cn("text-sm font-bold uppercase tracking-tight", session ? "text-white" : "text-zinc-700")}>
-                              {displayName}
-                            </span>
-                            {session && (
-                              <button 
-                                onClick={() => { setEditingId(session.id); setEditValue(customNames[session.id] || session.name); }} 
-                                className="p-1 text-zinc-600 hover:text-primary transition-colors"
-                              >
-                                <Pencil className="w-3 h-3" />
-                              </button>
-                            )}
-                            {isCustom && (
-                              <button 
-                                onClick={() => handleResetName(session.id)} 
-                                className="p-1 text-zinc-600 hover:text-amber-500 transition-colors"
-                                title="Réinitialiser le nom"
-                              >
-                                <RotateCcw className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                        {hasAdjacencyIssue && (
-                          <div className="w-5 h-5 bg-amber-500/20 rounded-full flex items-center justify-center">
-                            <span className="text-amber-500 text-[10px] font-bold">!</span>
-                          </div>
-                        )}
-                      </div>
+                          )}
+                          {session && customNames[session.id] && (
+                            <button onClick={() => handleResetName(session.id)} className="text-zinc-600 hover:text-amber-500">
+                              <RotateCcw className="w-3 h-3" />
+                            </button>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
-
                   {sessionId && !editingId && (
-                    <div className="flex gap-1">
-                      <button
-                        disabled={idx === 0}
-                        onClick={() => moveSession(day, 'up')}
-                        className="w-7 h-7 flex items-center justify-center rounded-md bg-[#2A2A2A] text-zinc-500 hover:bg-primary hover:text-white disabled:opacity-30 disabled:hover:bg-[#2A2A2A] disabled:hover:text-zinc-500 transition-colors"
-                      >
-                        <ChevronUp className="w-4 h-4" />
-                      </button>
-                      <button
-                        disabled={idx === 6}
-                        onClick={() => moveSession(day, 'down')}
-                        className="w-7 h-7 flex items-center justify-center rounded-md bg-[#2A2A2A] text-zinc-500 hover:bg-primary hover:text-white disabled:opacity-30 disabled:hover:bg-[#2A2A2A] disabled:hover:text-zinc-500 transition-colors"
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </button>
+                    <div className="flex gap-1 ml-2">
+                      <button disabled={idx === 0} onClick={() => moveSession(day, 'up')} className="w-7 h-7 flex items-center justify-center rounded-md bg-[#2A2A2A] text-zinc-500 hover:text-white disabled:opacity-20"><ChevronUp className="w-4 h-4" /></button>
+                      <button disabled={idx === 6} onClick={() => moveSession(day, 'down')} className="w-7 h-7 flex items-center justify-center rounded-md bg-[#2A2A2A] text-zinc-500 hover:text-white disabled:opacity-20"><ChevronDown className="w-4 h-4" /></button>
                     </div>
                   )}
                 </div>
               );
             })}
           </div>
-          {freqWarning && (
-            <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl">
-              <p className="text-[10px] text-blue-300 font-bold leading-tight">{freqWarning}</p>
-            </div>
-          )}
 
           {optimizationWarnings.length > 0 && (
-            <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl space-y-2">
-              <div className="flex items-center gap-2 text-amber-500">
-                <AlertTriangle className="w-4 h-4" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Avertissement Récupération</span>
-              </div>
-              <p className="text-[10px] text-amber-200/70 italic leading-tight">
-                ⚠️ Attention : pas assez de repos entre certaines séances. Idéalement 48h minimum.
-              </p>
+            <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex items-start gap-3">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-[10px] text-amber-200/70 italic leading-tight">Attention : pas assez de repos entre certaines séances. Idéalement 48h entre les mêmes groupes.</p>
             </div>
           )}
         </section>
