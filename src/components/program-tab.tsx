@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, Timer, Info, Zap, Play, Activity, Clock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
+import { auth } from "@/lib/firebase";
 
 function getSuggestedWeight(exercise: Exercise, profile: UserProfile): string | null {
   const bodyWeight = profile.bodyProfile?.poids;
@@ -173,7 +175,8 @@ type ProgramTabProps = {
   onFinish?: () => void;
 };
 
-  export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSessionId, onFinish }: ProgramTabProps) {  const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
+export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSessionId, onFinish }: ProgramTabProps) {
+  const program = PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0];
   const [internalSessionId, setInternalSessionId] = useState<string | null>(manualSessionId || null);
   const [phase, setPhase] = useState<"select" | "intro" | "countdown" | "workout">(manualSessionId ? "intro" : "select");
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
@@ -186,17 +189,20 @@ type ProgramTabProps = {
   const [doneExercises, setDoneExercises] = useState<number[]>([]);
   const [justFinishedExercise, setJustFinishedExercise] = useState(false);
 
+  const user = auth.currentUser;
+  const uidPrefix = user ? `_${user.uid}` : "_guest";
+
   useEffect(() => {
-    const savedNames = localStorage.getItem("muscleup_session_names");
+    const savedNames = localStorage.getItem("muscleup_session_names" + uidPrefix);
     if (savedNames) setCustomNames(JSON.parse(savedNames));
-  }, []);
+  }, [uidPrefix]);
 
   const schedule = useMemo(() => {
     if (typeof window === 'undefined') return null;
-    const saved = localStorage.getItem("muscleup_schedule");
+    const saved = localStorage.getItem("muscleup_base_schedule" + uidPrefix) || localStorage.getItem("muscleup_schedule" + uidPrefix);
     if (saved) return JSON.parse(saved) as Record<string, string | null>;
     return null;
-  }, []);
+  }, [uidPrefix]);
 
   const currentSession = useMemo(() => {
     if (internalSessionId) return program.sessions.find(s => s.id === internalSessionId) || program.sessions[0];
@@ -256,6 +262,7 @@ type ProgramTabProps = {
       }
     }
   };
+
   const handleFinish = () => {
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
@@ -264,13 +271,23 @@ type ProgramTabProps = {
         day: currentSession.day, 
         date: new Date().toISOString(), 
         sessionName: currentSessionDisplayName,
-        sessionId: currentSession.id  // ← on stocke l'id de la séance validée
+        sessionId: currentSession.id
       };
-      const existingHistory = JSON.parse(localStorage.getItem("muscleup_history") || "[]");
-      localStorage.setItem("muscleup_history", JSON.stringify([historyItem, ...existingHistory]));
-      const existingDates = JSON.parse(localStorage.getItem("completedDates") || "[]");
-      if (!existingDates.includes(todayStr)) localStorage.setItem("completedDates", JSON.stringify([...existingDates, todayStr]));
-      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#E24B4A', '#FFFFFF', '#1A1A1A'] });
+      
+      const existingHistory = JSON.parse(localStorage.getItem("muscleup_history" + uidPrefix) || "[]");
+      localStorage.setItem("muscleup_history" + uidPrefix, JSON.stringify([historyItem, ...existingHistory]));
+      
+      const existingDates = JSON.parse(localStorage.getItem("completedDates" + uidPrefix) || "[]");
+      if (!existingDates.includes(todayStr)) {
+        localStorage.setItem("completedDates" + uidPrefix, JSON.stringify([...existingDates, todayStr]));
+      }
+      
+      confetti({ 
+        particleCount: 150, 
+        spread: 70, 
+        origin: { y: 0.6 }, 
+        colors: ['#E24B4A', '#FFFFFF', '#1A1A1A'] 
+      });
     }
     if (onFinish) onFinish(); else onBack();
   };
@@ -433,7 +450,7 @@ type ProgramTabProps = {
           </button>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col px-4 pb-4 overflow-y-auto">          {/* Nom + muscle */}
+        <div className="flex-1 flex flex-col px-4 pb-4 overflow-y-auto">
           <div className="text-center mb-2 shrink-0">
             <span className="text-[#E24B4A] font-bold text-[10px] uppercase tracking-widest">
               Exercice {currentExIdx + 1} / {currentExercises.length}
@@ -446,7 +463,6 @@ type ProgramTabProps = {
             </div>
           </div>
 
-          {/* Poids + séries + animation sur une ligne */}
           <div className="flex items-center justify-center gap-3 mb-2 shrink-0">
             <div className="bg-[#1A1A1A] border border-[#2A2A2A] px-5 py-3 rounded-2xl text-center">
               <span className="text-3xl font-headline text-white block">{currentSet}</span>
@@ -459,7 +475,6 @@ type ProgramTabProps = {
             </div>
           </div>
 
-          {/* Poids conseillé */}
           {suggestedWeightCurrent && (
             <div className="mx-auto mb-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2 shrink-0">
               <span className="text-sm">🏋️</span>
@@ -467,12 +482,10 @@ type ProgramTabProps = {
             </div>
           )}
 
-          {/* Technique */}
           <p className="text-zinc-400 italic text-xs text-center max-w-xs mx-auto mb-2 shrink-0">
             "{currentExercise?.technique}"
           </p>
 
-          {/* Position */}
           <div className="bg-[#0F0F0F] border border-zinc-800 rounded-xl p-3 mb-2 shrink-0">
             <div className="flex items-center gap-1.5 mb-1">
               <Zap className="w-3 h-3 text-[#E24B4A]"/>
@@ -481,13 +494,11 @@ type ProgramTabProps = {
             <p className="text-xs text-zinc-300 leading-relaxed line-clamp-3">{currentExercise?.position}</p>
           </div>
 
-          {/* Bouton voir détails */}
           <button onClick={() => setSelectedExercise(currentExercise)}
             className="mx-auto flex items-center gap-1.5 text-[9px] font-bold text-zinc-600 uppercase tracking-widest hover:text-zinc-400 transition-colors mb-2 shrink-0">
             <Info className="w-3 h-3" /> Voir tout
           </button>
 
-          {/* Points séries + bouton */}
           <div className="shrink-0">
             <div className="flex justify-center gap-2 mb-2">
               {Array.from({ length: totalSets }).map((_, i) => (

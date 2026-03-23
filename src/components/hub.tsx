@@ -151,6 +151,19 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     setEditingSessionId(null);
   };
 
+  const toggleDateCompletion = (dateStr: string) => {
+    const isDone = completedDates.includes(dateStr);
+    let newDates;
+    if (isDone) {
+      newDates = completedDates.filter(d => d !== dateStr);
+    } else {
+      newDates = [...completedDates, dateStr];
+    }
+    setCompletedDates(newDates);
+    localStorage.setItem("completedDates" + uidPrefix, JSON.stringify(newDates));
+    try { navigator.vibrate?.(15); } catch {}
+  };
+
   // Logique de Drag & Drop
   const onDragStart = (day: string) => {
     setDraggedDay(day);
@@ -298,31 +311,34 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             
             const isToday = weekOffset === 0 && currentDayReal === idx;
             const isDone = completedDates.includes(dateStr);
+            const isPast = date < new Date(new Date().setHours(0,0,0,0));
+            
             const isDragged = draggedDay === day;
             const isOver = dragOverDay === day;
 
             return (
               <div 
                 key={day} 
-                draggable={!!session}
-                onDragStart={() => onDragStart(day)}
-                onDragOver={(e) => onDragOver(e, day)}
-                onDrop={() => onDrop(day)}
+                draggable={!!session && !isPast}
+                onDragStart={() => !isPast && onDragStart(day)}
+                onDragOver={(e) => !isPast && onDragOver(e, day)}
+                onDrop={() => !isPast && onDrop(day)}
                 className={cn(
-                  "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all cursor-grab active:cursor-grabbing", 
+                  "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all", 
                   isToday ? "bg-primary/5" : "",
                   isDragged ? "opacity-30 scale-95" : "opacity-100",
-                  isOver ? "bg-primary/20 border-y-primary/50" : ""
+                  isOver ? "bg-primary/20 border-y-primary/50" : "",
+                  !isPast && session ? "cursor-grab active:cursor-grabbing" : "cursor-default"
                 )}
               >
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                   <div className="w-12 shrink-0">
-                    <span className={cn("text-[10px] font-black uppercase block", isToday ? "text-primary" : "text-zinc-600")}>{day}</span>
+                    <span className={cn("text-[10px] font-black uppercase block", isToday ? "text-primary" : isPast ? "text-zinc-700" : "text-zinc-600")}>{day}</span>
                     <span className="text-[8px] font-bold text-zinc-700 uppercase tracking-widest">{displayDate}</span>
                   </div>
                   
                   <div className="flex-1 flex items-center gap-2 min-w-0">
-                    {session && <GripVertical className="w-3.5 h-3.5 text-zinc-800 shrink-0" />}
+                    {session && !isPast && <GripVertical className="w-3.5 h-3.5 text-zinc-800 shrink-0" />}
                     
                     {editingSessionId === session?.id ? (
                       <div className="flex items-center gap-1 flex-1">
@@ -338,10 +354,12 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                       </div>
                     ) : (
                       <>
-                        <span className={cn("text-sm font-bold uppercase truncate", session ? "text-white" : "text-zinc-800")}>
+                        <span className={cn("text-sm font-bold uppercase truncate", 
+                          session ? (isPast ? "text-zinc-600" : "text-white") : "text-zinc-800"
+                        )}>
                           {session ? getSessionName(session) : "REPOS"}
                         </span>
-                        {session && (
+                        {session && !isPast && (
                           <button 
                             onClick={(e) => { e.stopPropagation(); setEditingSessionId(session.id); setEditValue(getSessionName(session)); }}
                             className="p-1 text-zinc-700 hover:text-primary transition-colors shrink-0"
@@ -355,19 +373,22 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                 </div>
 
                 <div className="shrink-0 ml-2">
-                  <div className={cn(
-                    "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all", 
-                    isDone ? "bg-primary border-primary" : "border-zinc-800"
-                  )}>
-                    {isDone && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
-                  </div>
+                  <button 
+                    onClick={() => toggleDateCompletion(dateStr)}
+                    className={cn(
+                      "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all press-effect", 
+                      isDone ? "bg-green-500 border-green-500 shadow-lg shadow-green-500/20" : "border-zinc-800 hover:border-zinc-700"
+                    )}
+                  >
+                    {isDone && <CheckCircle2 className="w-4 h-4 text-white" />}
+                  </button>
                 </div>
               </div>
             );
           })}
         </div>
         <p className="text-[9px] text-center font-bold text-zinc-700 uppercase tracking-widest">
-          💡 Glisse une séance pour la déplacer
+          💡 Glisse une séance pour la déplacer (futur uniquement)
         </p>
       </section>
 
