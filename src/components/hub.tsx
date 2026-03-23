@@ -230,28 +230,27 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Programme Actuel */}
-      <Card className="bg-[#1A1A1A]/60 backdrop-blur-md border-[#2A2A2A] p-4 rounded-3xl flex items-center justify-between shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 flex items-center justify-center text-2xl shadow-lg">
-            {program.emoji}
+      {/* 2. Navigation Grid (Nouveau emplacement: tout en haut) */}
+      <div className="grid grid-cols-3 gap-4">
+        <button onClick={() => setView("progres")} className="bg-[#1A1A1A]/80 border border-zinc-800/50 aspect-square rounded-[32px] flex flex-col items-center justify-center gap-3 active:scale-95 transition-all shadow-xl">
+          <div className="w-14 h-14 rounded-2xl bg-pink-500/10 flex items-center justify-center">
+            <Activity className="w-7 h-7 text-pink-500" />
           </div>
-          <div>
-            <h3 className="text-sm font-headline text-white uppercase tracking-tight">{program.name}</h3>
-            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-              {profile.frequency}/sem • {program.sessions.length} séances
-            </p>
+          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Progrès</span>
+        </button>
+        <button onClick={() => setView("nutrition")} className="bg-[#1A1A1A]/80 border border-zinc-800/50 aspect-square rounded-[32px] flex flex-col items-center justify-center gap-3 active:scale-95 transition-all shadow-xl">
+          <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
+            <Utensils className="w-7 h-7 text-red-500" />
           </div>
-        </div>
-        <Button 
-          variant="default" 
-          size="sm" 
-          onClick={() => setView("settings")}
-          className="h-8 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-primary"
-        >
-          MODIFIER {'>'}
-        </Button>
-      </Card>
+          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nutrition</span>
+        </button>
+        <button onClick={() => setView("planning-mensuel")} className="bg-[#1A1A1A]/80 border border-zinc-800/50 aspect-square rounded-[32px] flex flex-col items-center justify-center gap-3 active:scale-95 transition-all shadow-xl">
+          <div className="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center">
+            <Calendar className="w-7 h-7 text-purple-400" />
+          </div>
+          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Planning</span>
+        </button>
+      </div>
 
       {/* 3. Carte Héros */}
       {(!todaySession || finishedToday) && weekOffset === 0 ? (
@@ -275,7 +274,30 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </Card>
       ) : null}
 
-      {/* 4. Planning Hebdomadaire (Fidèle au screen) */}
+      {/* 4. Programme Actuel (Déplacé sous la Hero Card) */}
+      <Card className="bg-[#1A1A1A]/60 backdrop-blur-md border-[#2A2A2A] p-4 rounded-3xl flex items-center justify-between shadow-xl">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 flex items-center justify-center text-2xl shadow-lg">
+            {program.emoji}
+          </div>
+          <div>
+            <h3 className="text-sm font-headline text-white uppercase tracking-tight">{program.name}</h3>
+            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+              {profile.frequency}/sem • {program.sessions.length} séances
+            </p>
+          </div>
+        </div>
+        <Button 
+          variant="default" 
+          size="sm" 
+          onClick={() => setView("settings")}
+          className="h-8 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-primary"
+        >
+          MODIFIER {'>'}
+        </Button>
+      </Card>
+
+      {/* 5. Planning Hebdomadaire */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
@@ -306,7 +328,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             const diff = idx - currentDayReal + (weekOffset * 7);
             date.setDate(date.getDate() + diff);
             const dateStr = getLocalDateStr(date);
-            const displayDate = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
             
             const isToday = weekOffset === 0 && currentDayReal === idx;
             const isDone = completedDates.includes(dateStr);
@@ -388,32 +409,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             );
           })}
         </div>
-        <p className="text-[9px] text-center font-bold text-zinc-700 uppercase tracking-widest">
-          💡 ASTUCE : GLISSE UNE SÉANCE POUR LA DÉPLACER
-        </p>
       </section>
-
-      {/* 5. Navigation Grid (Fidèle au screen) */}
-      <div className="grid grid-cols-3 gap-4">
-        <button onClick={() => setView("progres")} className="bg-[#1A1A1A]/80 border border-zinc-800/50 aspect-square rounded-[32px] flex flex-col items-center justify-center gap-3 active:scale-95 transition-all shadow-xl">
-          <div className="w-14 h-14 rounded-2xl bg-pink-500/10 flex items-center justify-center">
-            <Activity className="w-7 h-7 text-pink-500" />
-          </div>
-          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Progrès</span>
-        </button>
-        <button onClick={() => setView("nutrition")} className="bg-[#1A1A1A]/80 border border-zinc-800/50 aspect-square rounded-[32px] flex flex-col items-center justify-center gap-3 active:scale-95 transition-all shadow-xl">
-          <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
-            <Utensils className="w-7 h-7 text-red-500" />
-          </div>
-          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nutrition</span>
-        </button>
-        <button onClick={() => setView("planning-mensuel")} className="bg-[#1A1A1A]/80 border border-zinc-800/50 aspect-square rounded-[32px] flex flex-col items-center justify-center gap-3 active:scale-95 transition-all shadow-xl">
-          <div className="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center">
-            <Calendar className="w-7 h-7 text-purple-400" />
-          </div>
-          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Planning</span>
-        </button>
-      </div>
 
       {/* 6. Profil Corporel */}
       <button onClick={() => setView("body-profile")} className="w-full bg-[#1A1A1A]/40 border border-zinc-800/50 p-6 rounded-[32px] flex items-center justify-between group active:scale-[0.98] transition-all">
