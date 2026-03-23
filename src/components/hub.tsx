@@ -19,7 +19,8 @@ import {
   BarChart,
   Pencil,
   Check,
-  GripVertical,
+  ChevronUp,
+  ChevronDown,
   User as UserIcon
 } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
@@ -63,9 +64,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
-
-  const [draggedDay, setDraggedDay] = useState<string | null>(null);
-  const [dragOverDay, setDragOverDay] = useState<string | null>(null);
 
   const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
   const user = auth.currentUser;
@@ -159,46 +157,22 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     try { navigator.vibrate?.(15); } catch {}
   };
 
-  const onDragStart = (day: string) => {
-    setDraggedDay(day);
-    try { navigator.vibrate?.(10); } catch {}
-  };
+  const moveSession = (day: string, direction: 'up' | 'down') => {
+    const index = DAY_NAMES.indexOf(day);
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= DAY_NAMES.length) return;
 
-  const onDragOver = (e: React.DragEvent, day: string) => {
-    e.preventDefault();
-    if (day !== dragOverDay) setDragOverDay(day);
-  };
-
-  const onDrop = (targetDay: string) => {
-    if (!draggedDay || draggedDay === targetDay) {
-      setDraggedDay(null);
-      setDragOverDay(null);
-      return;
-    }
-
+    const targetDay = DAY_NAMES[targetIndex];
     const newSchedule = { ...currentWeekSchedule };
-    const tmp = newSchedule[draggedDay];
-    newSchedule[draggedDay] = newSchedule[targetDay];
+    const tmp = newSchedule[day];
+    newSchedule[day] = newSchedule[targetDay];
     newSchedule[targetDay] = tmp;
 
     setCurrentWeekSchedule(newSchedule);
     localStorage.setItem("muscleup_base_schedule" + uidPrefix, JSON.stringify(newSchedule));
     localStorage.setItem("muscleup_schedule" + uidPrefix, JSON.stringify(newSchedule));
-    
-    setDraggedDay(null);
-    setDragOverDay(null);
     try { navigator.vibrate?.(20); } catch {}
   };
-
-  const bodyProfileStats = useMemo(() => {
-    if (!profile.bodyProfile) return null;
-    const { poids, taille } = profile.bodyProfile;
-    const imc = poids / ((taille / 100) ** 2);
-    let color = "text-green-500";
-    if (imc < 18.5 || imc >= 25) color = "text-yellow-500";
-    if (imc >= 30) color = "text-red-500";
-    return { summary: `${poids}KG · ${taille}CM · IMC ${imc.toFixed(1)}`, color, imc };
-  }, [profile.bodyProfile]);
 
   const currentDayIdx = (new Date().getDay() + 6) % 7;
   const todaySessionId = currentWeekSchedule[DAY_NAMES[currentDayIdx]];
@@ -230,21 +204,18 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Navigation Grid (Premium & Colorée) */}
+      {/* 2. Navigation Grid (Épurée & Colorée) */}
       <div className="grid grid-cols-3 gap-4">
-        <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group relative overflow-hidden">
-          <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-          <BarChart className="w-6 h-6 text-zinc-400 group-hover:text-blue-400 transition-colors" />
+        <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
+          <BarChart className="w-6 h-6 text-blue-400 transition-transform group-hover:scale-110" />
           <span className="text-[10px] font-black uppercase text-zinc-500 group-hover:text-blue-400 tracking-widest">Profil</span>
         </button>
-        <button onClick={() => setView("nutrition")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group relative overflow-hidden">
-          <div className="absolute inset-0 bg-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-          <Utensils className="w-6 h-6 text-zinc-400 group-hover:text-pink-400 transition-colors" />
+        <button onClick={() => setView("nutrition")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
+          <Utensils className="w-6 h-6 text-pink-400 transition-transform group-hover:scale-110" />
           <span className="text-[10px] font-black uppercase text-zinc-500 group-hover:text-pink-400 tracking-widest">Nutrition</span>
         </button>
-        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group relative overflow-hidden">
-          <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-          <Calendar className="w-6 h-6 text-zinc-400 group-hover:text-amber-400 transition-colors" />
+        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
+          <Calendar className="w-6 h-6 text-amber-400 transition-transform group-hover:scale-110" />
           <span className="text-[10px] font-black uppercase text-zinc-500 group-hover:text-amber-400 tracking-widest">Planning</span>
         </button>
       </div>
@@ -271,16 +242,10 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </Card>
       ) : null}
 
-      {/* 4. Planning Hebdomadaire */}
+      {/* 4. Planning Hebdomadaire (Fidèle au Screenshot) */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex flex-col">
-            <h2 className="text-3xl font-headline text-white tracking-wide uppercase">Planning</h2>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">CETTE SEMAINE</span>
-              <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{weeklyStats.done}/{weeklyStats.total} COMPLÉTÉ</span>
-            </div>
-          </div>
+          <h2 className="text-3xl font-headline text-white tracking-wide uppercase">Planning</h2>
           <div className="flex items-center gap-1.5 bg-[#1A1A1A] p-1.5 rounded-2xl border border-zinc-800">
              <button onClick={() => setWeekOffset(prev => prev - 1)} className="p-1.5 text-zinc-500 hover:text-white transition-all press-effect">
                <ChevronLeft className="w-5 h-5" />
@@ -292,7 +257,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
           </div>
         </div>
         
-        <div className="bg-[#141414]/80 border border-zinc-800/50 rounded-[32px] overflow-hidden shadow-2xl">
+        <div className="bg-[#141414]/90 border border-zinc-800/50 rounded-[32px] overflow-hidden shadow-2xl">
           {DAY_NAMES.map((day, idx) => {
             const sessionId = currentWeekSchedule[day];
             const session = program.sessions.find(s => s.id === sessionId);
@@ -306,65 +271,53 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             const isToday = weekOffset === 0 && currentDayReal === idx;
             const isDone = completedDates.includes(dateStr);
             const isPast = date < new Date(new Date().setHours(0,0,0,0));
-            
-            const isDragged = draggedDay === day;
-            const isOver = dragOverDay === day;
 
             return (
               <div 
                 key={day} 
-                draggable={!!session && !isPast}
-                onDragStart={() => !isPast && onDragStart(day)}
-                onDragOver={(e) => !isPast && onDragOver(e, day)}
-                onDrop={() => !isPast && onDrop(day)}
                 className={cn(
                   "p-5 flex items-center justify-between border-b border-zinc-800/30 last:border-0 transition-all", 
-                  isToday ? "bg-primary/[0.03]" : "",
-                  isDragged ? "opacity-30 scale-95" : "opacity-100",
-                  isOver ? "bg-primary/5" : "",
+                  isToday ? "bg-primary/[0.05]" : ""
                 )}
               >
-                <div className="flex items-center gap-5 flex-1 min-w-0">
-                  <div className="w-12 shrink-0">
-                    <span className={cn("text-[11px] font-black uppercase block leading-none mb-1", isToday ? "text-primary" : "text-zinc-600")}>{day.substring(0,3)}</span>
-                    <span className="text-[9px] font-bold text-zinc-700 uppercase tracking-widest">{date.getDate()} {date.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase()}</span>
+                <div className="flex items-center gap-6 flex-1 min-w-0">
+                  <div className="w-14 shrink-0">
+                    <span className={cn("text-[11px] font-black uppercase block leading-none mb-1", isToday ? "text-primary" : "text-zinc-600")}>
+                      {day}
+                    </span>
+                    <span className="text-[9px] font-bold text-zinc-700 uppercase tracking-widest">
+                      {date.getDate()} {date.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase()}
+                    </span>
                   </div>
                   
                   <div className="flex-1 flex items-center gap-3 min-w-0">
-                    {session && !isPast && <GripVertical className="w-4 h-4 text-zinc-800 shrink-0" />}
-                    
-                    {editingSessionId === session?.id ? (
-                      <div className="flex items-center gap-2 flex-1">
-                        <Input 
-                          autoFocus
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleSaveName(session!.id)}
-                          onBlur={() => setEditingSessionId(null)}
-                          className="h-8 bg-zinc-900 border-primary/50 text-xs rounded-lg"
-                        />
-                        <button onClick={() => handleSaveName(session!.id)} className="p-1.5 bg-green-500/10 text-green-500 rounded-lg"><Check className="w-4 h-4"/></button>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={cn("text-base font-headline uppercase truncate tracking-tight", 
-                            session ? (isPast ? "text-zinc-600" : "text-white") : "text-zinc-800"
-                          )}>
-                            {session ? getSessionName(session) : "RECUPERATION"}
-                          </span>
-                          {session && !isPast && (
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className={cn("text-2xl font-headline uppercase truncate tracking-tight", 
+                          session ? (isPast && !isDone ? "text-zinc-700" : "text-white") : "text-zinc-800"
+                        )}>
+                          {session ? getSessionName(session) : "REPOS"}
+                        </span>
+                        {session && !isPast && (
+                          <div className="flex flex-col gap-0.5 ml-2">
                             <button 
-                              onClick={(e) => { e.stopPropagation(); setEditingSessionId(session.id); setEditValue(getSessionName(session)); }}
-                              className="p-1 text-zinc-800 hover:text-primary transition-colors shrink-0"
+                              onClick={() => moveSession(day, 'up')}
+                              disabled={idx === 0}
+                              className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all"
                             >
-                              <Pencil className="w-3 h-3" />
+                              <ChevronUp className="w-3 h-3" />
                             </button>
-                          )}
-                        </div>
-                        {session && !isPast && <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest">{session.duration} • {session.exercises.length} EXERCICES</span>}
+                            <button 
+                              onClick={() => moveSession(day, 'down')}
+                              disabled={idx === 6}
+                              className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all"
+                            >
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
 
@@ -372,11 +325,11 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                   <button 
                     onClick={() => toggleDateCompletion(dateStr)}
                     className={cn(
-                      "w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all press-effect", 
+                      "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all press-effect", 
                       isDone ? "bg-green-500 border-green-500" : "border-zinc-800"
                     )}
                   >
-                    {isDone && <CheckCircle2 className="w-4 h-4 text-white" />}
+                    {isDone && <Check className="w-4 h-4 text-white" />}
                   </button>
                 </div>
               </div>
