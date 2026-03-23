@@ -1,14 +1,16 @@
+
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { UserProfile } from "@/app/page";
 import { PROGRAMS } from "@/data/programs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronLeft, Target, Award, Calendar, Repeat, CheckCircle, AlertTriangle, Sparkles, MapPin, ChevronUp, ChevronDown, Pencil, RotateCcw, Check, GripVertical } from "lucide-react";
+import { ChevronLeft, Target, Award, Calendar, Repeat, CheckCircle, AlertTriangle, Sparkles, MapPin, ChevronUp, ChevronDown, Pencil, RotateCcw, Check, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { auth } from "@/lib/firebase";
 
 type SettingsTabProps = {
   profile: UserProfile;
@@ -22,31 +24,28 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   const [isObjectiveModalOpen, setIsObjectiveModalOpen] = useState(false);
   const [moveMessage, setMoveMessage] = useState<string | null>(null);
   
+  const user = auth.currentUser;
+  const uidPrefix = user ? `_${user.uid}` : "_guest";
+
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const dayNamesFull = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
-  const [schedule, setSchedule] = useState<Record<string, string | null>>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem("muscleup_base_schedule");
-      if (saved) return JSON.parse(saved);
-    }
-    return {};
-  });
+  const [schedule, setSchedule] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
-    const savedNames = localStorage.getItem("muscleup_session_names");
+    const savedNames = localStorage.getItem("muscleup_session_names" + uidPrefix);
     if (savedNames) setCustomNames(JSON.parse(savedNames));
 
-    const savedSchedule = localStorage.getItem("muscleup_base_schedule") || localStorage.getItem("muscleup_schedule");
+    const savedSchedule = localStorage.getItem("muscleup_base_schedule" + uidPrefix) || localStorage.getItem("muscleup_schedule" + uidPrefix);
     if (savedSchedule) {
       setSchedule(JSON.parse(savedSchedule));
     } else {
       const generated = generateOptimizedSchedule(profile.frequency, profile.objective);
       setSchedule(generated);
     }
-  }, []);
+  }, [uidPrefix]);
 
   function generateOptimizedSchedule(freq: string, objId: string) {
     const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -86,17 +85,14 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   const handleSave = () => {
     onUpdateProfile(tempProfile);
     
-    // On sauvegarde le nouveau planning de base
-    localStorage.setItem("muscleup_base_schedule", JSON.stringify(schedule));
-    localStorage.setItem("muscleup_schedule", JSON.stringify(schedule));
-    
-    // IMPORTANT : On supprime les ajustements manuels pour forcer l'application du nouveau rythme
-    // sur la semaine en cours.
-    localStorage.removeItem("muscleup_manual_schedule");
+    // Sauvegarde avec le bon préfixe UID
+    localStorage.setItem("muscleup_base_schedule" + uidPrefix, JSON.stringify(schedule));
+    localStorage.setItem("muscleup_schedule" + uidPrefix, JSON.stringify(schedule));
+    localStorage.removeItem("muscleup_manual_schedule" + uidPrefix);
     
     toast({
       title: "Programme mis à jour !",
-      description: "Ton nouveau rythme a été appliqué immédiatement.",
+      description: "Tes réglages ont été synchronisés.",
     });
     setTimeout(() => onBack(), 800);
   };
@@ -109,7 +105,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     }
     const newNames = { ...customNames, [id]: trimmed };
     setCustomNames(newNames);
-    localStorage.setItem("muscleup_session_names", JSON.stringify(newNames));
+    localStorage.setItem("muscleup_session_names" + uidPrefix, JSON.stringify(newNames));
     setEditingId(null);
   };
 
@@ -117,7 +113,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     const newNames = { ...customNames };
     delete newNames[id];
     setCustomNames(newNames);
-    localStorage.setItem("muscleup_session_names", JSON.stringify(newNames));
+    localStorage.setItem("muscleup_session_names" + uidPrefix, JSON.stringify(newNames));
   };
 
   const moveSession = (day: string, direction: 'up' | 'down') => {
@@ -154,11 +150,20 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
 
   return (
     <div className="min-h-full bg-[#0F0F0F] flex flex-col p-6 animate-in slide-in-from-right duration-300">
-      <header className="flex items-center gap-4 mb-10">
-        <button onClick={onBack} className="p-2 -ml-2 text-zinc-500">
-          <ChevronLeft className="w-6 h-6" />
+      <header className="flex items-center justify-between mb-10">
+        <div className="flex items-center gap-4">
+          <button onClick={onBack} className="p-2 -ml-2 text-zinc-500">
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-3xl font-headline text-white tracking-tight uppercase">PARAMÈTRES</h1>
+        </div>
+        <button 
+          onClick={() => { if(confirm("Se déconnecter ?")) auth.signOut(); }}
+          className="p-2 text-zinc-600 hover:text-primary transition-colors"
+          title="Déconnexion"
+        >
+          <LogOut className="w-5 h-5" />
         </button>
-        <h1 className="text-3xl font-headline text-white tracking-tight uppercase">PARAMÈTRES</h1>
       </header>
 
       <div className="space-y-10 flex-1 overflow-y-auto no-scrollbar pb-10">

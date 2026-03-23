@@ -5,6 +5,7 @@ import { UserProfile } from "@/app/page";
 import { PROGRAMS, Session, Program } from "@/data/programs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { 
   Flame, 
   Utensils, 
@@ -14,19 +15,19 @@ import {
   Dumbbell, 
   Activity,
   Calendar,
-  ChevronUp,
-  ChevronDown,
   Lightbulb,
-  BarChart
+  BarChart,
+  Pencil,
+  Check,
+  GripVertical
 } from "lucide-react";
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { getExerciseAdvice } from "@/ai/flows/exercise-advice";
 
-const getLocalDateStr = () => {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+const getLocalDateStr = (date: Date = new Date()) => {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 };
 
 type HubProps = {
@@ -57,29 +58,38 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const [currentWeekSchedule, setCurrentWeekSchedule] = useState<Record<string, string | null>>({});
   const [dailyAdvice, setDailyAdvice] = useState<string>("Charge tes batteries pour ta prochaine séance !");
   const [loadingAdvice, setLoadingAdvice] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
   
+  // État pour l'édition du nom
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+
+  // État pour le Drag & Drop
+  const [draggedDay, setDraggedDay] = useState<string | null>(null);
+  const [dragOverDay, setDragOverDay] = useState<string | null>(null);
+
   const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
   const user = auth.currentUser;
   const uidPrefix = user ? `_${user.uid}` : "_guest";
 
   useEffect(() => {
     const loadData = () => {
-      const keys = [
-        { key: "completedDates", setter: setCompletedDates },
-        { key: "muscleup_session_names", setter: setCustomNames },
-        { key: "muscleup_schedule", setter: setCurrentWeekSchedule }
-      ];
+      // On charge les dates complétées
+      const storedDates = localStorage.getItem("completedDates" + uidPrefix);
+      if (storedDates) setCompletedDates(JSON.parse(storedDates));
 
-      keys.forEach(({ key, setter }) => {
-        const newKey = key + uidPrefix;
-        const stored = localStorage.getItem(newKey);
-        if (stored) {
-          setter(JSON.parse(stored));
-        } else if (key === "muscleup_schedule") {
-          const generated = generateBaseSchedule(profile.frequency, program);
-          setCurrentWeekSchedule(generated);
-        }
-      });
+      // On charge les noms personnalisés
+      const storedNames = localStorage.getItem("muscleup_session_names" + uidPrefix);
+      if (storedNames) setCustomNames(JSON.parse(storedNames));
+
+      // On charge le planning (priorité au planning de base des réglages)
+      const storedSchedule = localStorage.getItem("muscleup_base_schedule" + uidPrefix) || localStorage.getItem("muscleup_schedule" + uidPrefix);
+      if (storedSchedule) {
+        setCurrentWeekSchedule(JSON.parse(storedSchedule));
+      } else {
+        const generated = generateBaseSchedule(profile.frequency, program);
+        setCurrentWeekSchedule(generated);
+      }
     };
     loadData();
   }, [profile.frequency, program, uidPrefix]);
@@ -109,40 +119,68 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
   const weeklyStats = useMemo(() => {
     const totalPlanned = Object.values(currentWeekSchedule).filter(id => id !== null).length;
-    const date = new Date();
-    const currentDayIdx = (date.getDay() + 6) % 7;
-    
-    const doneThisWeek = DAY_NAMES.filter(day => {
-      const dayIdx = DAY_NAMES.indexOf(day);
-      const diff = dayIdx - currentDayIdx;
-      const targetDate = new Date();
-      targetDate.setDate(date.getDate() + diff);
-      const dateStr = targetDate.toISOString().split('T')[0];
-      return completedDates.includes(dateStr) && currentWeekSchedule[day] !== null;
-    }).length;
+    const now = new Date();
+    // Ajustement pour la semaine affichée
+    now.setDate(now.getDate() + (weekOffset * 7));
+    const startOfWeek = new Date(now);
+    const day = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+    startOfWeek.setDate(diff);
+
+    let doneThisWeek = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      const ds = getLocalDateStr(d);
+      if (completedDates.includes(ds) && currentWeekSchedule[DAY_NAMES[i]]) {
+        doneThisWeek++;
+      }
+    }
     
     return {
       total: totalPlanned,
       done: doneThisWeek,
       percent: totalPlanned > 0 ? Math.round((doneThisWeek / totalPlanned) * 100) : 0
     };
-  }, [currentWeekSchedule, completedDates]);
+  }, [currentWeekSchedule, completedDates, weekOffset]);
 
-  const moveSession = (day: string, direction: 'up' | 'down') => {
-    const index = DAY_NAMES.indexOf(day);
-    const targetIdx = direction === 'up' ? index - 1 : index + 1;
-    if (targetIdx < 0 || targetIdx >= DAY_NAMES.length) return;
+  const handleSaveName = (id: string) => {
+    const newNames = { ...customNames, [id]: editValue };
+    setCustomNames(newNames);
+    localStorage.setItem("muscleup_session_names" + uidPrefix, JSON.stringify(newNames));
+    setEditingSessionId(null);
+  };
 
-    const targetDay = DAY_NAMES[targetIdx];
+  // Logique de Drag & Drop
+  const onDragStart = (day: string) => {
+    setDraggedDay(day);
+    try { navigator.vibrate?.(10); } catch {}
+  };
+
+  const onDragOver = (e: React.DragEvent, day: string) => {
+    e.preventDefault();
+    if (day !== dragOverDay) setDragOverDay(day);
+  };
+
+  const onDrop = (targetDay: string) => {
+    if (!draggedDay || draggedDay === targetDay) {
+      setDraggedDay(null);
+      setDragOverDay(null);
+      return;
+    }
+
     const newSchedule = { ...currentWeekSchedule };
-    const tmp = newSchedule[day];
-    newSchedule[day] = newSchedule[targetDay];
+    const tmp = newSchedule[draggedDay];
+    newSchedule[draggedDay] = newSchedule[targetDay];
     newSchedule[targetDay] = tmp;
 
     setCurrentWeekSchedule(newSchedule);
-    localStorage.setItem(`muscleup_schedule${uidPrefix}`, JSON.stringify(newSchedule));
-    localStorage.setItem(`muscleup_base_schedule${uidPrefix}`, JSON.stringify(newSchedule));
-    try { navigator.vibrate?.(10); } catch {}
+    localStorage.setItem("muscleup_base_schedule" + uidPrefix, JSON.stringify(newSchedule));
+    localStorage.setItem("muscleup_schedule" + uidPrefix, JSON.stringify(newSchedule));
+    
+    setDraggedDay(null);
+    setDragOverDay(null);
+    try { navigator.vibrate?.(20); } catch {}
   };
 
   const bodyProfileStats = useMemo(() => {
@@ -188,7 +226,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
           <div>
             <h3 className="text-sm font-headline text-white uppercase tracking-tight">{program.name}</h3>
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-              {profile.level} · {profile.frequency}/sem · {profile.location === 'maison' ? "Poids du corps" : "Full équipement"}
+              {profile.level} · {profile.frequency}/sem
             </p>
           </div>
         </div>
@@ -202,8 +240,8 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </Button>
       </Card>
 
-      {/* 3. Carte Héros (Repos ou Session) */}
-      {!todaySession || finishedToday ? (
+      {/* 3. Carte Héros */}
+      {(!todaySession || finishedToday) && weekOffset === 0 ? (
         <Card className="bg-[#163020] border-none p-6 rounded-3xl">
           <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-widest block mb-2 flex items-center gap-1">
             JOUR DE REPOS <span className="text-base">🌊</span>
@@ -211,72 +249,126 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
           <h2 className="text-4xl font-headline text-white uppercase leading-none mb-2">RÉCUPÉRATION</h2>
           <p className="text-sm text-[#4ADE80]/80 font-medium">Profite pour bien récupérer et t'hydrater.</p>
         </Card>
-      ) : (
+      ) : weekOffset === 0 ? (
         <Card className="bg-primary/10 border-primary/20 p-6 rounded-3xl relative overflow-hidden">
           <div className="relative z-10">
             <span className="text-[10px] font-black text-primary uppercase tracking-widest block mb-2 flex items-center gap-1">
               PROCHAINE SÉANCE <span className="text-base">🔥</span>
             </span>
-            <h2 className="text-4xl font-headline text-white uppercase leading-none mb-4">{getSessionName(todaySession)}</h2>
-            <Button onClick={() => onStartSession(todaySession.id)} className="bg-primary text-white font-headline text-xl h-12 px-8 rounded-xl">
+            <h2 className="text-4xl font-headline text-white uppercase leading-none mb-4">{todaySession ? getSessionName(todaySession) : ""}</h2>
+            <Button onClick={() => onStartSession(todaySession?.id)} className="bg-primary text-white font-headline text-xl h-12 px-8 rounded-xl">
               C'EST PARTI !
             </Button>
           </div>
           <Dumbbell className="absolute -right-4 -bottom-4 w-32 h-32 text-primary/10 rotate-12" />
         </Card>
-      )}
+      ) : null}
 
       {/* 4. Section Planning */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <h2 className="text-xl font-headline text-white tracking-wide uppercase">Planning</h2>
-            <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Semaine {new Date().toLocaleDateString('fr-FR', { week: 'numeric' })}</span>
+            <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">
+              {weekOffset === 0 ? "Cette semaine" : weekOffset > 0 ? `Dans ${weekOffset} sem.` : `Il y a ${Math.abs(weekOffset)} sem.`}
+            </span>
           </div>
           <div className="flex items-center gap-2">
-             <button className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-600"><ChevronLeft className="w-4 h-4" /></button>
-             <span className="text-[9px] font-black text-zinc-500 uppercase tracking-tighter">CETTE SEM.</span>
-             <button className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-600"><ChevronRight className="w-4 h-4" /></button>
+             <button onClick={() => setWeekOffset(prev => prev - 1)} className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+               <ChevronLeft className="w-4 h-4" />
+             </button>
+             <button onClick={() => setWeekOffset(0)} className="text-[9px] font-black text-zinc-500 uppercase tracking-tighter px-2">AUJOURD'HUI</button>
+             <button onClick={() => setWeekOffset(prev => prev + 1)} className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+               <ChevronRight className="w-4 h-4" />
+             </button>
           </div>
         </div>
+        
         <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-3xl overflow-hidden">
           {DAY_NAMES.map((day, idx) => {
             const sessionId = currentWeekSchedule[day];
             const session = program.sessions.find(s => s.id === sessionId);
-            const isToday = currentDayIdx === idx;
-            const date = new Date();
-            const diff = idx - currentDayIdx;
-            date.setDate(date.getDate() + diff);
-            const dateStr = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
             
+            const date = new Date();
+            const currentDayReal = (date.getDay() + 6) % 7;
+            const diff = idx - currentDayReal + (weekOffset * 7);
+            date.setDate(date.getDate() + diff);
+            const dateStr = getLocalDateStr(date);
+            const displayDate = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+            
+            const isToday = weekOffset === 0 && currentDayReal === idx;
+            const isDone = completedDates.includes(dateStr);
+            const isDragged = draggedDay === day;
+            const isOver = dragOverDay === day;
+
             return (
-              <div key={day} className={cn("p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0", isToday ? "bg-primary/5" : "")}>
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="w-12">
+              <div 
+                key={day} 
+                draggable={!!session}
+                onDragStart={() => onDragStart(day)}
+                onDragOver={(e) => onDragOver(e, day)}
+                onDrop={() => onDrop(day)}
+                className={cn(
+                  "p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0 transition-all cursor-grab active:cursor-grabbing", 
+                  isToday ? "bg-primary/5" : "",
+                  isDragged ? "opacity-30 scale-95" : "opacity-100",
+                  isOver ? "bg-primary/20 border-y-primary/50" : ""
+                )}
+              >
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="w-12 shrink-0">
                     <span className={cn("text-[10px] font-black uppercase block", isToday ? "text-primary" : "text-zinc-600")}>{day}</span>
-                    <span className="text-[8px] font-bold text-zinc-700 uppercase tracking-widest">{dateStr}</span>
+                    <span className="text-[8px] font-bold text-zinc-700 uppercase tracking-widest">{displayDate}</span>
                   </div>
-                  <div className="flex flex-col">
-                    <span className={cn("text-sm font-bold uppercase truncate max-w-[150px]", session ? "text-white" : "text-zinc-800")}>
-                      {session ? getSessionName(session) : "REPOS"}
-                    </span>
+                  
+                  <div className="flex-1 flex items-center gap-2 min-w-0">
+                    {session && <GripVertical className="w-3.5 h-3.5 text-zinc-800 shrink-0" />}
+                    
+                    {editingSessionId === session?.id ? (
+                      <div className="flex items-center gap-1 flex-1">
+                        <Input 
+                          autoFocus
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSaveName(session!.id)}
+                          onBlur={() => setEditingSessionId(null)}
+                          className="h-7 bg-[#0F0F0F] border-primary text-xs"
+                        />
+                        <button onClick={() => handleSaveName(session!.id)} className="p-1 text-green-500"><Check className="w-4 h-4"/></button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className={cn("text-sm font-bold uppercase truncate", session ? "text-white" : "text-zinc-800")}>
+                          {session ? getSessionName(session) : "REPOS"}
+                        </span>
+                        {session && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setEditingSessionId(session.id); setEditValue(getSessionName(session)); }}
+                            className="p-1 text-zinc-700 hover:text-primary transition-colors shrink-0"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  {session && (
-                    <div className="flex flex-col gap-1">
-                      <button disabled={idx === 0} onClick={() => moveSession(day, 'up')} className="p-1 bg-zinc-800 rounded text-zinc-600 disabled:opacity-10"><ChevronUp className="w-3 h-3" /></button>
-                      <button disabled={idx === 6} onClick={() => moveSession(day, 'down')} className="p-1 bg-zinc-800 rounded text-zinc-600 disabled:opacity-10"><ChevronDown className="w-3 h-3" /></button>
-                    </div>
-                  )}
-                  <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", completedDates.includes(date.toISOString().split('T')[0]) ? "bg-primary border-primary" : "border-zinc-800")}>
-                    {completedDates.includes(date.toISOString().split('T')[0]) && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+
+                <div className="shrink-0 ml-2">
+                  <div className={cn(
+                    "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all", 
+                    isDone ? "bg-primary border-primary" : "border-zinc-800"
+                  )}>
+                    {isDone && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+        <p className="text-[9px] text-center font-bold text-zinc-700 uppercase tracking-widest">
+          💡 Glisse une séance pour la déplacer
+        </p>
       </section>
 
       {/* 5. Grille de navigation */}
