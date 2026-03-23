@@ -265,18 +265,18 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </button>
       </div>
 
-      {/* 3. Carte Héros Dynamique (Style Image) */}
+      {/* 3. Carte Héros Dynamique (Style Modèle) */}
       {finishedToday && weekOffset === 0 ? (
-        <Card className="bg-gradient-to-br from-[#163020] to-[#0F1F15] border border-green-900/30 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group animate-in zoom-in duration-500">
-          <div className="relative z-10 flex flex-col items-start gap-1">
+        <Card className="bg-gradient-to-br from-[#0B1A10] to-[#08120C] border border-green-900/40 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group animate-in zoom-in duration-500">
+          <div className="relative z-10 flex flex-col items-start">
             <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-widest block mb-1">SÉANCE TERMINÉE ✓</span>
             <h2 className="text-6xl font-headline text-white uppercase leading-none mb-8 tracking-tighter">
               {todaySession ? getSessionName(todaySession) : "RÉCUPÉRATION"}
             </h2>
             {nextSessionInfo && (
-              <div className="bg-black/30 backdrop-blur-md p-5 rounded-3xl border border-white/5 inline-flex flex-col min-w-[160px]">
+              <div className="bg-black/40 backdrop-blur-md p-5 rounded-3xl border border-white/5 inline-flex flex-col min-w-[170px]">
                 <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                  PROCHAINE SÉANCE <ArrowRight className="w-2.5 h-2.5" />
+                  SUIVANT <ArrowRight className="w-2.5 h-2.5" />
                 </span>
                 <span className="text-xl font-headline text-[#4ADE80] leading-none uppercase tracking-tight">{nextSessionInfo.name}</span>
                 <span className="text-[10px] font-bold text-zinc-600 uppercase mt-1.5">{nextSessionInfo.date}</span>
@@ -286,7 +286,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
           <Check className="absolute -right-6 -bottom-6 w-48 h-48 text-green-500/10 -rotate-12 pointer-events-none" />
         </Card>
       ) : (!todaySession && weekOffset === 0) ? (
-        <Card className="bg-gradient-to-br from-[#163020] to-[#0F1F15] border border-green-900/30 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group">
+        <Card className="bg-gradient-to-br from-[#0B1A10] to-[#08120C] border border-green-900/40 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group">
           <div className="relative z-10">
             <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-widest block mb-2">JOUR DE REPOS</span>
             <h2 className="text-5xl font-headline text-white uppercase leading-none mb-3">RECUPERATION</h2>
@@ -305,21 +305,30 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
           <Dumbbell className="absolute -right-6 -bottom-6 w-48 h-48 text-[#E24B4A]/10 rotate-12" />
         </Card>
       ) : (
-        <div className="h-10" /> // Spacer quand hors semaine courante
+        <div className="h-10" />
       )}
 
       {/* 4. Planning Hebdomadaire avec Drag and Drop */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-headline text-white tracking-wide uppercase">Planning</h2>
-          <div className="flex items-center gap-1.5 bg-[#1A1A1A] p-1.5 rounded-2xl border border-zinc-800">
-             <button onClick={() => setWeekOffset(prev => prev - 1)} className="p-1.5 text-zinc-500 hover:text-white transition-all press-effect">
+          <div className="flex items-center gap-4">
+             <button 
+               onClick={() => setWeekOffset(prev => prev - 1)} 
+               className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect"
+             >
                <ChevronLeft className="w-5 h-5" />
              </button>
-             <button onClick={() => setWeekOffset(0)} className="text-[9px] font-black text-zinc-500 uppercase tracking-widest px-3">
-               {weekOffset === 0 ? "CETTE SEMAINE" : (weekOffset > 0 ? `+${weekOffset} SÉM.` : `${weekOffset} SÉM.`)}
+             <button 
+               onClick={() => setWeekOffset(0)} 
+               className="text-[10px] font-black text-zinc-500 uppercase tracking-widest"
+             >
+               {weekOffset === 0 ? "CETTE SEM." : (weekOffset > 0 ? `+${weekOffset} SEM.` : `${weekOffset} SEM.`)}
              </button>
-             <button onClick={() => setWeekOffset(prev => prev + 1)} className="p-1.5 text-zinc-500 hover:text-white transition-all press-effect">
+             <button 
+               onClick={() => setWeekOffset(prev => prev + 1)} 
+               className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect"
+             >
                <ChevronRight className="w-5 h-5" />
              </button>
           </div>
@@ -429,7 +438,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </section>
 
-      {/* 5. Programme Actuel (Déplacé ici) */}
+      {/* 5. Programme Actuel */}
       <Card className="bg-[#1A1A1A]/60 backdrop-blur-md border-[#2A2A2A] p-4 rounded-3xl flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 flex items-center justify-center text-2xl shadow-lg">
@@ -467,18 +476,28 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
       {/* 7. Ma Progression */}
       <section className="space-y-4">
-        <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Effort Semainier</h2>
-        <Card className="bg-zinc-900/30 border border-zinc-800/50 p-6 rounded-[32px] space-y-4">
+        <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Objectif Semaine</h2>
+        <Card className={cn(
+          "transition-all duration-500 border p-6 rounded-[32px] space-y-4 shadow-2xl",
+          weeklyStats.percent === 100 
+            ? "bg-green-600/20 border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.1)]" 
+            : "bg-zinc-900/30 border-zinc-800/50"
+        )}>
           <div className="flex justify-between items-end">
             <div>
               <div className="text-5xl font-headline text-white leading-none">{weeklyStats.done} / {weeklyStats.total}</div>
               <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">SÉANCES VALIDÉES</div>
             </div>
-            <div className="text-2xl font-headline text-[#E24B4A]">{weeklyStats.percent}%</div>
+            <div className={cn("text-2xl font-headline", weeklyStats.percent === 100 ? "text-green-400" : "text-[#E24B4A]")}>
+              {weeklyStats.percent}%
+            </div>
           </div>
           <div className="h-3 bg-zinc-800/50 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-[#E24B4A] rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(226,75,74,0.3)]" 
+              className={cn(
+                "h-full rounded-full transition-all duration-1000",
+                weeklyStats.percent === 100 ? "bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]" : "bg-[#E24B4A] shadow-[0_0_10px_rgba(226,75,74,0.3)]"
+              )}
               style={{ width: `${weeklyStats.percent}%` }}
             />
           </div>
