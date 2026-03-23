@@ -9,23 +9,18 @@ import {
   Flame, 
   Utensils, 
   CheckCircle2, 
-  Circle, 
   ChevronRight, 
   ChevronLeft, 
   Dumbbell, 
-  Home as HomeIcon, 
-  BarChart, 
-  LogOut, 
-  User as UserIcon,
-  Lightbulb,
   Activity,
   Calendar,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Lightbulb,
+  BarChart
 } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
 import { getExerciseAdvice } from "@/ai/flows/exercise-advice";
 
@@ -57,9 +52,7 @@ function generateBaseSchedule(frequency: string, program: Program): Record<strin
 }
 
 export default function Hub({ profile, setView, onStartSession, onReset }: HubProps) {
-  const { toast } = useToast();
   const [completedDates, setCompletedDates] = useState<string[]>([]);
-  const [weekOffset, setWeekOffset] = useState(0);
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [currentWeekSchedule, setCurrentWeekSchedule] = useState<Record<string, string | null>>({});
   const [dailyAdvice, setDailyAdvice] = useState<string>("Charge tes batteries pour ta prochaine séance !");
@@ -79,7 +72,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
       keys.forEach(({ key, setter }) => {
         const newKey = key + uidPrefix;
-        const stored = localStorage.getItem(newKey) || localStorage.getItem(key);
+        const stored = localStorage.getItem(newKey);
         if (stored) {
           setter(JSON.parse(stored));
         } else if (key === "muscleup_schedule") {
@@ -114,12 +107,12 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
   const finishedToday = useMemo(() => completedDates.includes(getLocalDateStr()), [completedDates]);
 
-  // Calcul progression
   const weeklyStats = useMemo(() => {
     const totalPlanned = Object.values(currentWeekSchedule).filter(id => id !== null).length;
+    const date = new Date();
+    const currentDayIdx = (date.getDay() + 6) % 7;
+    
     const doneThisWeek = DAY_NAMES.filter(day => {
-      const date = new Date();
-      const currentDayIdx = (date.getDay() + 6) % 7;
       const dayIdx = DAY_NAMES.indexOf(day);
       const diff = dayIdx - currentDayIdx;
       const targetDate = new Date();
@@ -162,40 +155,138 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     return { summary: `${poids}KG · ${taille}CM · IMC ${imc.toFixed(1)}`, color };
   }, [profile.bodyProfile]);
 
+  const currentDayIdx = (new Date().getDay() + 6) % 7;
+  const todaySessionId = currentWeekSchedule[DAY_NAMES[currentDayIdx]];
+  const todaySession = program.sessions.find(s => s.id === todaySessionId);
+
   return (
     <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-20">
+      {/* 1. Header */}
       <header className="flex justify-between items-start">
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-headline text-white leading-none">
-              {profile.name ? `Bonjour ${profile.name} !` : "Bonjour !"}
-            </h1>
-            <div className="flex items-center gap-1">
-              {!user ? (
-                <button onClick={() => window.location.reload()} className="p-1.5 bg-zinc-800/50 rounded-lg text-zinc-400"><UserIcon className="w-3.5 h-3.5" /></button>
-              ) : (
-                <button onClick={() => auth.signOut()} className="p-1.5 bg-zinc-800/50 rounded-lg text-zinc-400 hover:text-primary"><LogOut className="w-3.5 h-3.5" /></button>
-              )}
-            </div>
+        <div>
+          <h1 className="text-3xl font-headline text-white leading-none">
+            {profile.name ? `BONJOUR ${profile.name.toUpperCase()} !` : "BONJOUR !"}
+          </h1>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="bg-[#1D4ED8] text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">
+              {profile.location === 'maison' ? "🏠 MODE MAISON" : "🏋️ MODE SALLE"}
+            </span>
           </div>
-          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">
-            {profile.location === 'maison' ? "🏠 Mode Maison" : "🏋️ Mode Salle"}
-          </p>
         </div>
-        <div className="bg-[#E24B4A]/10 px-4 py-2 rounded-full flex items-center gap-2 border border-[#E24B4A]/20">
-          <Flame className="w-4 h-4 text-[#E24B4A] fill-[#E24B4A]" />
-          <span className="text-sm font-bold text-white tracking-tighter">{completedDates.length} SÉANCES</span>
+        <div className="bg-primary px-4 py-2 rounded-full flex items-center gap-2 shadow-lg shadow-primary/20">
+          <Flame className="w-4 h-4 text-white fill-white" />
+          <span className="text-sm font-bold text-white tracking-tighter uppercase">{completedDates.length} JOURS</span>
         </div>
       </header>
 
-      {/* Grille de navigation (PROGRÈS, NUTRITION, PLANNING) */}
+      {/* 2. Carte Programme Actuel */}
+      <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-4 rounded-2xl flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-xl">
+            {program.emoji}
+          </div>
+          <div>
+            <h3 className="text-sm font-headline text-white uppercase tracking-tight">{program.name}</h3>
+            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+              {profile.level} · {profile.frequency}/sem · {profile.location === 'maison' ? "Poids du corps" : "Full équipement"}
+            </p>
+          </div>
+        </div>
+        <Button 
+          variant="destructive" 
+          size="sm" 
+          onClick={() => setView("settings")}
+          className="h-8 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-primary"
+        >
+          MODIFIER {'>'}
+        </Button>
+      </Card>
+
+      {/* 3. Carte Héros (Repos ou Session) */}
+      {!todaySession || finishedToday ? (
+        <Card className="bg-[#163020] border-none p-6 rounded-3xl">
+          <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-widest block mb-2 flex items-center gap-1">
+            JOUR DE REPOS <span className="text-base">🌊</span>
+          </span>
+          <h2 className="text-4xl font-headline text-white uppercase leading-none mb-2">RÉCUPÉRATION</h2>
+          <p className="text-sm text-[#4ADE80]/80 font-medium">Profite pour bien récupérer et t'hydrater.</p>
+        </Card>
+      ) : (
+        <Card className="bg-primary/10 border-primary/20 p-6 rounded-3xl relative overflow-hidden">
+          <div className="relative z-10">
+            <span className="text-[10px] font-black text-primary uppercase tracking-widest block mb-2 flex items-center gap-1">
+              PROCHAINE SÉANCE <span className="text-base">🔥</span>
+            </span>
+            <h2 className="text-4xl font-headline text-white uppercase leading-none mb-4">{getSessionName(todaySession)}</h2>
+            <Button onClick={() => onStartSession(todaySession.id)} className="bg-primary text-white font-headline text-xl h-12 px-8 rounded-xl">
+              C'EST PARTI !
+            </Button>
+          </div>
+          <Dumbbell className="absolute -right-4 -bottom-4 w-32 h-32 text-primary/10 rotate-12" />
+        </Card>
+      )}
+
+      {/* 4. Section Planning */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            <h2 className="text-xl font-headline text-white tracking-wide uppercase">Planning</h2>
+            <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Semaine {new Date().toLocaleDateString('fr-FR', { week: 'numeric' })}</span>
+          </div>
+          <div className="flex items-center gap-2">
+             <button className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-600"><ChevronLeft className="w-4 h-4" /></button>
+             <span className="text-[9px] font-black text-zinc-500 uppercase tracking-tighter">CETTE SEM.</span>
+             <button className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-600"><ChevronRight className="w-4 h-4" /></button>
+          </div>
+        </div>
+        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-3xl overflow-hidden">
+          {DAY_NAMES.map((day, idx) => {
+            const sessionId = currentWeekSchedule[day];
+            const session = program.sessions.find(s => s.id === sessionId);
+            const isToday = currentDayIdx === idx;
+            const date = new Date();
+            const diff = idx - currentDayIdx;
+            date.setDate(date.getDate() + diff);
+            const dateStr = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+            
+            return (
+              <div key={day} className={cn("p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0", isToday ? "bg-primary/5" : "")}>
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="w-12">
+                    <span className={cn("text-[10px] font-black uppercase block", isToday ? "text-primary" : "text-zinc-600")}>{day}</span>
+                    <span className="text-[8px] font-bold text-zinc-700 uppercase tracking-widest">{dateStr}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className={cn("text-sm font-bold uppercase truncate max-w-[150px]", session ? "text-white" : "text-zinc-800")}>
+                      {session ? getSessionName(session) : "REPOS"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {session && (
+                    <div className="flex flex-col gap-1">
+                      <button disabled={idx === 0} onClick={() => moveSession(day, 'up')} className="p-1 bg-zinc-800 rounded text-zinc-600 disabled:opacity-10"><ChevronUp className="w-3 h-3" /></button>
+                      <button disabled={idx === 6} onClick={() => moveSession(day, 'down')} className="p-1 bg-zinc-800 rounded text-zinc-600 disabled:opacity-10"><ChevronDown className="w-3 h-3" /></button>
+                    </div>
+                  )}
+                  <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", completedDates.includes(date.toISOString().split('T')[0]) ? "bg-primary border-primary" : "border-zinc-800")}>
+                    {completedDates.includes(date.toISOString().split('T')[0]) && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 5. Grille de navigation */}
       <div className="grid grid-cols-3 gap-3">
         <button onClick={() => setView("progres")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-2xl flex flex-col items-center gap-3 active:scale-95 transition-all">
           <Activity className="w-6 h-6 text-[#EE3BAA]" />
           <span className="text-[10px] font-bold uppercase text-zinc-400">Progrès</span>
         </button>
         <button onClick={() => setView("nutrition")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-2xl flex flex-col items-center gap-3 active:scale-95 transition-all">
-          <Utensils className="w-6 h-6 text-[#E24B4A]" />
+          <Utensils className="w-6 h-6 text-primary" />
           <span className="text-[10px] font-bold uppercase text-zinc-400">Nutrition</span>
         </button>
         <button onClick={() => setView("planning-mensuel")} className="bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-2xl flex flex-col items-center gap-3 active:scale-95 transition-all">
@@ -204,13 +295,13 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </button>
       </div>
 
-      {/* Profil Corporel Card */}
-      <button onClick={() => setView("body-profile")} className="w-full bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-3xl flex items-center justify-between group active:scale-[0.98] transition-all">
+      {/* 6. Profil Corporel Card */}
+      <button onClick={() => setView("body-profile")} className="w-full bg-[#1A1A1A] border border-[#2A2A2A] p-5 rounded-3xl flex items-center justify-between group active:scale-[0.98] transition-all text-left">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
             <BarChart className="w-6 h-6 text-primary" />
           </div>
-          <div className="text-left">
+          <div>
             <span className="text-[12px] font-bold text-white uppercase block leading-tight">Mon profil corporel 📊</span>
             <span className={cn("text-[10px] font-bold uppercase tracking-tight", bodyProfileStats?.color || "text-zinc-500")}>
               {bodyProfileStats?.summary || "Complète tes mesures"}
@@ -220,7 +311,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-primary transition-colors" />
       </button>
 
-      {/* Conseil du Jour */}
+      {/* 7. Conseil du Jour */}
       <section className="space-y-4">
         <h2 className="text-xl font-headline text-white tracking-wide uppercase">Conseil du jour</h2>
         <Card className="bg-[#1A1A1A] border border-[#2A2A2A] p-6 rounded-3xl flex items-start gap-5">
@@ -233,65 +324,24 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </Card>
       </section>
 
-      {/* Ma Progression */}
+      {/* 8. Ma Progression */}
       <section className="space-y-4">
         <h2 className="text-xl font-headline text-white tracking-wide uppercase">Ma progression</h2>
-        <Card className="bg-[#1A1A1A] border border-[#2A2A2A] p-6 rounded-3xl space-y-6">
+        <Card className="bg-[#1A1A1A] border border-[#2A2A2A] p-8 rounded-3xl space-y-6">
           <div className="flex justify-between items-end">
             <div>
-              <div className="text-4xl font-headline text-white">{weeklyStats.done} / {weeklyStats.total}</div>
-              <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Séances cette semaine</div>
+              <div className="text-5xl font-headline text-white">{weeklyStats.done} / {weeklyStats.total}</div>
+              <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Séances cette semaine</div>
             </div>
             <div className="text-2xl font-headline text-primary">{weeklyStats.percent}%</div>
           </div>
-          <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+          <div className="h-3 bg-zinc-800 rounded-full overflow-hidden">
             <div 
               className="h-full bg-primary rounded-full transition-all duration-1000" 
               style={{ width: `${weeklyStats.percent}%` }}
             />
           </div>
         </Card>
-      </section>
-
-      {/* Planning avec flèches de déplacement */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-headline text-white tracking-wide uppercase">Planning</h2>
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ma semaine</span>
-        </div>
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-3xl overflow-hidden">
-          {DAY_NAMES.map((day, idx) => {
-            const sessionId = currentWeekSchedule[day];
-            const session = program.sessions.find(s => s.id === sessionId);
-            const isToday = (new Date().getDay() + 6) % 7 === idx;
-            
-            return (
-              <div key={day} className={cn("p-4 flex items-center justify-between border-b border-[#2A2A2A] last:border-0", isToday ? "bg-primary/5" : "")}>
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="w-12">
-                    <span className={cn("text-[10px] font-bold uppercase", isToday ? "text-primary" : "text-zinc-600")}>{day.slice(0, 3)}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className={cn("text-sm font-bold uppercase truncate max-w-[150px]", session ? "text-white" : "text-zinc-800")}>
-                      {session ? getSessionName(session) : "Repos 💤"}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {session && (
-                    <div className="flex flex-col gap-1 mr-2">
-                      <button disabled={idx === 0} onClick={() => moveSession(day, 'up')} className="p-1.5 bg-zinc-800 rounded-md text-zinc-500 disabled:opacity-10 hover:text-white"><ChevronUp className="w-3 h-3" /></button>
-                      <button disabled={idx === 6} onClick={() => moveSession(day, 'down')} className="p-1.5 bg-zinc-800 rounded-md text-zinc-500 disabled:opacity-10 hover:text-white"><ChevronDown className="w-3 h-3" /></button>
-                    </div>
-                  )}
-                  {session && isToday && !finishedToday && (
-                    <button onClick={() => onStartSession(session.id)} className="bg-primary text-white text-[9px] font-black px-3 py-2 rounded-xl uppercase tracking-tighter active:scale-95 transition-all">GO !</button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
       </section>
     </div>
   );
