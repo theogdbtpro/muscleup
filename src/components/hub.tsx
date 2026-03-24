@@ -31,7 +31,8 @@ import { getExerciseAdvice } from "@/ai/flows/exercise-advice";
 import { Input } from "@/components/ui/input";
 
 const getLocalDateStr = (date: Date = new Date()) => {
-  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 };
 
 type HubProps = {
@@ -60,6 +61,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const [completedDates, setCompletedDates] = useState<string[]>([]);
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [currentWeekSchedule, setCurrentWeekSchedule] = useState<Record<string, string | null>>({});
+  const [dailySchedule, setDailySchedule] = useState<Record<string, string | null>>({});
   const [dailyAdvice, setDailyAdvice] = useState<string>("Prêt pour ta prochaine dose de gains ?");
   const [loadingAdvice, setLoadingAdvice] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -79,6 +81,9 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
       const storedNames = localStorage.getItem("muscleup_session_names" + uidPrefix);
       if (storedNames) setCustomNames(JSON.parse(storedNames));
+
+      const storedDaily = localStorage.getItem("muscleup_daily_schedule" + uidPrefix);
+      if (storedDaily) setDailySchedule(JSON.parse(storedDaily));
 
       const storedSchedule = localStorage.getItem("muscleup_base_schedule" + uidPrefix) || localStorage.getItem("muscleup_schedule" + uidPrefix);
       if (storedSchedule) {
@@ -114,8 +119,30 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
   const finishedToday = useMemo(() => completedDates.includes(getLocalDateStr()), [completedDates]);
 
+  // Fonction pour obtenir la séance d'une date spécifique (gère l'historique vs modèle)
+  const getSessionForDate = (date: Date, dayName: string) => {
+    const dateStr = getLocalDateStr(date);
+    if (dailySchedule[dateStr] !== undefined) return dailySchedule[dateStr];
+    
+    const templateId = currentWeekSchedule[dayName];
+    
+    // Si la date est passée ou aujourd'hui, on la "fige" dans le daily schedule
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const targetDate = new Date(date);
+    targetDate.setHours(0,0,0,0);
+
+    if (targetDate <= today) {
+      const newDaily = { ...dailySchedule, [dateStr]: templateId };
+      setDailySchedule(newDaily);
+      localStorage.setItem("muscleup_daily_schedule" + uidPrefix, JSON.stringify(newDaily));
+    }
+    
+    return templateId;
+  };
+
   const currentDayIdx = (new Date().getDay() + 6) % 7;
-  const todaySessionId = currentWeekSchedule[DAY_NAMES[currentDayIdx]];
+  const todaySessionId = getSessionForDate(new Date(), DAY_NAMES[currentDayIdx]);
   const todaySession = program.sessions.find(s => s.id === todaySessionId);
 
   const nextSessionInfo = useMemo(() => {
@@ -126,7 +153,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
       d.setDate(d.getDate() + i);
       const dIdx = (d.getDay() + 6) % 7;
       const dName = DAY_NAMES[dIdx];
-      const sId = currentWeekSchedule[dName];
+      const sId = getSessionForDate(d, dName);
       if (sId) {
         const s = program.sessions.find(ps => ps.id === sId);
         if (s) {
@@ -138,10 +165,9 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
       }
     }
     return null;
-  }, [finishedToday, todaySession, currentWeekSchedule, program, customNames]);
+  }, [finishedToday, todaySession, dailySchedule, currentWeekSchedule, program, customNames]);
 
   const weeklyStats = useMemo(() => {
-    const totalPlanned = Object.values(currentWeekSchedule).filter(id => id !== null).length;
     const now = new Date();
     now.setDate(now.getDate() + (weekOffset * 7));
     const startOfWeek = new Date(now);
@@ -149,22 +175,25 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
     startOfWeek.setDate(diff);
 
-    let doneThisWeek = 0;
+    let planned = 0;
+    let done = 0;
     for (let i = 0; i < 7; i++) {
       const d = new Date(startOfWeek);
       d.setDate(startOfWeek.getDate() + i);
       const ds = getLocalDateStr(d);
-      if (completedDates.includes(ds) && currentWeekSchedule[DAY_NAMES[i]]) {
-        doneThisWeek++;
+      const sId = getSessionForDate(d, DAY_NAMES[i]);
+      if (sId) {
+        planned++;
+        if (completedDates.includes(ds)) done++;
       }
     }
     
     return {
-      total: totalPlanned,
-      done: doneThisWeek,
-      percent: totalPlanned > 0 ? Math.round((doneThisWeek / totalPlanned) * 100) : 0
+      total: planned,
+      done: done,
+      percent: planned > 0 ? Math.round((done / planned) * 100) : 0
     };
-  }, [currentWeekSchedule, completedDates, weekOffset]);
+  }, [currentWeekSchedule, dailySchedule, completedDates, weekOffset]);
 
   const toggleDateCompletion = (dateStr: string) => {
     const isDone = completedDates.includes(dateStr);
@@ -260,7 +289,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Navigation Grid - Flashy & Compact */}
+      {/* 2. Navigation Grid - Flashy */}
       <div className="grid grid-cols-3 gap-3">
         <button onClick={() => setView("body-profile")} className="bg-zinc-900 border border-zinc-800 py-4 rounded-[22px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group relative overflow-hidden">
           <BarChart className="w-6 h-6 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
@@ -276,17 +305,17 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </button>
       </div>
 
-      {/* 3. Carte Héros Dynamisée */}
+      {/* 3. Carte Héros */}
       {finishedToday && weekOffset === 0 ? (
-        <Card className="bg-gradient-to-br from-[#0B1A10] to-[#08120C] border border-green-900/40 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group animate-in zoom-in duration-500 shadow-green-950/20">
-          <div className="absolute inset-0 bg-green-500/5 blur-3xl rounded-full translate-x-1/2 translate-y-1/2 pointer-events-none" />
+        <Card className="bg-gradient-to-br from-[#0B1A10] to-[#08120C] border border-green-900/40 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group animate-in zoom-in duration-500 shadow-green-950/40">
+          <div className="absolute inset-0 bg-green-500/10 blur-3xl rounded-full translate-x-1/2 translate-y-1/2 pointer-events-none" />
           <div className="relative z-10 flex flex-col items-start">
             <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-widest block mb-1">SÉANCE TERMINÉE ✓</span>
             <h2 className="text-6xl font-headline text-white uppercase leading-none mb-8 tracking-tighter">
               {todaySession ? getSessionName(todaySession) : "RÉCUPÉRATION"}
             </h2>
             {nextSessionInfo && (
-              <div className="bg-black/40 backdrop-blur-md p-5 rounded-3xl border border-white/5 inline-flex flex-col min-w-[170px] slide-up stagger-1">
+              <div className="bg-black/60 backdrop-blur-md p-5 rounded-3xl border border-white/10 inline-flex flex-col min-w-[170px] slide-up stagger-1 shadow-2xl">
                 <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
                   SUIVANT <ArrowRight className="w-2.5 h-2.5" />
                 </span>
@@ -348,14 +377,14 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         
         <div className="bg-[#141414] border border-zinc-800/50 rounded-[32px] overflow-hidden shadow-2xl">
           {DAY_NAMES.map((day, idx) => {
-            const sessionId = currentWeekSchedule[day];
-            const session = program.sessions.find(s => s.id === sessionId);
-            
             const date = new Date();
             const currentDayReal = (date.getDay() + 6) % 7;
             const diff = idx - currentDayReal + (weekOffset * 7);
             date.setDate(date.getDate() + diff);
             const dateStr = getLocalDateStr(date);
+
+            const sessionId = getSessionForDate(date, day);
+            const session = program.sessions.find(s => s.id === sessionId);
             
             const isToday = weekOffset === 0 && currentDayReal === idx;
             const isDone = completedDates.includes(dateStr);
@@ -453,7 +482,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </section>
 
-      {/* 5. Programme Actuel - Sous le planning */}
+      {/* 5. Programme Actuel */}
       <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-4 rounded-3xl flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 flex items-center justify-center text-2xl shadow-lg">
@@ -480,7 +509,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         <Card className={cn(
           "transition-all duration-500 border p-6 rounded-[32px] space-y-4 shadow-2xl",
           weeklyStats.percent === 100 
-            ? "bg-green-600/20 border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]" 
+            ? "bg-green-600/20 border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.4)]" 
             : "bg-zinc-900/30 border-zinc-800/50"
         )}>
           <div className="flex justify-between items-end">
