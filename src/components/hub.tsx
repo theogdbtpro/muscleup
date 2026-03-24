@@ -45,7 +45,7 @@ type HubProps = {
 const DAY_NAMES = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
 function generateBaseSchedule(frequency: string, program: Program): Record<string, string | null> {
-  const nbSessions = frequency === "2j" ? 2 : frequency === "3j" ? 3 : frequency === "4j" ? 4 : 5;
+  const nbSessions = parseInt(frequency) || 3;
   const sessionIds = program.sessions.filter(s => !s.isRestDay).map(s => s.id);
   const result: Record<string, string | null> = {};
   DAY_NAMES.forEach(d => { result[d] = null; });
@@ -61,7 +61,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const [completedDates, setCompletedDates] = useState<string[]>([]);
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [currentWeekSchedule, setCurrentWeekSchedule] = useState<Record<string, string | null>>({});
-  const [dailySchedule, setDailySchedule] = useState<Record<string, string | null>>({});
   const [dailyAdvice, setDailyAdvice] = useState<string>("Prêt pour ta prochaine dose de gains ?");
   const [loadingAdvice, setLoadingAdvice] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -81,9 +80,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
     const storedNames = localStorage.getItem("muscleup_session_names" + uidPrefix);
     if (storedNames) setCustomNames(JSON.parse(storedNames));
-
-    const storedDaily = localStorage.getItem("muscleup_daily_schedule" + uidPrefix);
-    if (storedDaily) setDailySchedule(JSON.parse(storedDaily));
 
     const storedSchedule = localStorage.getItem("muscleup_base_schedule" + uidPrefix);
     if (storedSchedule) {
@@ -114,12 +110,9 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     fetchAdvice();
   }, [profile.level, profile.objective]);
 
-  // Fonction pure pour obtenir la séance sans déclencher de re-render
   const getSessionForDate = useCallback((date: Date, dayName: string) => {
-    const dateStr = getLocalDateStr(date);
-    if (dailySchedule[dateStr] !== undefined) return dailySchedule[dateStr];
     return currentWeekSchedule[dayName] || null;
-  }, [dailySchedule, currentWeekSchedule]);
+  }, [currentWeekSchedule]);
 
   const getSessionName = (session: Session) => customNames[session.id] || session.name;
 
@@ -260,17 +253,17 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Navigation Grid - Flashy */}
+      {/* 2. Navigation Grid */}
       <div className="grid grid-cols-3 gap-3">
-        <button onClick={() => setView("body-profile")} className="bg-zinc-900 border border-zinc-800 py-4 rounded-[22px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group relative overflow-hidden">
+        <button onClick={() => setView("body-profile")} className="bg-zinc-900 border border-zinc-800 py-4 rounded-[22px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all">
           <BarChart className="w-6 h-6 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
           <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Profil</span>
         </button>
-        <button onClick={() => setView("nutrition")} className="bg-zinc-900 border border-zinc-800 py-4 rounded-[22px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group relative overflow-hidden">
+        <button onClick={() => setView("nutrition")} className="bg-zinc-900 border border-zinc-800 py-4 rounded-[22px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all">
           <Utensils className="w-6 h-6 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.5)]" />
           <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Nutrition</span>
         </button>
-        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900 border border-zinc-800 py-4 rounded-[22px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all group relative overflow-hidden">
+        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900 border border-zinc-800 py-4 rounded-[22px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all">
           <Calendar className="w-6 h-6 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]" />
           <span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest text-center leading-tight">Planning<br/>Mensuel</span>
         </button>
@@ -286,7 +279,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
               {todaySession ? getSessionName(todaySession) : "RÉCUPÉRATION"}
             </h2>
             {nextSessionInfo && (
-              <div className="bg-black/60 backdrop-blur-md p-5 rounded-3xl border border-white/10 inline-flex flex-col min-w-[170px] slide-up stagger-1 shadow-2xl">
+              <div className="bg-black/60 backdrop-blur-md p-5 rounded-3xl border border-white/10 inline-flex flex-col min-w-[170px] shadow-2xl">
                 <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
                   SUIVANT <ArrowRight className="w-2.5 h-2.5" />
                 </span>
@@ -325,22 +318,13 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-headline text-white tracking-wide uppercase">Planning</h2>
           <div className="flex items-center gap-3">
-             <button 
-               onClick={() => setWeekOffset(prev => prev - 1)} 
-               className="w-10 h-10 rounded-full bg-black border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect"
-             >
+             <button onClick={() => setWeekOffset(prev => prev - 1)} className="w-10 h-10 rounded-full bg-black border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect">
                <ChevronLeft className="w-5 h-5" />
              </button>
-             <button 
-               onClick={() => setWeekOffset(0)} 
-               className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-2"
-             >
+             <button onClick={() => setWeekOffset(0)} className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-2">
                {weekOffset === 0 ? "CETTE SEM." : (weekOffset > 0 ? `+${weekOffset} SEM.` : `${weekOffset} SEM.`)}
              </button>
-             <button 
-               onClick={() => setWeekOffset(prev => prev + 1)} 
-               className="w-10 h-10 rounded-full bg-black border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect"
-             >
+             <button onClick={() => setWeekOffset(prev => prev + 1)} className="w-10 h-10 rounded-full bg-black border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect">
                <ChevronRight className="w-5 h-5" />
              </button>
           </div>
@@ -362,24 +346,11 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             const isPast = date < new Date(new Date().setHours(0,0,0,0));
 
             return (
-              <div 
-                key={day} 
-                data-day={day}
+              <div key={day} data-day={day}
                 draggable={!isPast && !!session}
                 onDragStart={() => setDraggedDay(day)}
                 onDragOver={(e) => { e.preventDefault(); }}
                 onDrop={() => swapDays(draggedDay!, day)}
-                onTouchStart={() => !isPast && !!session && setDraggedDay(day)}
-                onTouchEnd={(e) => {
-                  if (!isPast && !!session && draggedDay) {
-                    const touch = e.changedTouches[0];
-                    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
-                    const targetRow = targetEl?.closest('[data-day]');
-                    const targetDayName = targetRow?.getAttribute('data-day');
-                    if (targetDayName && targetDayName !== day) swapDays(day, targetDayName);
-                    setDraggedDay(null);
-                  }
-                }}
                 className={cn(
                   "p-5 flex items-center justify-between border-b border-zinc-800 last:border-0 transition-all", 
                   isDone ? "bg-green-500/10" : (isToday ? "bg-[#E24B4A]/5" : ""),
@@ -398,26 +369,14 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                   
                   <div className="flex-1 min-w-0 flex items-center gap-2">
                     {editingId === session?.id ? (
-                      <Input
-                        autoFocus
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleRename(session!.id)}
-                        onBlur={() => setEditingId(null)}
-                        className="h-8 bg-black border-primary text-white font-headline text-lg uppercase"
-                      />
+                      <Input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleRename(session!.id)} onBlur={() => setEditingId(null)} className="h-8 bg-black border-primary text-white font-headline text-lg uppercase" />
                     ) : (
                       <div className="flex items-center gap-2 group">
-                        <span className={cn("text-2xl font-headline uppercase truncate tracking-tight block", 
-                          session ? (isDone ? "text-green-400" : (isPast ? "text-zinc-700" : "text-white")) : "text-zinc-800"
-                        )}>
+                        <span className={cn("text-2xl font-headline uppercase truncate tracking-tight block", session ? (isDone ? "text-green-400" : (isPast ? "text-zinc-700" : "text-white")) : "text-zinc-800")}>
                           {session ? getSessionName(session) : "REPOS"}
                         </span>
                         {session && !isPast && (
-                          <button 
-                            onClick={() => { setEditingId(session.id); setEditValue(getSessionName(session)); }}
-                            className="p-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 text-zinc-600 hover:text-primary transition-all"
-                          >
+                          <button onClick={() => { setEditingId(session.id); setEditValue(getSessionName(session)); }} className="p-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 text-zinc-600 hover:text-primary transition-all">
                             <Pencil className="w-3 h-3" />
                           </button>
                         )}
@@ -429,30 +388,16 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                 <div className="shrink-0 flex items-center gap-3 ml-3">
                   {session && !isPast && (
                     <div className="flex flex-col gap-0.5">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); moveSession(day, 'up'); }}
-                        disabled={idx === 0}
-                        className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all press-effect"
-                      >
+                      <button onClick={(e) => { e.stopPropagation(); moveSession(day, 'up'); }} disabled={idx === 0} className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all press-effect">
                         <ChevronUp className="w-3 h-3" />
                       </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); moveSession(day, 'down'); }}
-                        disabled={idx === 6}
-                        className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all press-effect"
-                      >
+                      <button onClick={(e) => { e.stopPropagation(); moveSession(day, 'down'); }} disabled={idx === 6} className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all press-effect">
                         <ChevronDown className="w-3 h-3" />
                       </button>
                     </div>
                   )}
 
-                  <button 
-                    onClick={() => toggleDateCompletion(dateStr)}
-                    className={cn(
-                      "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all press-effect", 
-                      isDone ? "bg-green-500 border-green-500" : "border-zinc-800"
-                    )}
-                  >
+                  <button onClick={() => toggleDateCompletion(dateStr)} className={cn("w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all press-effect", isDone ? "bg-green-500 border-green-500" : "border-zinc-800")}>
                     {isDone && <Check className="w-4 h-4 text-white" />}
                   </button>
                 </div>
@@ -471,14 +416,11 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
           <div>
             <h3 className="text-sm font-headline text-white uppercase tracking-tight">{program.name}</h3>
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-              {profile.frequency}/sem • {program.sessions.length} séances
+              {profile.frequency} séances/sem • {program.sessions.length} séances
             </p>
           </div>
         </div>
-        <button 
-          onClick={() => setView("settings")}
-          className="h-8 px-4 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-[#E24B4A] text-white shadow-lg shadow-[#E24B4A]/20 active:scale-95 transition-all"
-        >
+        <button onClick={() => setView("settings")} className="h-8 px-4 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-[#E24B4A] text-white shadow-lg shadow-[#E24B4A]/20 active:scale-95 transition-all">
           MODIFIER {'>'}
         </button>
       </Card>
@@ -502,13 +444,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             </div>
           </div>
           <div className="h-3 bg-zinc-800/50 rounded-full overflow-hidden">
-            <div 
-              className={cn(
-                "h-full rounded-full transition-all duration-1000",
-                weeklyStats.percent === 100 ? "bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]" : "bg-[#E24B4A] shadow-[0_0_10px_rgba(226,75,74,0.3)]"
-              )}
-              style={{ width: `${weeklyStats.percent}%` }}
-            />
+            <div className={cn("h-full rounded-full transition-all duration-1000", weeklyStats.percent === 100 ? "bg-green-400" : "bg-[#E24B4A]")} style={{ width: `${weeklyStats.percent}%` }} />
           </div>
         </Card>
       </section>

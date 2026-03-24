@@ -19,7 +19,7 @@ const PROGRAM_STYLES: Record<string, { color: string, shadow: string }> = {
   'abdos': { color: 'text-amber-400', shadow: 'drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]' },
 };
 
-export default function Onboarding({ onComplete }: OnboardingProps) {
+export default function Onboarding({ onComplete }: { onComplete: (profile: UserProfile) => void }) {
   const [step, setStep] = useState(-1); // -1 is Body Profile
   const [bodyProfile, setBodyProfile] = useState<BodyProfile | undefined>(undefined);
   const [name, setName] = useState("");
@@ -111,7 +111,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               <h2 className="text-2xl font-headline text-white mb-6">2. TON OBJECTIF</h2>
               <div className="grid grid-cols-2 gap-4">
                 {PROGRAMS.map((prog) => {
-                  const style = PROGRAM_STYLES[prog.id] || { color: 'text-white', shadow: '' };
                   return (
                     <button
                       key={prog.id}
@@ -123,7 +122,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                           : "bg-zinc-900/50 border-transparent hover:bg-zinc-800"
                       )}
                     >
-                      <span className={cn("text-5xl transition-transform group-active:scale-90", style.shadow)}>
+                      <span className={cn("text-5xl transition-transform group-active:scale-90")}>
                         {prog.emoji}
                       </span>
                       <span className={cn(
@@ -161,9 +160,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
             {/* Fréquence */}
             <section>
-              <h2 className="text-2xl font-headline text-white mb-6">4. FRÉQUENCE / SEMAINE</h2>
+              <h2 className="text-2xl font-headline text-white mb-6">4. SÉANCES / SEMAINE</h2>
               <div className="grid grid-cols-4 gap-3">
-                {["2j", "3j", "4j", "5j"].map((f) => (
+                {["2", "3", "4", "5"].map((f) => (
                   <button
                     key={f}
                     onClick={() => setFrequency(f)}
