@@ -47,11 +47,11 @@ function getSuggestedWeight(exercise: Exercise, profile: UserProfile): string | 
   return `~${rounded} kg`;
 }
 
-function ExerciseAnimation({ muscle }: { muscle: string }) {
+function ExerciseAnimation({ muscle, size = 90 }: { muscle: string, size?: number }) {
   const m = muscle.toLowerCase();
   return (
-    <div className="flex flex-col items-center justify-center bg-[#1A1A1A] rounded-xl border border-zinc-800 mx-auto w-[110px] h-[110px] relative overflow-hidden">
-      <svg width="90" height="90" viewBox="0 0 200 200" className="mx-auto">
+    <div className="flex flex-col items-center justify-center bg-[#1A1A1A] rounded-xl border border-zinc-800 mx-auto relative overflow-hidden" style={{ width: size + 20, height: size + 20 }}>
+      <svg width={size} height={size} viewBox="0 0 200 200" className="mx-auto">
         <style>{`
           @keyframes curl{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-80deg)}}
           @keyframes extension{0%,100%{transform:rotate(0deg)}50%{transform:rotate(110deg)}}
@@ -76,92 +76,96 @@ function ExerciseAnimation({ muscle }: { muscle: string }) {
   );
 }
 
-function ExerciseDetailModal({ exercise, onClose, profile }: { exercise: Exercise; onClose: () => void; profile: UserProfile }) {
+function ExerciseVisual({ exercise, size = 180 }: { exercise: Exercise, size?: number }) {
   const [gifUrl, setGifUrl] = useState<string | null>(null);
-  const [loadingGif, setLoadingGif] = useState(true);
-  const suggestedWeight = getSuggestedWeight(exercise, profile);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchGif = async () => {
-      setLoadingGif(true);
+      setLoading(true);
       setGifUrl(null);
       try {
         const query = (exercise as any).nameEn || exercise.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
         const res = await fetch(`/api/exercise-gif?query=${encodeURIComponent(query)}`);
-        const data = JSON.parse(await res.text());
+        const data = await res.json();
         if (data.gifUrl) setGifUrl(data.gifUrl);
       } catch (e) {}
-      finally { setLoadingGif(false); }
+      finally { setLoading(false); }
     };
     fetchGif();
   }, [exercise.name]);
 
+  if (loading) {
+    return (
+      <div className="mx-auto bg-[#0F0F0F] rounded-xl border border-zinc-800 flex items-center justify-center relative overflow-hidden" style={{ width: size, height: size }}>
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (gifUrl) {
+    return (
+      <div className="mx-auto rounded-xl overflow-hidden border border-zinc-800 bg-[#0F0F0F] relative shadow-2xl" style={{ width: size, height: size }}>
+        <img src={gifUrl} alt={exercise.name} className="w-full h-full object-cover" />
+      </div>
+    );
+  }
+
+  return <ExerciseAnimation muscle={exercise.muscle} size={size - 20} />;
+}
+
+function ExerciseDetailModal({ exercise, onClose, profile }: { exercise: Exercise; onClose: () => void; profile: UserProfile }) {
+  const suggestedWeight = getSuggestedWeight(exercise, profile);
+
   return (
     <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/80" onClick={onClose}>
-      <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-2xl p-6 max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
-        onTouchStart={e => { e.currentTarget.dataset.touchY = String(e.touches[0].clientY); }}
-        onTouchEnd={e => { if (e.changedTouches[0].clientY - Number(e.currentTarget.dataset.touchY) > 80) onClose(); }}>
-        <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-5" />
-        {loadingGif ? (
-          <div className="w-[180px] h-[180px] mx-auto mb-4 bg-[#0F0F0F] rounded-xl border border-zinc-800 flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-[#E24B4A] border-t-transparent rounded-full animate-spin" />
+      <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-[40px] p-8 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
+        onClick={e => e.stopPropagation()}>
+        <div className="w-12 h-1.5 bg-zinc-700 rounded-full mx-auto mb-8" />
+        
+        <ExerciseVisual exercise={exercise} size={220} />
+
+        <div className="mt-8 text-center">
+          <h2 className="text-4xl font-headline text-white uppercase tracking-tight mb-4">{exercise.name}</h2>
+          <div className="flex flex-wrap gap-2 justify-center mb-6">
+            <span className="px-4 py-1.5 bg-accent/10 text-accent text-[11px] font-bold uppercase rounded-xl border border-accent/20">{exercise.muscle}</span>
+            <span className="px-4 py-1.5 bg-zinc-800 text-zinc-300 text-[11px] font-bold uppercase rounded-xl">{exercise.sets} × {exercise.reps}</span>
+            <span className="px-4 py-1.5 bg-zinc-800 text-zinc-300 text-[11px] font-bold uppercase rounded-xl flex items-center gap-1.5">
+              <Timer className="w-3.5 h-3.5"/> {exercise.rest}
+            </span>
           </div>
-        ) : gifUrl ? (
-          <div className="mx-auto mb-4 w-[180px] h-[180px] rounded-xl overflow-hidden border border-zinc-800">
-            <img src={gifUrl} alt={exercise.name} className="w-full h-full object-cover" />
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center bg-[#0F0F0F] rounded-xl border border-zinc-800 mb-4 mx-auto w-[180px] h-[180px] relative overflow-hidden">
-            <svg width="140" height="140" viewBox="0 0 200 200">
-              <style>{`
-                @keyframes curl{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-80deg)}}
-                @keyframes extension{0%,100%{transform:rotate(0deg)}50%{transform:rotate(110deg)}}
-                @keyframes press{0%,100%{transform:translateY(0)}50%{transform:translateY(-30px)}}
-                @keyframes squat{0%,100%{transform:translateY(0)}50%{transform:translateY(40px)}}
-                @keyframes crunch{0%,100%{transform:rotate(0deg)}50%{transform:rotate(15deg)}}
-                .animate-curl2{transform-origin:70px 100px;animation:curl 2s ease-in-out infinite}
-                .animate-extension2{transform-origin:100px 60px;animation:extension 2s ease-in-out infinite}
-                .animate-press2{animation:press 2s ease-in-out infinite}
-                .animate-squat2{animation:squat 2s ease-in-out infinite}
-                .animate-crunch2{transform-origin:100px 130px;animation:crunch 2s ease-in-out infinite}
-              `}</style>
-              {(exercise.muscle.toLowerCase().includes('bicep')||exercise.muscle.toLowerCase().includes('avant-bras'))&&(<g><path d="M40 100 L70 100" stroke="#444" strokeWidth="8" strokeLinecap="round"/><g className="animate-curl2"><path d="M70 100 L110 100" stroke="#E24B4A" strokeWidth="8" strokeLinecap="round"/><circle cx="115" cy="100" r="10" fill="#E24B4A"/></g><circle cx="40" cy="100" r="12" fill="#444"/></g>)}
-              {exercise.muscle.toLowerCase().includes('tricep')&&(<g><path d="M100 20 L100 60" stroke="#444" strokeWidth="8" strokeLinecap="round"/><g className="animate-extension2"><path d="M100 60 L100 110" stroke="#E24B4A" strokeWidth="8" strokeLinecap="round"/><circle cx="100" cy="115" r="10" fill="#E24B4A"/></g><circle cx="100" cy="20" r="12" fill="#444"/></g>)}
-              {(exercise.muscle.toLowerCase().includes('pectoro')||exercise.muscle.toLowerCase().includes('épaule'))&&(<g><rect x="50" y="140" width="100" height="10" fill="#444" rx="5"/><g className="animate-press2"><path d="M60 140 L60 80 M140 140 L140 80" stroke="#444" strokeWidth="4"/><path d="M50 80 L150 80" stroke="#E24B4A" strokeWidth="10" strokeLinecap="round"/></g></g>)}
-              {(exercise.muscle.toLowerCase().includes('dos')||exercise.muscle.toLowerCase().includes('dorsal'))&&(<g><rect x="50" y="40" width="100" height="10" fill="#444" rx="5"/><g className="animate-press2" style={{animationDirection:'reverse'}}><path d="M60 40 L60 100 M140 40 L140 100" stroke="#444" strokeWidth="4"/><path d="M50 100 L150 100" stroke="#E24B4A" strokeWidth="10" strokeLinecap="round"/></g></g>)}
-              {(exercise.muscle.toLowerCase().includes('jambe')||exercise.muscle.toLowerCase().includes('quadri')||exercise.muscle.toLowerCase().includes('ischio')||exercise.muscle.toLowerCase().includes('fessier'))&&(<g><rect x="40" y="170" width="120" height="10" fill="#444" rx="5"/><g className="animate-squat2"><circle cx="100" cy="40" r="15" fill="#444"/><path d="M100 55 L100 110" stroke="#444" strokeWidth="10" strokeLinecap="round"/><path d="M100 110 L80 170 M100 110 L120 170" stroke="#E24B4A" strokeWidth="10" strokeLinecap="round"/></g></g>)}
-              {exercise.muscle.toLowerCase().includes('abdo')&&(<g><rect x="40" y="140" width="120" height="10" fill="#444" rx="5"/><g className="animate-crunch2"><path d="M100 140 L100 80" stroke="#E24B4A" strokeWidth="12" strokeLinecap="round"/><circle cx="100" cy="65" r="15" fill="#444"/></g></g>)}
-            </svg>
-          </div>
-        )}
-        <h2 className="text-3xl font-headline text-[#E24B4A] uppercase text-center mb-3">{exercise.name}</h2>
-        <div className="flex flex-wrap gap-2 justify-center mb-4">
-          <span className="px-3 py-1 bg-[#EE3BAA]/10 text-[#EE3BAA] text-[11px] font-bold uppercase rounded-md border border-[#EE3BAA]/20">{exercise.muscle}</span>
-          <span className="px-3 py-1 bg-zinc-800 text-zinc-300 text-[11px] font-bold uppercase rounded-md">{exercise.sets} × {exercise.reps}</span>
-          <span className="px-3 py-1 bg-zinc-800 text-zinc-300 text-[11px] font-bold uppercase rounded-md flex items-center gap-1"><Timer className="w-3 h-3"/> {exercise.rest}</span>
-          {suggestedWeight && <span className="px-3 py-1 bg-amber-500/10 text-amber-400 text-[11px] font-bold uppercase rounded-md border border-amber-500/20">🏋️ {suggestedWeight}</span>}
         </div>
+
         {suggestedWeight && (
-          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 mb-4 flex items-center gap-3">
-            <span className="text-xl">🏋️</span>
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 mb-8 flex items-center gap-4">
+            <span className="text-2xl">🏋️</span>
             <div>
-              <p className="text-[11px] font-bold text-amber-400 uppercase tracking-widest">Poids conseillé</p>
-              <p className="text-sm text-zinc-300">{suggestedWeight} · {profile.level}, {profile.bodyProfile?.poids}kg</p>
+              <p className="text-[11px] font-bold text-amber-400 uppercase tracking-widest">Charge conseillée</p>
+              <p className="text-sm text-zinc-300 font-medium">{suggestedWeight} <span className="text-zinc-500 text-xs">({profile.level})</span></p>
             </div>
           </div>
         )}
-        <div className="space-y-4 mb-5">
-          <div>
-            <div className="flex items-center gap-2 mb-2"><Zap className="w-4 h-4 text-[#E24B4A]"/><span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Position & Mouvement</span></div>
-            <p className="text-sm text-zinc-200 leading-relaxed bg-[#0F0F0F] p-4 rounded-xl border border-zinc-800">{exercise.position}</p>
+
+        <div className="space-y-6 mb-8">
+          <div className="bg-[#0F0F0F] p-5 rounded-2xl border border-zinc-800">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-4 h-4 text-primary"/>
+              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Exécution</span>
+            </div>
+            <p className="text-sm text-zinc-300 leading-relaxed">{exercise.position}</p>
           </div>
-          <div>
-            <div className="flex items-center gap-2 mb-2"><Info className="w-4 h-4 text-[#EE3BAA]"/><span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Conseil technique</span></div>
-            <p className="text-sm text-zinc-300 italic border-l-2 border-[#EE3BAA] pl-4 leading-relaxed">"{exercise.technique}"</p>
+          <div className="bg-[#0F0F0F] p-5 rounded-2xl border border-zinc-800">
+            <div className="flex items-center gap-2 mb-3">
+              <Info className="w-4 h-4 text-accent"/>
+              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Astuce Coach</span>
+            </div>
+            <p className="text-sm text-zinc-400 italic leading-relaxed">"{exercise.technique}"</p>
           </div>
         </div>
-        <Button onClick={onClose} className="w-full h-12 bg-zinc-800 hover:bg-zinc-700 text-white font-headline text-lg rounded-xl press-effect">FERMER</Button>
+
+        <Button onClick={onClose} className="w-full h-16 bg-zinc-800 hover:bg-zinc-700 text-white font-headline text-2xl rounded-2xl shadow-xl press-effect">
+          RETOUR À LA SÉANCE
+        </Button>
       </div>
     </div>
   );
@@ -323,7 +327,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
                   <span className="w-1 h-1 rounded-full bg-zinc-800" />
                   <span className="flex items-center gap-1"><Activity className="w-3.5 h-3.5" /> {s.exercises.length} exercices</span>
                   <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                  <span className="text-[#EE3BAA]">{s.exercises[0]?.muscle}</span>
+                  <span className="text-accent">{s.exercises[0]?.muscle}</span>
                 </div>
               </button>
             );
@@ -345,15 +349,15 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
           </div>
           <div className="grid grid-cols-3 gap-3 mb-6">
             <div className="bg-[#1A1A1A] rounded-xl p-3 text-center border border-[#2A2A2A]">
-              <div className="text-2xl font-headline text-[#E24B4A]">{currentExercises.length}</div>
+              <div className="text-2xl font-headline text-primary">{currentExercises.length}</div>
               <div className="text-[10px] font-bold text-zinc-500 uppercase mt-1">Exercices</div>
             </div>
             <div className="bg-[#1A1A1A] rounded-xl p-3 text-center border border-[#2A2A2A]">
-              <div className="text-2xl font-headline text-[#E24B4A]">{currentSession.duration.replace(' min','')}</div>
+              <div className="text-2xl font-headline text-primary">{currentSession.duration.replace(' min','')}</div>
               <div className="text-[10px] font-bold text-zinc-500 uppercase mt-1">Minutes</div>
             </div>
             <div className="bg-[#1A1A1A] rounded-xl p-3 text-center border border-[#2A2A2A]">
-              <div className="text-2xl font-headline text-[#E24B4A]">60s</div>
+              <div className="text-2xl font-headline text-primary">60s</div>
               <div className="text-[10px] font-bold text-zinc-500 uppercase mt-1">Repos</div>
             </div>
           </div>
@@ -362,20 +366,20 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
               const suggested = getSuggestedWeight(ex, profile);
               return (
                 <button key={i} onClick={() => setSelectedExercise(ex)}
-                  className="w-full bg-[#1A1A1A] rounded-xl p-3 flex items-center gap-3 border border-[#2A2A2A] hover:border-[#E24B4A]/40 transition-all text-left active:scale-[0.98]">
-                  <div className="w-7 h-7 rounded-full bg-[#E24B4A]/10 flex items-center justify-center text-[#E24B4A] font-headline text-sm flex-shrink-0">{i+1}</div>
+                  className="w-full bg-[#1A1A1A] rounded-xl p-3 flex items-center gap-3 border border-[#2A2A2A] hover:border-primary/40 transition-all text-left active:scale-[0.98]">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-headline text-sm flex-shrink-0">{i+1}</div>
                   <div className="flex-1">
                     <p className="text-sm font-bold text-white uppercase">{ex.name}</p>
                     <p className="text-[10px] text-zinc-500">{ex.sets} × {ex.reps} • {ex.rest}{suggested ? ` • 🏋️ ${suggested}` : ''}</p>
                   </div>
-                  <span className="text-[10px] font-bold text-[#EE3BAA] bg-[#EE3BAA]/10 px-2 py-0.5 rounded-md shrink-0">{ex.muscle}</span>
+                  <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-md shrink-0">{ex.muscle}</span>
                 </button>
               );
             })}
           </div>
         </div>
         <Button onClick={() => { setCountdown(10); setCurrentExIdx(0); setCurrentSet(1); setDoneExercises([]); setIsResting(false); setPhase("countdown"); }}
-          className="w-full h-14 bg-[#E24B4A] text-white font-headline text-2xl rounded-xl mt-4 flex items-center justify-center gap-3 press-effect ripple">
+          className="w-full h-14 bg-primary text-white font-headline text-2xl rounded-xl mt-4 flex items-center justify-center gap-3 press-effect ripple">
           <Play className="w-6 h-6" /> LANCER LA SÉANCE
         </Button>
         {selectedExercise && <ExerciseDetailModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} profile={profile} />}
@@ -413,7 +417,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
       <div className="p-4 flex items-center gap-4 shrink-0">
         <button onClick={() => setPhase("intro")} className="text-zinc-500 p-1"><X className="w-5 h-5" /></button>
         <div className="flex-1 h-1.5 bg-[#1A1A1A] rounded-full overflow-hidden">
-          <div className="h-full bg-[#E24B4A] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+          <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
         <span className="text-xs font-bold text-zinc-500 shrink-0">{currentExIdx + 1}/{currentExercises.length}</span>
       </div>
@@ -452,12 +456,12 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
       ) : (
         <div className="flex-1 flex flex-col px-4 pb-4 overflow-y-auto">
           <div className="text-center mb-2 shrink-0">
-            <span className="text-[#E24B4A] font-bold text-[10px] uppercase tracking-widest">
+            <span className="text-primary font-bold text-[10px] uppercase tracking-widest">
               Exercice {currentExIdx + 1} / {currentExercises.length}
             </span>
             <h1 className="text-2xl font-headline text-white leading-tight uppercase">{currentExercise?.name}</h1>
             <div className="flex justify-center mt-1">
-              <span className="px-3 py-0.5 bg-[#EE3BAA]/10 text-[#EE3BAA] text-[10px] font-bold uppercase rounded-md border border-[#EE3BAA]/20">
+              <span className="px-3 py-0.5 bg-accent/10 text-accent text-[10px] font-bold uppercase rounded-md border border-accent/20">
                 {currentExercise?.muscle}
               </span>
             </div>
@@ -468,7 +472,9 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
               <span className="text-3xl font-headline text-white block">{currentSet}</span>
               <span className="text-[9px] font-bold text-zinc-500 uppercase">Série / {totalSets}</span>
             </div>
-            <ExerciseAnimation muscle={currentExercise?.muscle || ''} />
+            
+            <ExerciseVisual exercise={currentExercise} size={160} />
+
             <div className="bg-[#1A1A1A] border border-[#2A2A2A] px-5 py-3 rounded-2xl text-center">
               <span className="text-3xl font-headline text-white block">{currentExercise?.reps}</span>
               <span className="text-[9px] font-bold text-zinc-500 uppercase">Reps</span>
@@ -488,7 +494,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
 
           <div className="bg-[#0F0F0F] border border-zinc-800 rounded-xl p-3 mb-2 shrink-0">
             <div className="flex items-center gap-1.5 mb-1">
-              <Zap className="w-3 h-3 text-[#E24B4A]"/>
+              <Zap className="w-3 h-3 text-primary"/>
               <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Position</span>
             </div>
             <p className="text-xs text-zinc-300 leading-relaxed line-clamp-3">{currentExercise?.position}</p>
@@ -503,11 +509,11 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
             <div className="flex justify-center gap-2 mb-2">
               {Array.from({ length: totalSets }).map((_, i) => (
                 <div key={i} className={cn("w-2 h-2 rounded-full transition-all",
-                  i < currentSet - 1 ? "bg-[#E24B4A]" : i === currentSet - 1 ? "bg-white" : "bg-zinc-700"
+                  i < currentSet - 1 ? "bg-primary" : i === currentSet - 1 ? "bg-white" : "bg-zinc-700"
                 )} />
               ))}
             </div>
-            <Button onClick={handleSetDone} className="w-full h-14 rounded-3xl text-xl font-headline bg-[#E24B4A] text-white shadow-2xl press-effect ripple">
+            <Button onClick={handleSetDone} className="w-full h-14 rounded-3xl text-xl font-headline bg-primary text-white shadow-2xl press-effect ripple">
               SÉRIE {currentSet} TERMINÉE ✓
             </Button>
           </div>
