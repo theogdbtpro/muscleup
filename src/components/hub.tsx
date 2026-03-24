@@ -73,7 +73,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
   const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
 
-  // Chargement initial
   useEffect(() => {
     const storedDates = localStorage.getItem("completedDates" + uidPrefix);
     if (storedDates) setCompletedDates(JSON.parse(storedDates));
@@ -90,7 +89,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     }
   }, [profile.frequency, profile.objective, uidPrefix, program]);
 
-  // Conseil du coach
   useEffect(() => {
     const fetchAdvice = async () => {
       setLoadingAdvice(true);
@@ -227,6 +225,8 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     setEditingId(null);
   };
 
+  const isWeeklyGoalReached = weeklyStats.percent === 100;
+
   return (
     <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-28">
       {/* 1. Header */}
@@ -347,10 +347,25 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
             return (
               <div key={day} data-day={day}
-                draggable={!isPast && !!session}
-                onDragStart={() => setDraggedDay(day)}
-                onDragOver={(e) => { e.preventDefault(); }}
-                onDrop={() => swapDays(draggedDay!, day)}
+                onTouchStart={(e) => {
+                  if (isPast || !session) return;
+                  setDraggedDay(day);
+                  (e.currentTarget as any)._startY = e.touches[0].clientY;
+                }}
+                onTouchMove={(e) => {
+                  if (!draggedDay) return;
+                  e.preventDefault();
+                }}
+                onTouchEnd={(e) => {
+                  if (!draggedDay) return;
+                  const touch = e.changedTouches[0];
+                  const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                  const dropDay = element?.closest('[data-day]')?.getAttribute('data-day');
+                  if (dropDay && dropDay !== draggedDay) {
+                    swapDays(draggedDay, dropDay);
+                  }
+                  setDraggedDay(null);
+                }}
                 className={cn(
                   "p-5 flex items-center justify-between border-b border-zinc-800 last:border-0 transition-all", 
                   isDone ? "bg-green-500/10" : (isToday ? "bg-[#E24B4A]/5" : ""),
@@ -416,7 +431,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
           <div>
             <h3 className="text-sm font-headline text-white uppercase tracking-tight">{program.name}</h3>
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-              {profile.frequency} séances/sem • {program.sessions.length} séances
+              Objectif : {profile.frequency} séances / semaine
             </p>
           </div>
         </div>
@@ -430,7 +445,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Objectif Semaine</h2>
         <Card className={cn(
           "transition-all duration-500 border p-6 rounded-[32px] space-y-4 shadow-2xl",
-          weeklyStats.percent === 100 
+          isWeeklyGoalReached 
             ? "bg-green-600/20 border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.4)]" 
             : "bg-zinc-900/30 border-zinc-800/50"
         )}>
@@ -439,12 +454,12 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
               <div className="text-5xl font-headline text-white leading-none">{weeklyStats.done} / {weeklyStats.total}</div>
               <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">SÉANCES VALIDÉES</div>
             </div>
-            <div className={cn("text-2xl font-headline", weeklyStats.percent === 100 ? "text-green-400" : "text-[#E24B4A]")}>
+            <div className={cn("text-2xl font-headline", isWeeklyGoalReached ? "text-green-400" : "text-[#E24B4A]")}>
               {weeklyStats.percent}%
             </div>
           </div>
           <div className="h-3 bg-zinc-800/50 rounded-full overflow-hidden">
-            <div className={cn("h-full rounded-full transition-all duration-1000", weeklyStats.percent === 100 ? "bg-green-400" : "bg-[#E24B4A]")} style={{ width: `${weeklyStats.percent}%` }} />
+            <div className={cn("h-full rounded-full transition-all duration-1000", isWeeklyGoalReached ? "bg-green-400" : "bg-[#E24B4A]")} style={{ width: `${weeklyStats.percent}%` }} />
           </div>
         </Card>
       </section>
