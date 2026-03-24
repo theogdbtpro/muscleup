@@ -205,22 +205,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     try { navigator.vibrate?.(15); } catch {}
   };
 
-  const moveSession = (day: string, direction: 'up' | 'down') => {
-    const index = DAY_NAMES.indexOf(day);
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= DAY_NAMES.length) return;
-
-    const targetDay = DAY_NAMES[targetIndex];
-    const newSchedule = { ...currentWeekSchedule };
-    const tmp = newSchedule[day];
-    newSchedule[day] = newSchedule[targetDay];
-    newSchedule[targetDay] = tmp;
-
-    setCurrentWeekSchedule(newSchedule);
-    localStorage.setItem("muscleup_base_schedule" + uidPrefix, JSON.stringify(newSchedule));
-    try { navigator.vibrate?.(20); } catch {}
-  };
-
   const swapDays = (day1: string, day2: string) => {
     const newSchedule = { ...currentWeekSchedule };
     const tmp = newSchedule[day1];
@@ -379,19 +363,20 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                   if (!draggedDay) return;
                   const touch = e.changedTouches[0];
                   const element = document.elementFromPoint(touch.clientX, touch.clientY);
-                  const dropDay = element?.closest('[data-day]')?.getAttribute('data-day');
+                  const targetContainer = element?.closest('[data-day]');
+                  const dropDay = targetContainer?.getAttribute('data-day');
                   if (dropDay && dropDay !== draggedDay) {
                     swapDays(draggedDay, dropDay);
                   }
                   setDraggedDay(null);
                 }}
                 className={cn(
-                  "p-5 flex items-center justify-between border-b border-zinc-800 last:border-0 transition-all", 
+                  "p-5 flex items-center justify-between border-b border-zinc-800 last:border-0 transition-all touch-none", 
                   isDone ? "bg-green-500/10" : (isToday ? "bg-[#E24B4A]/5" : ""),
                   draggedDay === day && "opacity-40 scale-95"
                 )}
               >
-                <div className="flex items-center gap-6 flex-1 min-w-0">
+                <div className="flex items-center gap-6 flex-1 min-w-0 pointer-events-none">
                   <div className="w-14 shrink-0">
                     <span className={cn("text-[11px] font-black uppercase block leading-none mb-1", isToday ? "text-[#E24B4A]" : "text-zinc-600")}>
                       {day}
@@ -402,36 +387,16 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                   </div>
                   
                   <div className="flex-1 min-w-0 flex items-center gap-2">
-                    {editingId === session?.id ? (
-                      <Input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleRename(session!.id)} onBlur={() => setEditingId(null)} className="h-8 bg-black border-primary text-white font-headline text-lg uppercase" />
-                    ) : (
-                      <div className="flex items-center gap-2 group">
-                        <span className={cn("text-2xl font-headline uppercase truncate tracking-tight block", session ? (isDone ? "text-green-400" : (isPast ? "text-zinc-700" : "text-white")) : "text-zinc-800")}>
-                          {session ? getSessionName(session) : "REPOS"}
-                        </span>
-                        {session && !isPast && (
-                          <button onClick={() => { setEditingId(session.id); setEditValue(getSessionName(session)); }} className="p-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 text-zinc-600 hover:text-primary transition-all">
-                            <Pencil className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 group">
+                      <span className={cn("text-2xl font-headline uppercase truncate tracking-tight block", session ? (isDone ? "text-green-400" : (isPast ? "text-zinc-700" : "text-white")) : "text-zinc-800")}>
+                        {session ? getSessionName(session) : "REPOS"}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="shrink-0 flex items-center gap-3 ml-3">
-                  {session && !isPast && (
-                    <div className="flex flex-col gap-0.5">
-                      <button onClick={(e) => { e.stopPropagation(); moveSession(day, 'up'); }} disabled={idx === 0} className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all press-effect">
-                        <ChevronUp className="w-3 h-3" />
-                      </button>
-                      <button onClick={(e) => { e.stopPropagation(); moveSession(day, 'down'); }} disabled={idx === 6} className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all press-effect">
-                        <ChevronDown className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
-
-                  <button onClick={() => toggleDateCompletion(dateStr)} className={cn("w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all press-effect", isDone ? "bg-green-500 border-green-500" : "border-zinc-800")}>
+                  <button onClick={(e) => { e.stopPropagation(); toggleDateCompletion(dateStr); }} className={cn("w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all press-effect", isDone ? "bg-green-500 border-green-500" : "border-zinc-800")}>
                     {isDone && <Check className="w-4 h-4 text-white" />}
                   </button>
                 </div>

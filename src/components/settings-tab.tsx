@@ -57,7 +57,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
-  const [dailySchedule, setDailySchedule] = useState<Record<string, string | null>>({});
   const dayNamesFull = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
   const [scheduleTemplate, setScheduleTemplate] = useState<Record<string, string | null>>({});
@@ -65,9 +64,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   useEffect(() => {
     const savedNames = localStorage.getItem("muscleup_session_names" + uidPrefix);
     if (savedNames) setCustomNames(JSON.parse(savedNames));
-
-    const storedDaily = localStorage.getItem("muscleup_daily_schedule" + uidPrefix);
-    if (storedDaily) setDailySchedule(JSON.parse(storedDaily));
 
     const savedSchedule = localStorage.getItem("muscleup_base_schedule" + uidPrefix);
     if (savedSchedule) {
@@ -90,26 +86,27 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   };
 
   const handleSave = () => {
+    // 1. Sauvegarder le modèle de base (le template futur)
+    localStorage.setItem("muscleup_base_schedule" + uidPrefix, JSON.stringify(scheduleTemplate));
+
+    // 2. Figer le calendrier quotidien pour tout ce qui précède AUJOURD'HUI
     const now = new Date();
     const currentDayIdx = (now.getDay() + 6) % 7;
-    const newDaily = { ...dailySchedule };
+    const storedDaily = JSON.parse(localStorage.getItem("muscleup_daily_schedule" + uidPrefix) || "{}");
+    const oldBase = JSON.parse(localStorage.getItem("muscleup_base_schedule" + uidPrefix) || "{}");
     
-    // On ne fige le passé que si ce n'est pas déjà fait, pour garder l'historique
+    // On boucle sur les jours passés de cette semaine pour les "geler" avec l'ancien template s'ils n'y sont pas
     for (let i = 0; i < currentDayIdx; i++) {
       const d = new Date();
       const diff = i - currentDayIdx;
       d.setDate(d.getDate() + diff);
       const ds = getLocalDateStr(d);
-      
-      if (newDaily[ds] === undefined) {
-        const dayName = dayNamesFull[i];
-        const oldTemplate = JSON.parse(localStorage.getItem("muscleup_base_schedule" + uidPrefix) || "{}");
-        newDaily[ds] = oldTemplate[dayName] || null;
+      if (storedDaily[ds] === undefined) {
+        storedDaily[ds] = oldBase[dayNamesFull[i]] || null;
       }
     }
-
-    localStorage.setItem("muscleup_daily_schedule" + uidPrefix, JSON.stringify(newDaily));
-    localStorage.setItem("muscleup_base_schedule" + uidPrefix, JSON.stringify(scheduleTemplate));
+    
+    localStorage.setItem("muscleup_daily_schedule" + uidPrefix, JSON.stringify(storedDaily));
     onUpdateProfile(tempProfile);
 
     toast({
