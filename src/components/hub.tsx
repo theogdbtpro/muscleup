@@ -1,3 +1,4 @@
+
 "use client";
 
 import { UserProfile } from "@/app/page";
@@ -233,7 +234,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   };
 
   return (
-    <div className="p-6 space-y-8 animate-in fade-in duration-500 pb-28">
+    <div className="p-6 space-y-6 animate-in fade-in duration-500 pb-28">
       {/* 1. Header */}
       <header className="flex justify-between items-center">
         <div className="flex items-center gap-4">
@@ -258,19 +259,19 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Navigation Grid */}
-      <div className="grid grid-cols-3 gap-4">
-        <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
-          <BarChart className="w-7 h-7 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
-          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Profil</span>
+      {/* 2. Navigation Grid - Reduced Size */}
+      <div className="grid grid-cols-3 gap-3 px-2">
+        <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[22px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all group">
+          <BarChart className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
+          <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Profil</span>
         </button>
-        <button onClick={() => setView("nutrition")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
-          <Utensils className="w-7 h-7 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.5)]" />
-          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nutrition</span>
+        <button onClick={() => setView("nutrition")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[22px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all group">
+          <Utensils className="w-5 h-5 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.5)]" />
+          <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Nutrition</span>
         </button>
-        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all group">
-          <Calendar className="w-7 h-7 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]" />
-          <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest text-center leading-tight">Planning<br/>Mensuel</span>
+        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[22px] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all group">
+          <Calendar className="w-5 h-5 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]" />
+          <span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest text-center leading-tight">Planning<br/>Mensuel</span>
         </button>
       </div>
 
