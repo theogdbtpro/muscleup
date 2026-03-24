@@ -1,4 +1,3 @@
-
 "use client";
 
 import { UserProfile } from "@/app/page";
@@ -259,7 +258,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Navigation Grid (3 boutons épurés) */}
+      {/* 2. Navigation Grid */}
       <div className="grid grid-cols-3 gap-4">
         <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
           <BarChart className="w-7 h-7 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
@@ -269,13 +268,13 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
           <Utensils className="w-7 h-7 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.5)]" />
           <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nutrition</span>
         </button>
-        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
+        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all group">
           <Calendar className="w-7 h-7 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]" />
-          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Planning</span>
+          <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest text-center leading-tight">Planning<br/>Mensuel</span>
         </button>
       </div>
 
-      {/* 3. Carte Héros Dynamisée (Success ou Today) */}
+      {/* 3. Carte Héros Dynamisée */}
       {finishedToday && weekOffset === 0 ? (
         <Card className="bg-gradient-to-br from-[#0B1A10] to-[#08120C] border border-green-900/40 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group animate-in zoom-in duration-500 shadow-green-950/20">
           <div className="absolute inset-0 bg-green-500/5 blur-3xl rounded-full translate-x-1/2 translate-y-1/2 pointer-events-none" />
@@ -475,7 +474,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </Button>
       </Card>
 
-      {/* 6. Objectif Semaine (au-dessus du Coach) */}
+      {/* 6. Objectif Semaine */}
       <section className="space-y-4">
         <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Objectif Semaine</h2>
         <Card className={cn(
