@@ -194,7 +194,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     try { navigator.vibrate?.(20); } catch {}
   };
 
-  // MOBILE DRAG AND DROP FIX
   const handleTouchStart = (day: string) => {
     setDraggedDay(day);
   };
@@ -259,7 +258,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Navigation Grid - Épurée & Flashy */}
+      {/* 2. Navigation Grid */}
       <div className="grid grid-cols-3 gap-4">
         <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
           <BarChart className="w-7 h-7 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
@@ -319,7 +318,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         <div className="h-10" />
       )}
 
-      {/* 4. Planning Hebdomadaire Mobile-Friendly DND */}
+      {/* 4. Planning Hebdomadaire */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-headline text-white tracking-wide uppercase">Planning</h2>
@@ -452,7 +451,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </section>
 
-      {/* 5. Programme Actuel - Sous le planning */}
+      {/* 5. Programme Actuel */}
       <Card className="bg-[#1A1A1A]/60 backdrop-blur-md border-[#2A2A2A] p-4 rounded-3xl flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 flex items-center justify-center text-2xl shadow-lg">
@@ -475,20 +474,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </Button>
       </Card>
 
-      {/* 6. Conseil du Jour */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Le Coach dit...</h2>
-        <Card className="bg-[#1A1A1A]/40 border border-zinc-800/50 p-6 rounded-[32px] flex items-start gap-5">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-            <Lightbulb className="w-6 h-6 text-amber-500 drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]" />
-          </div>
-          <p className={cn("text-sm text-zinc-400 italic font-medium leading-relaxed", loadingAdvice && "animate-pulse")}>
-            "{dailyAdvice}"
-          </p>
-        </Card>
-      </section>
-
-      {/* 7. Ma Progression - Flashy Green at 100% */}
+      {/* 6. Objectif Semaine (Placé au-dessus du Coach) */}
       <section className="space-y-4">
         <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Objectif Semaine</h2>
         <Card className={cn(
@@ -515,6 +501,19 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
               style={{ width: `${weeklyStats.percent}%` }}
             />
           </div>
+        </Card>
+      </section>
+
+      {/* 7. Conseil du Jour */}
+      <section className="space-y-4">
+        <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Le Coach dit...</h2>
+        <Card className="bg-[#1A1A1A]/40 border border-zinc-800/50 p-6 rounded-[32px] flex items-start gap-5">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+            <Lightbulb className="w-6 h-6 text-amber-500 drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]" />
+          </div>
+          <p className={cn("text-sm text-zinc-400 italic font-medium leading-relaxed", loadingAdvice && "animate-pulse")}>
+            "{dailyAdvice}"
+          </p>
         </Card>
       </section>
     </div>
