@@ -260,17 +260,17 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Navigation Grid - Compact & Colorful */}
-      <div className="grid grid-cols-3 gap-3 px-1">
-        <button onClick={() => setView("body-profile")} className="bg-zinc-900 border border-zinc-800 aspect-square rounded-[22px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group overflow-hidden">
+      {/* 2. Navigation Grid - Flashy & Compact */}
+      <div className="grid grid-cols-3 gap-3">
+        <button onClick={() => setView("body-profile")} className="bg-zinc-900 border border-zinc-800 py-4 rounded-[22px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group relative overflow-hidden">
           <BarChart className="w-6 h-6 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
           <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Profil</span>
         </button>
-        <button onClick={() => setView("nutrition")} className="bg-zinc-900 border border-zinc-800 aspect-square rounded-[22px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group overflow-hidden">
+        <button onClick={() => setView("nutrition")} className="bg-zinc-900 border border-zinc-800 py-4 rounded-[22px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group relative overflow-hidden">
           <Utensils className="w-6 h-6 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.5)]" />
           <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Nutrition</span>
         </button>
-        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900 border border-zinc-800 aspect-square rounded-[22px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all group overflow-hidden">
+        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900 border border-zinc-800 py-4 rounded-[22px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all group relative overflow-hidden">
           <Calendar className="w-6 h-6 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]" />
           <span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest text-center leading-tight">Planning<br/>Mensuel</span>
         </button>
@@ -466,14 +466,12 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             </p>
           </div>
         </div>
-        <Button 
-          variant="default" 
-          size="sm" 
+        <button 
           onClick={() => setView("settings")}
-          className="h-8 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-[#E24B4A] shadow-lg shadow-[#E24B4A]/20"
+          className="h-8 px-4 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-[#E24B4A] text-white shadow-lg shadow-[#E24B4A]/20 active:scale-95 transition-all"
         >
           MODIFIER {'>'}
-        </Button>
+        </button>
       </Card>
 
       {/* 6. Objectif Semaine */}
