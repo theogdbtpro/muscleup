@@ -24,7 +24,7 @@ import {
   MapPin,
   Sparkles
 } from "lucide-react";
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { getExerciseAdvice } from "@/ai/flows/exercise-advice";
@@ -74,28 +74,27 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
   const program = useMemo(() => PROGRAMS.find((p) => p.id === profile.objective) || PROGRAMS[0], [profile.objective]);
 
+  // Chargement initial
   useEffect(() => {
-    const loadData = () => {
-      const storedDates = localStorage.getItem("completedDates" + uidPrefix);
-      if (storedDates) setCompletedDates(JSON.parse(storedDates));
+    const storedDates = localStorage.getItem("completedDates" + uidPrefix);
+    if (storedDates) setCompletedDates(JSON.parse(storedDates));
 
-      const storedNames = localStorage.getItem("muscleup_session_names" + uidPrefix);
-      if (storedNames) setCustomNames(JSON.parse(storedNames));
+    const storedNames = localStorage.getItem("muscleup_session_names" + uidPrefix);
+    if (storedNames) setCustomNames(JSON.parse(storedNames));
 
-      const storedDaily = localStorage.getItem("muscleup_daily_schedule" + uidPrefix);
-      if (storedDaily) setDailySchedule(JSON.parse(storedDaily));
+    const storedDaily = localStorage.getItem("muscleup_daily_schedule" + uidPrefix);
+    if (storedDaily) setDailySchedule(JSON.parse(storedDaily));
 
-      const storedSchedule = localStorage.getItem("muscleup_base_schedule" + uidPrefix) || localStorage.getItem("muscleup_schedule" + uidPrefix);
-      if (storedSchedule) {
-        setCurrentWeekSchedule(JSON.parse(storedSchedule));
-      } else {
-        const generated = generateBaseSchedule(profile.frequency, program);
-        setCurrentWeekSchedule(generated);
-      }
-    };
-    loadData();
+    const storedSchedule = localStorage.getItem("muscleup_base_schedule" + uidPrefix);
+    if (storedSchedule) {
+      setCurrentWeekSchedule(JSON.parse(storedSchedule));
+    } else {
+      const generated = generateBaseSchedule(profile.frequency, program);
+      setCurrentWeekSchedule(generated);
+    }
   }, [profile.frequency, profile.objective, uidPrefix, program]);
 
+  // Conseil du coach
   useEffect(() => {
     const fetchAdvice = async () => {
       setLoadingAdvice(true);
@@ -115,39 +114,50 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     fetchAdvice();
   }, [profile.level, profile.objective]);
 
+  // Fonction pure pour obtenir la séance sans déclencher de re-render
+  const getSessionForDate = useCallback((date: Date, dayName: string) => {
+    const dateStr = getLocalDateStr(date);
+    if (dailySchedule[dateStr] !== undefined) return dailySchedule[dateStr];
+    return currentWeekSchedule[dayName] || null;
+  }, [dailySchedule, currentWeekSchedule]);
+
+  // Effet pour "geler" les jours passés de la semaine visible
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    let hasChanges = false;
+    const newDaily = { ...dailySchedule };
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date();
+      const currentDayReal = (date.getDay() + 6) % 7;
+      const diff = i - currentDayReal + (weekOffset * 7);
+      date.setDate(date.getDate() + diff);
+      date.setHours(0,0,0,0);
+
+      const dateStr = getLocalDateStr(date);
+      if (date <= today && dailySchedule[dateStr] === undefined) {
+        newDaily[dateStr] = currentWeekSchedule[DAY_NAMES[i]] || null;
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      setDailySchedule(newDaily);
+      localStorage.setItem("muscleup_daily_schedule" + uidPrefix, JSON.stringify(newDaily));
+    }
+  }, [weekOffset, currentWeekSchedule, uidPrefix, dailySchedule]);
+
   const getSessionName = (session: Session) => customNames[session.id] || session.name;
 
   const finishedToday = useMemo(() => completedDates.includes(getLocalDateStr()), [completedDates]);
 
-  // Fonction pour obtenir la séance d'une date spécifique (gère l'historique vs modèle)
-  const getSessionForDate = (date: Date, dayName: string) => {
-    const dateStr = getLocalDateStr(date);
-    if (dailySchedule[dateStr] !== undefined) return dailySchedule[dateStr];
-    
-    const templateId = currentWeekSchedule[dayName];
-    
-    // Si la date est passée ou aujourd'hui, on la "fige" dans le daily schedule
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const targetDate = new Date(date);
-    targetDate.setHours(0,0,0,0);
-
-    if (targetDate <= today) {
-      const newDaily = { ...dailySchedule, [dateStr]: templateId };
-      setDailySchedule(newDaily);
-      localStorage.setItem("muscleup_daily_schedule" + uidPrefix, JSON.stringify(newDaily));
-    }
-    
-    return templateId;
-  };
-
-  const currentDayIdx = (new Date().getDay() + 6) % 7;
-  const todaySessionId = getSessionForDate(new Date(), DAY_NAMES[currentDayIdx]);
-  const todaySession = program.sessions.find(s => s.id === todaySessionId);
+  const todaySessionId = useMemo(() => getSessionForDate(new Date(), DAY_NAMES[(new Date().getDay() + 6) % 7]), [getSessionForDate]);
+  const todaySession = useMemo(() => program.sessions.find(s => s.id === todaySessionId), [program, todaySessionId]);
 
   const nextSessionInfo = useMemo(() => {
     if (!finishedToday && todaySession) return null;
-    
     for (let i = 1; i < 14; i++) {
       const d = new Date();
       d.setDate(d.getDate() + i);
@@ -165,7 +175,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
       }
     }
     return null;
-  }, [finishedToday, todaySession, dailySchedule, currentWeekSchedule, program, customNames]);
+  }, [finishedToday, todaySession, getSessionForDate, program, customNames]);
 
   const weeklyStats = useMemo(() => {
     const now = new Date();
@@ -193,7 +203,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
       done: done,
       percent: planned > 0 ? Math.round((done / planned) * 100) : 0
     };
-  }, [currentWeekSchedule, dailySchedule, completedDates, weekOffset]);
+  }, [completedDates, weekOffset, getSessionForDate]);
 
   const toggleDateCompletion = (dateStr: string) => {
     const isDone = completedDates.includes(dateStr);
@@ -222,22 +232,6 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     setCurrentWeekSchedule(newSchedule);
     localStorage.setItem("muscleup_base_schedule" + uidPrefix, JSON.stringify(newSchedule));
     try { navigator.vibrate?.(20); } catch {}
-  };
-
-  const handleTouchStart = (day: string) => {
-    setDraggedDay(day);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent, day: string) => {
-    const touch = e.changedTouches[0];
-    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
-    const targetRow = targetEl?.closest('[data-day]');
-    const targetDay = targetRow?.getAttribute('data-day');
-    
-    if (targetDay && targetDay !== day) {
-      swapDays(day, targetDay);
-    }
-    setDraggedDay(null);
   };
 
   const swapDays = (day1: string, day2: string) => {
@@ -395,11 +389,20 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                 key={day} 
                 data-day={day}
                 draggable={!isPast && !!session}
-                onDragStart={() => handleTouchStart(day)}
+                onDragStart={() => setDraggedDay(day)}
                 onDragOver={(e) => { e.preventDefault(); }}
                 onDrop={() => swapDays(draggedDay!, day)}
-                onTouchStart={() => !isPast && !!session && handleTouchStart(day)}
-                onTouchEnd={(e) => !isPast && !!session && handleTouchEnd(e, day)}
+                onTouchStart={() => !isPast && !!session && setDraggedDay(day)}
+                onTouchEnd={(e) => {
+                  if (!isPast && !!session && draggedDay) {
+                    const touch = e.changedTouches[0];
+                    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+                    const targetRow = targetEl?.closest('[data-day]');
+                    const targetDayName = targetRow?.getAttribute('data-day');
+                    if (targetDayName && targetDayName !== day) swapDays(day, targetDayName);
+                    setDraggedDay(null);
+                  }
+                }}
                 className={cn(
                   "p-5 flex items-center justify-between border-b border-zinc-800 last:border-0 transition-all", 
                   isDone ? "bg-green-500/10" : (isToday ? "bg-[#E24B4A]/5" : ""),
@@ -548,3 +551,4 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     </div>
   );
 }
+
