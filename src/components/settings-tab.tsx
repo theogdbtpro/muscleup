@@ -90,23 +90,19 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   };
 
   const handleSave = () => {
-    // 1. Avant de sauvegarder, on gèle les jours passés de la semaine actuelle
-    // pour que le changement de template ne les affecte pas.
     const now = new Date();
     const currentDayIdx = (now.getDay() + 6) % 7;
     const newDaily = { ...dailySchedule };
     
-    // On gèle tout jusqu'à hier
+    // On ne fige le passé que si ce n'est pas déjà fait, pour garder l'historique
     for (let i = 0; i < currentDayIdx; i++) {
       const d = new Date();
       const diff = i - currentDayIdx;
       d.setDate(d.getDate() + diff);
       const ds = getLocalDateStr(d);
       
-      // Si ce n'est pas déjà dans le calendrier quotidien, on fige avec le template actuel
       if (newDaily[ds] === undefined) {
         const dayName = dayNamesFull[i];
-        // Note: On utilise l'ancien template du localStorage ou l'état initial
         const oldTemplate = JSON.parse(localStorage.getItem("muscleup_base_schedule" + uidPrefix) || "{}");
         newDaily[ds] = oldTemplate[dayName] || null;
       }
@@ -118,7 +114,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
 
     toast({
       title: "Profil sauvegardé !",
-      description: "Tes réglages sont actifs sans modifier ton historique.",
+      description: "Ta nouvelle routine est prête.",
     });
     setTimeout(() => onBack(), 800);
   };
@@ -137,15 +133,8 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
 
   const moveSession = (day: string, direction: 'up' | 'down') => {
     const index = dayNamesFull.indexOf(day);
-    const todayIdx = (new Date().getDay() + 6) % 7;
-    
-    if (index < todayIdx) {
-      toast({ variant: "destructive", title: "Action impossible", description: "Cette séance est déjà passée." });
-      return;
-    }
-
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < todayIdx || targetIndex >= dayNamesFull.length) return;
+    if (targetIndex < 0 || targetIndex >= dayNamesFull.length) return;
 
     const targetDay = dayNamesFull[targetIndex];
     const newTemplate = { ...scheduleTemplate };
@@ -248,42 +237,29 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
           </div>
         </section>
 
-        {/* Planning Hebdo */}
+        {/* Planning Hebdo - ENTIÈREMENT DÉVERROUILLÉ ICI */}
         <section className="space-y-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-primary" />
-              <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Planning hebdomadaire</h2>
+              <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Planning hebdomadaire (Modèle)</h2>
             </div>
           </div>
 
-          <div className="bg-[#141414] border border-zinc-800/50 rounded-[32px] overflow-hidden">
+          <div className="bg-[#141414] border border-zinc-800/50 rounded-[32px] overflow-hidden shadow-2xl">
             {dayNamesFull.map((day, idx) => {
-              const todayIdx = (new Date().getDay() + 6) % 7;
-              const isPast = idx < todayIdx;
-              
-              // Détermination de la séance à afficher
-              let sessionId = null;
-              if (isPast) {
-                const d = new Date();
-                const diff = idx - todayIdx;
-                d.setDate(d.getDate() + diff);
-                sessionId = dailySchedule[getLocalDateStr(d)] ?? null;
-              } else {
-                sessionId = scheduleTemplate[day];
-              }
-              
+              const sessionId = scheduleTemplate[day];
               const session = currentProgram.sessions.find(s => s.id === sessionId);
               const displayName = session ? (customNames[session.id] || session.name) : "REPOS";
 
               return (
-                <div key={day} className={cn("p-5 flex items-center justify-between border-b border-zinc-800 last:border-0", isPast ? "bg-black/40 opacity-50" : "bg-transparent")}>
+                <div key={day} className="p-5 flex items-center justify-between border-b border-zinc-800 last:border-0 bg-transparent transition-all">
                   <div className="flex items-center gap-6 flex-1 min-w-0">
                     <div className="w-14 shrink-0">
-                      <span className={cn("text-[11px] font-black uppercase block leading-none", isPast ? "text-zinc-700" : "text-zinc-600")}>{day}</span>
+                      <span className="text-[11px] font-black uppercase block leading-none text-zinc-600">{day}</span>
                     </div>
                     <div className="flex-1 flex items-center gap-2 truncate">
-                      {editingId === session?.id && !isPast ? (
+                      {editingId === session?.id ? (
                         <Input
                           autoFocus
                           value={editValue}
@@ -294,8 +270,8 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
                         />
                       ) : (
                         <div className="flex items-center gap-2">
-                          <span className={cn("text-2xl font-headline uppercase truncate", session ? (isPast ? "text-zinc-600" : "text-white") : "text-zinc-800")}>{displayName}</span>
-                          {session && !isPast && (
+                          <span className={cn("text-2xl font-headline uppercase truncate", session ? "text-white" : "text-zinc-800")}>{displayName}</span>
+                          {session && (
                             <button onClick={() => { setEditingId(session.id); setEditValue(customNames[session.id] || session.name); }} className="p-1 text-zinc-600 hover:text-primary transition-all">
                               <Pencil className="w-3 h-3" />
                             </button>
@@ -305,15 +281,11 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
                     </div>
                   </div>
                   
-                  {sessionId && !isPast && (
+                  {sessionId && (
                     <div className="flex flex-col gap-0.5 ml-3">
-                      <button disabled={idx === todayIdx} onClick={() => moveSession(day, 'up')} className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all"><ChevronUp className="w-3 h-3" /></button>
+                      <button disabled={idx === 0} onClick={() => moveSession(day, 'up')} className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all"><ChevronUp className="w-3 h-3" /></button>
                       <button disabled={idx === 6} onClick={() => moveSession(day, 'down')} className="p-1 bg-zinc-800/50 text-zinc-500 hover:text-white rounded disabled:opacity-0 transition-all"><ChevronDown className="w-3 h-3" /></button>
                     </div>
-                  )}
-                  
-                  {isPast && (
-                    <div className="text-[9px] font-black text-zinc-700 uppercase tracking-tighter italic ml-3">Verrouillé</div>
                   )}
                 </div>
               );
