@@ -18,6 +18,15 @@ type SettingsTabProps = {
   onBack: () => void;
 };
 
+const PROGRAM_STYLES: Record<string, { shadow: string }> = {
+  'gros-bras': { shadow: 'drop-shadow-[0_0_12px_rgba(59,130,246,0.6)]' },
+  'pectoraux': { shadow: 'drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]' },
+  'dos-large': { shadow: 'drop-shadow-[0_0_12px_rgba(16,185,129,0.6)]' },
+  'full-body': { shadow: 'drop-shadow-[0_0_12px_rgba(244,63,94,0.6)]' },
+  'jambes': { shadow: 'drop-shadow-[0_0_12px_rgba(139,92,246,0.6)]' },
+  'abdos': { shadow: 'drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]' },
+};
+
 export default function SettingsTab({ profile, onUpdateProfile, onBack }: SettingsTabProps) {
   const { toast } = useToast();
   const [tempProfile, setTempProfile] = useState<UserProfile>({ ...profile });
@@ -191,9 +200,11 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
             <Target className="w-4 h-4 text-primary" />
             <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Objectif actuel</h2>
           </div>
-          <button onClick={() => setIsObjectiveModalOpen(true)} className="w-full p-6 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl flex justify-between items-center">
+          <button onClick={() => setIsObjectiveModalOpen(true)} className="w-full p-6 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl flex justify-between items-center group">
             <div className="flex items-center gap-4">
-              <span className="text-4xl">{currentProgram.emoji}</span>
+              <span className={cn("text-4xl transition-transform group-active:scale-90", PROGRAM_STYLES[currentProgram.id]?.shadow)}>
+                {currentProgram.emoji}
+              </span>
               <span className="font-headline text-2xl text-white uppercase">{currentProgram.name}</span>
             </div>
             <span className="text-primary font-bold text-xs uppercase tracking-widest">Changer</span>
@@ -317,14 +328,24 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
             <DialogTitle className="font-headline text-2xl uppercase">CHOISIR UN OBJECTIF</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 mt-4">
-            {PROGRAMS.map((prog) => (
-              <button key={prog.id} onClick={() => { handleUpdateBaseInfo({ objective: prog.id }); setIsObjectiveModalOpen(false); }}
-                className={cn("p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2",
-                  tempProfile.objective === prog.id ? "bg-primary/10 border-primary text-white" : "bg-[#0F0F0F] border-transparent text-zinc-600")}>
-                <span className="text-3xl">{prog.emoji}</span>
-                <span className="font-bold text-[10px] uppercase text-center tracking-tight">{prog.name}</span>
-              </button>
-            ))}
+            {PROGRAMS.map((prog) => {
+              const style = PROGRAM_STYLES[prog.id] || { shadow: '' };
+              return (
+                <button key={prog.id} onClick={() => { handleUpdateBaseInfo({ objective: prog.id }); setIsObjectiveModalOpen(false); }}
+                  className={cn("p-6 rounded-[24px] border-2 transition-all flex flex-col items-center gap-3 group relative overflow-hidden",
+                    tempProfile.objective === prog.id ? "bg-primary/10 border-primary" : "bg-[#0F0F0F] border-transparent hover:bg-zinc-800")}>
+                  <span className={cn("text-4xl transition-transform group-active:scale-90", style.shadow)}>
+                    {prog.emoji}
+                  </span>
+                  <span className={cn(
+                    "font-bold text-[10px] uppercase text-center tracking-widest",
+                    tempProfile.objective === prog.id ? "text-white" : "text-zinc-600"
+                  )}>
+                    {prog.name}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>

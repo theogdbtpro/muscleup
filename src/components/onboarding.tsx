@@ -14,6 +14,15 @@ type OnboardingProps = {
   onComplete: (profile: UserProfile) => void;
 };
 
+const PROGRAM_STYLES: Record<string, { color: string, shadow: string }> = {
+  'gros-bras': { color: 'text-blue-400', shadow: 'drop-shadow-[0_0_12px_rgba(59,130,246,0.6)]' },
+  'pectoraux': { color: 'text-red-400', shadow: 'drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]' },
+  'dos-large': { color: 'text-emerald-400', shadow: 'drop-shadow-[0_0_12px_rgba(16,185,129,0.6)]' },
+  'full-body': { color: 'text-rose-400', shadow: 'drop-shadow-[0_0_12px_rgba(244,63,94,0.6)]' },
+  'jambes': { color: 'text-violet-400', shadow: 'drop-shadow-[0_0_12px_rgba(139,92,246,0.6)]' },
+  'abdos': { color: 'text-amber-400', shadow: 'drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]' },
+};
+
 export default function Onboarding({ onComplete }: OnboardingProps) {
   const [step, setStep] = useState(-1); // -1 is Body Profile
   const [bodyProfile, setBodyProfile] = useState<BodyProfile | undefined>(undefined);
@@ -105,21 +114,31 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             <section>
               <h2 className="text-2xl font-headline text-white mb-6">2. TON OBJECTIF</h2>
               <div className="grid grid-cols-2 gap-4">
-                {PROGRAMS.map((prog) => (
-                  <button
-                    key={prog.id}
-                    onClick={() => setObjective(prog.id)}
-                    className={cn(
-                      "p-6 rounded-xl border-2 transition-all flex flex-col items-center gap-3",
-                      objective === prog.id
-                        ? "bg-[#E24B4A]/10 border-[#E24B4A] text-white"
-                        : "bg-[#1A1A1A] border-transparent text-zinc-500"
-                    )}
-                  >
-                    <span className="text-4xl">{prog.emoji}</span>
-                    <span className="font-bold text-[10px] uppercase text-center tracking-tight">{prog.name}</span>
-                  </button>
-                ))}
+                {PROGRAMS.map((prog) => {
+                  const style = PROGRAM_STYLES[prog.id] || { color: 'text-white', shadow: '' };
+                  return (
+                    <button
+                      key={prog.id}
+                      onClick={() => setObjective(prog.id)}
+                      className={cn(
+                        "p-6 rounded-[24px] border-2 transition-all flex flex-col items-center gap-4 group relative overflow-hidden",
+                        objective === prog.id
+                          ? "bg-[#E24B4A]/10 border-[#E24B4A]"
+                          : "bg-zinc-900/50 border-transparent hover:bg-zinc-800"
+                      )}
+                    >
+                      <span className={cn("text-5xl transition-transform group-active:scale-90", style.shadow)}>
+                        {prog.emoji}
+                      </span>
+                      <span className={cn(
+                        "font-bold text-[10px] uppercase text-center tracking-widest",
+                        objective === prog.id ? "text-white" : "text-zinc-600"
+                      )}>
+                        {prog.name}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </section>
 
