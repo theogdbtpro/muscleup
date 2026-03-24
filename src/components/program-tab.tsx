@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { UserProfile } from "@/app/page";
 import { PROGRAMS, Exercise } from "@/data/programs";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Timer, Info, Zap, Play, Activity, Clock, X } from "lucide-react";
+import { ChevronLeft, Timer, Info, Zap, Play, Activity, Clock, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 import { auth } from "@/lib/firebase";
@@ -81,32 +81,43 @@ function ExerciseVisual({ exercise, size = 180 }: { exercise: Exercise, size?: n
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchGif = async () => {
       setLoading(true);
-      setGifUrl(null);
       try {
-        const query = (exercise as any).nameEn || exercise.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+        const query = exercise.nameEn || exercise.name.toLowerCase();
         const res = await fetch(`/api/exercise-gif?query=${encodeURIComponent(query)}`);
         const data = await res.json();
-        if (data.gifUrl) setGifUrl(data.gifUrl);
-      } catch (e) {}
-      finally { setLoading(false); }
+        if (isMounted) {
+          setGifUrl(data.gifUrl);
+        }
+      } catch (e) {
+        console.error("Failed to fetch gif:", e);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
     fetchGif();
-  }, [exercise.name]);
+    return () => { isMounted = false; };
+  }, [exercise.name, exercise.nameEn]);
 
   if (loading) {
     return (
-      <div className="mx-auto bg-[#0F0F0F] rounded-xl border border-zinc-800 flex items-center justify-center relative overflow-hidden" style={{ width: size, height: size }}>
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="mx-auto bg-[#1A1A1A] rounded-xl border border-zinc-800 flex items-center justify-center relative overflow-hidden" style={{ width: size, height: size }}>
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
 
   if (gifUrl) {
     return (
-      <div className="mx-auto rounded-xl overflow-hidden border border-zinc-800 bg-[#0F0F0F] relative shadow-2xl" style={{ width: size, height: size }}>
-        <img src={gifUrl} alt={exercise.name} className="w-full h-full object-cover" />
+      <div className="mx-auto rounded-xl overflow-hidden border border-zinc-800 bg-[#000000] relative shadow-2xl flex items-center justify-center" style={{ width: size, height: size }}>
+        <img 
+          src={gifUrl} 
+          alt={exercise.name} 
+          className="max-w-full max-h-full object-contain"
+          onError={() => setGifUrl(null)}
+        />
       </div>
     );
   }
@@ -118,12 +129,12 @@ function ExerciseDetailModal({ exercise, onClose, profile }: { exercise: Exercis
   const suggestedWeight = getSuggestedWeight(exercise, profile);
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/80" onClick={onClose}>
-      <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-[40px] p-8 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
+    <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-[430px] bg-[#1A1A1A] rounded-t-[40px] p-8 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 shadow-2xl border-t border-zinc-800"
         onClick={e => e.stopPropagation()}>
         <div className="w-12 h-1.5 bg-zinc-700 rounded-full mx-auto mb-8" />
         
-        <ExerciseVisual exercise={exercise} size={220} />
+        <ExerciseVisual exercise={exercise} size={240} />
 
         <div className="mt-8 text-center">
           <h2 className="text-4xl font-headline text-white uppercase tracking-tight mb-4">{exercise.name}</h2>
@@ -139,7 +150,7 @@ function ExerciseDetailModal({ exercise, onClose, profile }: { exercise: Exercis
         {suggestedWeight && (
           <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 mb-8 flex items-center gap-4">
             <span className="text-2xl">🏋️</span>
-            <div>
+            <div className="text-left">
               <p className="text-[11px] font-bold text-amber-400 uppercase tracking-widest">Charge conseillée</p>
               <p className="text-sm text-zinc-300 font-medium">{suggestedWeight} <span className="text-zinc-500 text-xs">({profile.level})</span></p>
             </div>
@@ -468,14 +479,14 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
           </div>
 
           <div className="flex items-center justify-center gap-3 mb-2 shrink-0">
-            <div className="bg-[#1A1A1A] border border-[#2A2A2A] px-5 py-3 rounded-2xl text-center">
+            <div className="bg-[#1A1A1A] border border-[#2A2A2A] px-5 py-3 rounded-2xl text-center min-w-[80px]">
               <span className="text-3xl font-headline text-white block">{currentSet}</span>
               <span className="text-[9px] font-bold text-zinc-500 uppercase">Série / {totalSets}</span>
             </div>
             
-            <ExerciseVisual exercise={currentExercise} size={160} />
+            <ExerciseVisual exercise={currentExercise} size={180} />
 
-            <div className="bg-[#1A1A1A] border border-[#2A2A2A] px-5 py-3 rounded-2xl text-center">
+            <div className="bg-[#1A1A1A] border border-[#2A2A2A] px-5 py-3 rounded-2xl text-center min-w-[80px]">
               <span className="text-3xl font-headline text-white block">{currentExercise?.reps}</span>
               <span className="text-[9px] font-bold text-zinc-500 uppercase">Reps</span>
             </div>
@@ -488,7 +499,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
             </div>
           )}
 
-          <p className="text-zinc-400 italic text-xs text-center max-w-xs mx-auto mb-2 shrink-0">
+          <p className="text-zinc-400 italic text-xs text-center max-w-xs mx-auto mb-2 shrink-0 px-4">
             "{currentExercise?.technique}"
           </p>
 
@@ -505,7 +516,7 @@ export default function ProgramTab({ profile, onBack, onUpdateProfile, manualSes
             <Info className="w-3 h-3" /> Voir tout
           </button>
 
-          <div className="shrink-0">
+          <div className="shrink-0 mt-auto">
             <div className="flex justify-center gap-2 mb-2">
               {Array.from({ length: totalSets }).map((_, i) => (
                 <div key={i} className={cn("w-2 h-2 rounded-full transition-all",
