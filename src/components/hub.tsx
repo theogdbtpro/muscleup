@@ -20,7 +20,8 @@ import {
   ChevronDown,
   User as UserIcon,
   ArrowRight,
-  Pencil
+  Pencil,
+  MapPin
 } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -193,22 +194,31 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     try { navigator.vibrate?.(20); } catch {}
   };
 
-  const handleDragStart = (day: string) => {
+  // MOBILE DRAG AND DROP FIX
+  const handleTouchStart = (day: string) => {
     setDraggedDay(day);
   };
 
-  const handleDrop = (targetDay: string) => {
-    if (!draggedDay || draggedDay === targetDay) return;
+  const handleTouchEnd = (e: React.TouchEvent, day: string) => {
+    const touch = e.changedTouches[0];
+    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+    const targetDay = targetEl?.closest('[data-day]')?.getAttribute('data-day');
     
+    if (targetDay && targetDay !== day) {
+      swapDays(day, targetDay);
+    }
+    setDraggedDay(null);
+  };
+
+  const swapDays = (day1: string, day2: string) => {
     const newSchedule = { ...currentWeekSchedule };
-    const tmp = newSchedule[draggedDay];
-    newSchedule[draggedDay] = newSchedule[targetDay];
-    newSchedule[targetDay] = tmp;
+    const tmp = newSchedule[day1];
+    newSchedule[day1] = newSchedule[day2];
+    newSchedule[day2] = tmp;
 
     setCurrentWeekSchedule(newSchedule);
     localStorage.setItem("muscleup_base_schedule" + uidPrefix, JSON.stringify(newSchedule));
-    setDraggedDay(null);
-    try { navigator.vibrate?.(20); } catch {}
+    try { navigator.vibrate?.(30); } catch {}
   };
 
   const handleRename = (id: string) => {
@@ -249,32 +259,33 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Navigation Grid */}
+      {/* 2. Navigation Grid - Épurée & Flashy */}
       <div className="grid grid-cols-3 gap-4">
         <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
-          <BarChart className="w-7 h-7 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] transition-transform group-hover:scale-110" />
+          <BarChart className="w-7 h-7 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
           <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Profil</span>
         </button>
         <button onClick={() => setView("nutrition")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
-          <Utensils className="w-7 h-7 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.5)] transition-transform group-hover:scale-110" />
+          <Utensils className="w-7 h-7 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.5)]" />
           <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nutrition</span>
         </button>
         <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
-          <Calendar className="w-7 h-7 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)] transition-transform group-hover:scale-110" />
+          <Calendar className="w-7 h-7 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]" />
           <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Planning</span>
         </button>
       </div>
 
-      {/* 3. Carte Héros Dynamique (Style Modèle) */}
+      {/* 3. Carte Héros Dynamisée */}
       {finishedToday && weekOffset === 0 ? (
-        <Card className="bg-gradient-to-br from-[#0B1A10] to-[#08120C] border border-green-900/40 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group animate-in zoom-in duration-500">
+        <Card className="bg-gradient-to-br from-[#0B1A10] to-[#08120C] border border-green-900/40 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group animate-in zoom-in duration-500 shadow-green-950/20">
+          <div className="absolute inset-0 bg-green-500/5 blur-3xl rounded-full translate-x-1/2 translate-y-1/2 pointer-events-none" />
           <div className="relative z-10 flex flex-col items-start">
             <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-widest block mb-1">SÉANCE TERMINÉE ✓</span>
             <h2 className="text-6xl font-headline text-white uppercase leading-none mb-8 tracking-tighter">
               {todaySession ? getSessionName(todaySession) : "RÉCUPÉRATION"}
             </h2>
             {nextSessionInfo && (
-              <div className="bg-black/40 backdrop-blur-md p-5 rounded-3xl border border-white/5 inline-flex flex-col min-w-[170px]">
+              <div className="bg-black/40 backdrop-blur-md p-5 rounded-3xl border border-white/5 inline-flex flex-col min-w-[170px] slide-up stagger-1">
                 <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
                   SUIVANT <ArrowRight className="w-2.5 h-2.5" />
                 </span>
@@ -308,14 +319,14 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         <div className="h-10" />
       )}
 
-      {/* 4. Planning Hebdomadaire avec Drag and Drop */}
+      {/* 4. Planning Hebdomadaire Mobile-Friendly DND */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-headline text-white tracking-wide uppercase">Planning</h2>
           <div className="flex items-center gap-4">
              <button 
                onClick={() => setWeekOffset(prev => prev - 1)} 
-               className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect"
+               className="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect"
              >
                <ChevronLeft className="w-5 h-5" />
              </button>
@@ -327,7 +338,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
              </button>
              <button 
                onClick={() => setWeekOffset(prev => prev + 1)} 
-               className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect"
+               className="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect"
              >
                <ChevronRight className="w-5 h-5" />
              </button>
@@ -352,14 +363,17 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
             return (
               <div 
                 key={day} 
+                data-day={day}
                 draggable={!isPast && !!session}
-                onDragStart={() => handleDragStart(day)}
+                onDragStart={() => handleTouchStart(day)}
                 onDragOver={(e) => { e.preventDefault(); }}
-                onDrop={() => handleDrop(day)}
+                onDrop={() => swapDays(draggedDay!, day)}
+                onTouchStart={() => !isPast && !!session && handleTouchStart(day)}
+                onTouchEnd={(e) => !isPast && !!session && handleTouchEnd(e, day)}
                 className={cn(
-                  "p-5 flex items-center justify-between border-b border-zinc-800/30 last:border-0 transition-all cursor-grab active:cursor-grabbing", 
+                  "p-5 flex items-center justify-between border-b border-zinc-800/30 last:border-0 transition-all", 
                   isDone ? "bg-green-500/10" : (isToday ? "bg-[#E24B4A]/[0.05]" : ""),
-                  draggedDay === day && "opacity-40"
+                  draggedDay === day && "opacity-40 scale-95"
                 )}
               >
                 <div className="flex items-center gap-6 flex-1 min-w-0">
@@ -392,7 +406,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                         {session && !isPast && (
                           <button 
                             onClick={() => { setEditingId(session.id); setEditValue(getSessionName(session)); }}
-                            className="p-1 opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-primary transition-all"
+                            className="p-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 text-zinc-600 hover:text-primary transition-all"
                           >
                             <Pencil className="w-3 h-3" />
                           </button>
@@ -438,7 +452,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </section>
 
-      {/* 5. Programme Actuel */}
+      {/* 5. Programme Actuel - Sous le planning */}
       <Card className="bg-[#1A1A1A]/60 backdrop-blur-md border-[#2A2A2A] p-4 rounded-3xl flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 flex items-center justify-center text-2xl shadow-lg">
@@ -474,13 +488,13 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </Card>
       </section>
 
-      {/* 7. Ma Progression */}
+      {/* 7. Ma Progression - Flashy Green at 100% */}
       <section className="space-y-4">
         <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Objectif Semaine</h2>
         <Card className={cn(
           "transition-all duration-500 border p-6 rounded-[32px] space-y-4 shadow-2xl",
           weeklyStats.percent === 100 
-            ? "bg-green-600/20 border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.1)]" 
+            ? "bg-green-600/20 border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]" 
             : "bg-zinc-900/30 border-zinc-800/50"
         )}>
           <div className="flex justify-between items-end">
