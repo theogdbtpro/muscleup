@@ -93,12 +93,8 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
 
   const handleSave = () => {
     onUpdateProfile(tempProfile);
-    
-    // Sauvegarde avec le bon préfixe UID
     localStorage.setItem("muscleup_base_schedule" + uidPrefix, JSON.stringify(schedule));
     localStorage.setItem("muscleup_schedule" + uidPrefix, JSON.stringify(schedule));
-    localStorage.removeItem("muscleup_manual_schedule" + uidPrefix);
-    
     toast({
       title: "Programme mis à jour !",
       description: "Tes réglages ont été synchronisés.",
@@ -141,20 +137,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     setTimeout(() => setMoveMessage(null), 2000);
   };
 
-  const optimizationWarnings = useMemo(() => {
-    const warnings: string[] = [];
-    if (tempProfile.frequency === "4j" || tempProfile.frequency === "5j") return [];
-    
-    for (let i = 0; i < dayNamesFull.length; i++) {
-      const today = dayNamesFull[i];
-      const tomorrow = dayNamesFull[(i + 1) % dayNamesFull.length];
-      if (schedule[today] && schedule[tomorrow]) {
-        warnings.push(`Repos limité entre ${today} et ${tomorrow}.`);
-      }
-    }
-    return warnings;
-  }, [schedule, tempProfile.frequency]);
-
   const currentProgram = PROGRAMS.find(p => p.id === tempProfile.objective) || PROGRAMS[0];
 
   return (
@@ -169,7 +151,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
         <button 
           onClick={() => { if(confirm("Se déconnecter ?")) auth.signOut(); }}
           className="p-2 text-zinc-600 hover:text-primary transition-colors"
-          title="Déconnexion"
         >
           <LogOut className="w-5 h-5" />
         </button>
@@ -252,10 +233,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
             {moveMessage && <span className="text-[9px] font-bold text-green-500 uppercase">{moveMessage}</span>}
           </div>
 
-          <button onClick={handleReoptimize} className="w-full p-3 border border-dashed border-primary/50 text-primary rounded-xl text-xs font-bold uppercase hover:bg-primary/5 mb-4">
-            <Sparkles className="w-4 h-4 mr-2 inline" /> Ré-optimiser automatiquement
-          </button>
-
           <div className="space-y-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl overflow-hidden">
             {dayNamesFull.map((day, idx) => {
               const sessionId = schedule[day];
@@ -287,11 +264,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
                               <Pencil className="w-3 h-3" />
                             </button>
                           )}
-                          {session && customNames[session.id] && (
-                            <button onClick={() => handleResetName(session.id)} className="text-zinc-600 hover:text-amber-500">
-                              <RotateCcw className="w-3 h-3" />
-                            </button>
-                          )}
                         </>
                       )}
                     </div>
@@ -306,13 +278,6 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
               );
             })}
           </div>
-
-          {optimizationWarnings.length > 0 && (
-            <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex items-start gap-3">
-              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-              <p className="text-[10px] text-amber-200/70 italic leading-tight">Attention : pas assez de repos entre certaines séances. Idéalement 48h entre les mêmes groupes.</p>
-            </div>
-          )}
         </section>
       </div>
 

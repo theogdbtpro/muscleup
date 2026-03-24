@@ -10,10 +10,6 @@ import { cn } from "@/lib/utils";
 import { Dumbbell, Home, User, Target, ChevronRight } from "lucide-react";
 import BodyProfileView from "./body-profile";
 
-type OnboardingProps = {
-  onComplete: (profile: UserProfile) => void;
-};
-
 const PROGRAM_STYLES: Record<string, { color: string, shadow: string }> = {
   'gros-bras': { color: 'text-blue-400', shadow: 'drop-shadow-[0_0_12px_rgba(59,130,246,0.6)]' },
   'pectoraux': { color: 'text-red-400', shadow: 'drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]' },

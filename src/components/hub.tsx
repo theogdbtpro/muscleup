@@ -202,7 +202,8 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const handleTouchEnd = (e: React.TouchEvent, day: string) => {
     const touch = e.changedTouches[0];
     const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
-    const targetDay = targetEl?.closest('[data-day]')?.getAttribute('data-day');
+    const targetRow = targetEl?.closest('[data-day]');
+    const targetDay = targetRow?.getAttribute('data-day');
     
     if (targetDay && targetDay !== day) {
       swapDays(day, targetDay);
@@ -259,18 +260,18 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Navigation Grid - Reduced Size */}
-      <div className="grid grid-cols-3 gap-3 px-2">
-        <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[22px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all group">
-          <BarChart className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
+      {/* 2. Navigation Grid - Compact & Colorful */}
+      <div className="grid grid-cols-3 gap-3 px-1">
+        <button onClick={() => setView("body-profile")} className="bg-zinc-900 border border-zinc-800 aspect-square rounded-[22px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group overflow-hidden">
+          <BarChart className="w-6 h-6 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
           <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Profil</span>
         </button>
-        <button onClick={() => setView("nutrition")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[22px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all group">
-          <Utensils className="w-5 h-5 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.5)]" />
+        <button onClick={() => setView("nutrition")} className="bg-zinc-900 border border-zinc-800 aspect-square rounded-[22px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group overflow-hidden">
+          <Utensils className="w-6 h-6 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.5)]" />
           <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Nutrition</span>
         </button>
-        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[22px] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all group">
-          <Calendar className="w-5 h-5 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]" />
+        <button onClick={() => setView("planning-mensuel")} className="bg-zinc-900 border border-zinc-800 aspect-square rounded-[22px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all group overflow-hidden">
+          <Calendar className="w-6 h-6 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]" />
           <span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest text-center leading-tight">Planning<br/>Mensuel</span>
         </button>
       </div>
@@ -316,36 +317,36 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
           <Dumbbell className="absolute -right-6 -bottom-6 w-48 h-48 text-[#E24B4A]/10 rotate-12" />
         </Card>
       ) : (
-        <div className="h-10" />
+        <div className="h-4" />
       )}
 
       {/* 4. Planning Hebdomadaire */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-headline text-white tracking-wide uppercase">Planning</h2>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
              <button 
                onClick={() => setWeekOffset(prev => prev - 1)} 
-               className="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect"
+               className="w-10 h-10 rounded-full bg-black border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect"
              >
                <ChevronLeft className="w-5 h-5" />
              </button>
              <button 
                onClick={() => setWeekOffset(0)} 
-               className="text-[10px] font-black text-zinc-500 uppercase tracking-widest"
+               className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-2"
              >
                {weekOffset === 0 ? "CETTE SEM." : (weekOffset > 0 ? `+${weekOffset} SEM.` : `${weekOffset} SEM.`)}
              </button>
              <button 
                onClick={() => setWeekOffset(prev => prev + 1)} 
-               className="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect"
+               className="w-10 h-10 rounded-full bg-black border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-all press-effect"
              >
                <ChevronRight className="w-5 h-5" />
              </button>
           </div>
         </div>
         
-        <div className="bg-[#141414]/90 border border-zinc-800/50 rounded-[32px] overflow-hidden shadow-2xl">
+        <div className="bg-[#141414] border border-zinc-800/50 rounded-[32px] overflow-hidden shadow-2xl">
           {DAY_NAMES.map((day, idx) => {
             const sessionId = currentWeekSchedule[day];
             const session = program.sessions.find(s => s.id === sessionId);
@@ -371,8 +372,8 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
                 onTouchStart={() => !isPast && !!session && handleTouchStart(day)}
                 onTouchEnd={(e) => !isPast && !!session && handleTouchEnd(e, day)}
                 className={cn(
-                  "p-5 flex items-center justify-between border-b border-zinc-800/30 last:border-0 transition-all", 
-                  isDone ? "bg-green-500/10" : (isToday ? "bg-[#E24B4A]/[0.05]" : ""),
+                  "p-5 flex items-center justify-between border-b border-zinc-800 last:border-0 transition-all", 
+                  isDone ? "bg-green-500/10" : (isToday ? "bg-[#E24B4A]/5" : ""),
                   draggedDay === day && "opacity-40 scale-95"
                 )}
               >
@@ -452,8 +453,8 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </section>
 
-      {/* 5. Programme Actuel */}
-      <Card className="bg-[#1A1A1A]/60 backdrop-blur-md border-[#2A2A2A] p-4 rounded-3xl flex items-center justify-between shadow-xl">
+      {/* 5. Programme Actuel - Sous le planning */}
+      <Card className="bg-[#1A1A1A] border-[#2A2A2A] p-4 rounded-3xl flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 flex items-center justify-center text-2xl shadow-lg">
             {program.emoji}
