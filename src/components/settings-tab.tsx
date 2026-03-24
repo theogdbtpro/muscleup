@@ -41,11 +41,15 @@ function generateBaseSchedule(frequency: string, program: Program): Record<strin
   return result;
 }
 
+const getLocalDateStr = (date: Date = new Date()) => {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+
 export default function SettingsTab({ profile, onUpdateProfile, onBack }: SettingsTabProps) {
   const { toast } = useToast();
   const [tempProfile, setTempProfile] = useState<UserProfile>({ ...profile });
   const [isObjectiveModalOpen, setIsObjectiveModalOpen] = useState(false);
-  const [moveMessage, setMoveMessage] = useState<string | null>(null);
   
   const user = auth.currentUser;
   const uidPrefix = user ? `_${user.uid}` : "_guest";
@@ -53,20 +57,24 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [dailySchedule, setDailySchedule] = useState<Record<string, string | null>>({});
   const dayNamesFull = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
-  const [schedule, setSchedule] = useState<Record<string, string | null>>({});
+  const [scheduleTemplate, setScheduleTemplate] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     const savedNames = localStorage.getItem("muscleup_session_names" + uidPrefix);
     if (savedNames) setCustomNames(JSON.parse(savedNames));
 
+    const storedDaily = localStorage.getItem("muscleup_daily_schedule" + uidPrefix);
+    if (storedDaily) setDailySchedule(JSON.parse(storedDaily));
+
     const savedSchedule = localStorage.getItem("muscleup_base_schedule" + uidPrefix);
     if (savedSchedule) {
-      setSchedule(JSON.parse(savedSchedule));
+      setScheduleTemplate(JSON.parse(savedSchedule));
     } else {
       const generated = generateBaseSchedule(profile.frequency, PROGRAMS.find(p => p.id === profile.objective) || PROGRAMS[0]);
-      setSchedule(generated);
+      setScheduleTemplate(generated);
     }
   }, [uidPrefix, profile.objective, profile.frequency]);
 
@@ -76,25 +84,41 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     
     if (updates.frequency || updates.objective) {
       const prog = PROGRAMS.find(p => p.id === (updates.objective || tempProfile.objective)) || PROGRAMS[0];
-      const newSchedule = generateBaseSchedule(updates.frequency || tempProfile.frequency, prog);
-      
-      // On fusionne avec le passé
-      const todayIdx = (new Date().getDay() + 6) % 7;
-      const finalSchedule = { ...newSchedule };
-      dayNamesFull.forEach((d, i) => {
-        if (i < todayIdx) finalSchedule[d] = schedule[d];
-      });
-
-      setSchedule(finalSchedule);
+      const newTemplate = generateBaseSchedule(updates.frequency || tempProfile.frequency, prog);
+      setScheduleTemplate(newTemplate);
     }
   };
 
   const handleSave = () => {
+    // 1. Avant de sauvegarder, on gèle les jours passés de la semaine actuelle
+    // pour que le changement de template ne les affecte pas.
+    const now = new Date();
+    const currentDayIdx = (now.getDay() + 6) % 7;
+    const newDaily = { ...dailySchedule };
+    
+    // On gèle tout jusqu'à hier
+    for (let i = 0; i < currentDayIdx; i++) {
+      const d = new Date();
+      const diff = i - currentDayIdx;
+      d.setDate(d.getDate() + diff);
+      const ds = getLocalDateStr(d);
+      
+      // Si ce n'est pas déjà dans le calendrier quotidien, on fige avec le template actuel
+      if (newDaily[ds] === undefined) {
+        const dayName = dayNamesFull[i];
+        // Note: On utilise l'ancien template du localStorage ou l'état initial
+        const oldTemplate = JSON.parse(localStorage.getItem("muscleup_base_schedule" + uidPrefix) || "{}");
+        newDaily[ds] = oldTemplate[dayName] || null;
+      }
+    }
+
+    localStorage.setItem("muscleup_daily_schedule" + uidPrefix, JSON.stringify(newDaily));
+    localStorage.setItem("muscleup_base_schedule" + uidPrefix, JSON.stringify(scheduleTemplate));
     onUpdateProfile(tempProfile);
-    localStorage.setItem("muscleup_base_schedule" + uidPrefix, JSON.stringify(schedule));
+
     toast({
       title: "Profil sauvegardé !",
-      description: "Tes réglages sont maintenant actifs.",
+      description: "Tes réglages sont actifs sans modifier ton historique.",
     });
     setTimeout(() => onBack(), 800);
   };
@@ -124,12 +148,12 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
     if (targetIndex < todayIdx || targetIndex >= dayNamesFull.length) return;
 
     const targetDay = dayNamesFull[targetIndex];
-    const newSchedule = { ...schedule };
-    const tmp = newSchedule[day];
-    newSchedule[day] = newSchedule[targetDay];
-    newSchedule[targetDay] = tmp;
+    const newTemplate = { ...scheduleTemplate };
+    const tmp = newTemplate[day];
+    newTemplate[day] = newTemplate[targetDay];
+    newTemplate[targetDay] = tmp;
 
-    setSchedule(newSchedule);
+    setScheduleTemplate(newTemplate);
   };
 
   const currentProgram = PROGRAMS.find(p => p.id === tempProfile.objective) || PROGRAMS[0];
@@ -224,22 +248,33 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
           </div>
         </section>
 
-        {/* Planning Hebdo - Harmonisé avec l'accueil */}
+        {/* Planning Hebdo */}
         <section className="space-y-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-primary" />
-              <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Planning verrouillé</h2>
+              <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Planning hebdomadaire</h2>
             </div>
           </div>
 
           <div className="bg-[#141414] border border-zinc-800/50 rounded-[32px] overflow-hidden">
             {dayNamesFull.map((day, idx) => {
-              const sessionId = schedule[day];
-              const session = currentProgram.sessions.find(s => s.id === sessionId);
-              const displayName = session ? (customNames[session.id] || session.name) : "REPOS";
               const todayIdx = (new Date().getDay() + 6) % 7;
               const isPast = idx < todayIdx;
+              
+              // Détermination de la séance à afficher
+              let sessionId = null;
+              if (isPast) {
+                const d = new Date();
+                const diff = idx - todayIdx;
+                d.setDate(d.getDate() + diff);
+                sessionId = dailySchedule[getLocalDateStr(d)] ?? null;
+              } else {
+                sessionId = scheduleTemplate[day];
+              }
+              
+              const session = currentProgram.sessions.find(s => s.id === sessionId);
+              const displayName = session ? (customNames[session.id] || session.name) : "REPOS";
 
               return (
                 <div key={day} className={cn("p-5 flex items-center justify-between border-b border-zinc-800 last:border-0", isPast ? "bg-black/40 opacity-50" : "bg-transparent")}>
@@ -248,7 +283,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
                       <span className={cn("text-[11px] font-black uppercase block leading-none", isPast ? "text-zinc-700" : "text-zinc-600")}>{day}</span>
                     </div>
                     <div className="flex-1 flex items-center gap-2 truncate">
-                      {editingId === session?.id ? (
+                      {editingId === session?.id && !isPast ? (
                         <Input
                           autoFocus
                           value={editValue}
@@ -259,7 +294,7 @@ export default function SettingsTab({ profile, onUpdateProfile, onBack }: Settin
                         />
                       ) : (
                         <div className="flex items-center gap-2">
-                          <span className={cn("text-2xl font-headline uppercase truncate", session ? "text-white" : "text-zinc-800")}>{displayName}</span>
+                          <span className={cn("text-2xl font-headline uppercase truncate", session ? (isPast ? "text-zinc-600" : "text-white") : "text-zinc-800")}>{displayName}</span>
                           {session && !isPast && (
                             <button onClick={() => { setEditingId(session.id); setEditValue(customNames[session.id] || session.name); }} className="p-1 text-zinc-600 hover:text-primary transition-all">
                               <Pencil className="w-3 h-3" />

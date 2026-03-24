@@ -61,6 +61,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   const [completedDates, setCompletedDates] = useState<string[]>([]);
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [currentWeekSchedule, setCurrentWeekSchedule] = useState<Record<string, string | null>>({});
+  const [dailySchedule, setDailySchedule] = useState<Record<string, string | null>>({});
   const [dailyAdvice, setDailyAdvice] = useState<string>("Prêt pour ta prochaine dose de gains ?");
   const [loadingAdvice, setLoadingAdvice] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -79,6 +80,9 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
 
     const storedNames = localStorage.getItem("muscleup_session_names" + uidPrefix);
     if (storedNames) setCustomNames(JSON.parse(storedNames));
+
+    const storedDaily = localStorage.getItem("muscleup_daily_schedule" + uidPrefix);
+    if (storedDaily) setDailySchedule(JSON.parse(storedDaily));
 
     const storedSchedule = localStorage.getItem("muscleup_base_schedule" + uidPrefix);
     if (storedSchedule) {
@@ -109,8 +113,12 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
   }, [profile.level, profile.objective]);
 
   const getSessionForDate = useCallback((date: Date, dayName: string) => {
+    const ds = getLocalDateStr(date);
+    // Priorité au calendrier quotidien (historique gelé)
+    if (dailySchedule[ds] !== undefined) return dailySchedule[ds];
+    // Sinon on utilise le modèle de base
     return currentWeekSchedule[dayName] || null;
-  }, [currentWeekSchedule]);
+  }, [currentWeekSchedule, dailySchedule]);
 
   const getSessionName = (session: Session) => customNames[session.id] || session.name;
 
@@ -183,6 +191,17 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     }
     setCompletedDates(newDates);
     localStorage.setItem("completedDates" + uidPrefix, JSON.stringify(newDates));
+    
+    // Geler la séance dans le calendrier quotidien si elle ne l'est pas
+    if (!dailySchedule[dateStr]) {
+      const day = new Date(dateStr);
+      const dayIdx = (day.getDay() + 6) % 7;
+      const sId = currentWeekSchedule[DAY_NAMES[dayIdx]];
+      const newDaily = { ...dailySchedule, [dateStr]: sId };
+      setDailySchedule(newDaily);
+      localStorage.setItem("muscleup_daily_schedule" + uidPrefix, JSON.stringify(newDaily));
+    }
+    
     try { navigator.vibrate?.(15); } catch {}
   };
 
