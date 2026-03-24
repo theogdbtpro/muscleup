@@ -121,39 +121,16 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     return currentWeekSchedule[dayName] || null;
   }, [dailySchedule, currentWeekSchedule]);
 
-  // Effet pour "geler" les jours passés de la semaine visible
-  useEffect(() => {
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    
-    let hasChanges = false;
-    const newDaily = { ...dailySchedule };
-
-    for (let i = 0; i < 7; i++) {
-      const date = new Date();
-      const currentDayReal = (date.getDay() + 6) % 7;
-      const diff = i - currentDayReal + (weekOffset * 7);
-      date.setDate(date.getDate() + diff);
-      date.setHours(0,0,0,0);
-
-      const dateStr = getLocalDateStr(date);
-      if (date <= today && dailySchedule[dateStr] === undefined) {
-        newDaily[dateStr] = currentWeekSchedule[DAY_NAMES[i]] || null;
-        hasChanges = true;
-      }
-    }
-
-    if (hasChanges) {
-      setDailySchedule(newDaily);
-      localStorage.setItem("muscleup_daily_schedule" + uidPrefix, JSON.stringify(newDaily));
-    }
-  }, [weekOffset, currentWeekSchedule, uidPrefix, dailySchedule]);
-
   const getSessionName = (session: Session) => customNames[session.id] || session.name;
 
   const finishedToday = useMemo(() => completedDates.includes(getLocalDateStr()), [completedDates]);
 
-  const todaySessionId = useMemo(() => getSessionForDate(new Date(), DAY_NAMES[(new Date().getDay() + 6) % 7]), [getSessionForDate]);
+  const todaySessionId = useMemo(() => {
+    const now = new Date();
+    const dayIdx = (now.getDay() + 6) % 7;
+    return getSessionForDate(now, DAY_NAMES[dayIdx]);
+  }, [getSessionForDate]);
+
   const todaySession = useMemo(() => program.sessions.find(s => s.id === todaySessionId), [program, todaySessionId]);
 
   const nextSessionInfo = useMemo(() => {
@@ -551,4 +528,3 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
     </div>
   );
 }
-
