@@ -21,7 +21,8 @@ import {
   User as UserIcon,
   ArrowRight,
   Pencil,
-  MapPin
+  MapPin,
+  Sparkles
 } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -258,7 +259,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </div>
       </header>
 
-      {/* 2. Navigation Grid */}
+      {/* 2. Navigation Grid (3 boutons épurés) */}
       <div className="grid grid-cols-3 gap-4">
         <button onClick={() => setView("body-profile")} className="bg-zinc-900/80 border border-zinc-800 aspect-square rounded-[28px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group">
           <BarChart className="w-7 h-7 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
@@ -274,7 +275,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </button>
       </div>
 
-      {/* 3. Carte Héros Dynamisée */}
+      {/* 3. Carte Héros Dynamisée (Success ou Today) */}
       {finishedToday && weekOffset === 0 ? (
         <Card className="bg-gradient-to-br from-[#0B1A10] to-[#08120C] border border-green-900/40 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group animate-in zoom-in duration-500 shadow-green-950/20">
           <div className="absolute inset-0 bg-green-500/5 blur-3xl rounded-full translate-x-1/2 translate-y-1/2 pointer-events-none" />
@@ -474,7 +475,7 @@ export default function Hub({ profile, setView, onStartSession, onReset }: HubPr
         </Button>
       </Card>
 
-      {/* 6. Objectif Semaine (Placé au-dessus du Coach) */}
+      {/* 6. Objectif Semaine (au-dessus du Coach) */}
       <section className="space-y-4">
         <h2 className="text-2xl font-headline text-white tracking-wide uppercase">Objectif Semaine</h2>
         <Card className={cn(
